@@ -1,0 +1,13 @@
+#ifndef __P11_API_H__
+#define __P11_API_H__
+
+#define P11_P2M_INT_IE 			   	P11_SYSTEM->P2M_INT_IE
+#define P11_M2P_INT_IE 			   	P11_SYSTEM->M2P_INT_IE
+#define P11_M2P_INT_SET 			P11_SYSTEM->M2P_INT_SET
+#define P11_P2M_INT_SET 			P11_SYSTEM->P2M_INT_SET
+#define P11_P2M_INT_CLR 			P11_SYSTEM->P2M_INT_CLR
+#define P11_P2M_INT_PND 			P11_SYSTEM->P2M_INT_PND
+
+
+
+#endif
