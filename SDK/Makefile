@@ -565,7 +565,6 @@ c_SRC_FILES := \
 	apps/earphone/ble/ble_adv.c \
 	apps/earphone/ble/bt_ble.c \
 	apps/earphone/board/br52/board_config.c \
-	apps/earphone/board/br52/lp_touch_key_config.c \
 	apps/earphone/board/br52/undef_func.c \
 	apps/earphone/board/sdk_board_config.c \
 	apps/earphone/demo/debug_record_demo.c \

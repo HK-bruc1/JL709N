@@ -1,3 +1,9 @@
+#ifdef SUPPORT_MS_EXTENSIONS
+#pragma bss_seg(".lp_touch_key_tool.data.bss")
+#pragma data_seg(".lp_touch_key_tool.data")
+#pragma const_seg(".lp_touch_key_tool.text.const")
+#pragma code_seg(".lp_touch_key_tool.text")
+#endif
 #include "system/includes.h"
 #include "asm/lp_touch_key_tool.h"
 #include "asm/lp_touch_key_api.h"
@@ -17,7 +23,7 @@
 #include "debug.h"
 
 //LP KEY在线调试工具版本号管理
-const u8 lp_key_sdk_name[16] = "BR50_SDK";
+const u8 lp_key_sdk_name[16] = "BR52_SDK";
 const u8 lp_key_bt_ver[4]    = {0, 0, 2, 0};
 struct lp_key_ver_info {
     char sdkname[16];
@@ -97,10 +103,10 @@ struct lp_touch_key_online {
 
 static struct lp_touch_key_online lp_key_online;
 
-int lp_touch_key_online_debug_key_event_handle(u8 ch_index, void *e)
+int lp_touch_key_online_debug_key_event_handle(u32 ch, void *e)
 {
     struct key_event *event = (struct key_event *)e;
-    if ((lp_key_online.state == LP_KEY_ONLINE_ST_CH_KEY_DEBUG_START) && (lp_key_online.current_record_ch == ch_index)) {
+    if ((lp_key_online.state == LP_KEY_ONLINE_ST_CH_KEY_DEBUG_START) && (lp_key_online.current_record_ch == ch)) {
         lp_key_online.online_key_event.cmd_id = 0x3100;
         lp_key_online.online_key_event.mode = 0;
         lp_key_online.online_key_event.key_event = event->event;
@@ -116,7 +122,7 @@ int lp_touch_key_online_debug_key_event_handle(u8 ch_index, void *e)
     return 1;
 }
 
-int lp_touch_key_online_debug_send(u8 ch, u16 val)
+int lp_touch_key_online_debug_send(u32 ch, u16 val)
 {
     int err = 0;
     putchar('s');

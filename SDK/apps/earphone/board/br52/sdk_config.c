@@ -114,3 +114,22 @@ const struct adkey_info g_adkey_data =  {
     .res_table = adkey_res_table
 };
 #endif // TCFG_ADKEY_ENABLE
+
+const struct touch_key_cfg lp_touch_key_table [] =  {
+    {
+        .key_ch = LPCTMU_CH1_PB1,
+        .key_value = KEY_POWER,
+        .wakeup_enable = 1,
+        .index = 0,
+        .algo_cfg = {
+            {
+                .algo_cfg0 = 10,
+                .algo_cfg1 = 15,
+                .algo_cfg2 = 80,
+                .algo_range_min = 50,
+                .algo_range_max = 500,
+                .range_sensity = 6
+            }
+        }
+    }
+};

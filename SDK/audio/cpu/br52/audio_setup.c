@@ -121,9 +121,26 @@ void audio_dac_initcall(void)
     printf("audio_dac_initcall\n");
 
     audio_common_param_t common_param = {0};
-    common_param.cic.en = TCFG_AUDIO_ANC_ENABLE;
+    common_param.cic.en = 1;
     common_param.cic.scale = 0;
-    common_param.cic.shift = 15;
+    if (dac_data.pa_sel) {
+        if (dac_data.epa_dsm_mode == EPA_DSM_MODE_375K) {
+            common_param.epa_clk_div = 7;
+            common_param.cic.shift = 15;
+        } else if (dac_data.epa_dsm_mode == EPA_DSM_MODE_750K) {
+            common_param.epa_clk_div = 3;
+            common_param.cic.shift = 11;
+        } else if (dac_data.epa_dsm_mode == EPA_DSM_MODE_1500K) {
+            common_param.epa_clk_div = 1;
+            common_param.cic.shift = 7;
+        } else {
+            printf("[ERROR]EPA_DSM_MODE: %d !!!!!\n", dac_data.epa_dsm_mode);
+        }
+    } else {
+        common_param.epa_clk_div = 0;
+        common_param.fb_clk_div = 7;
+        common_param.cic.shift = 15;
+    }
     common_param.drc.bypass = 1;
     common_param.drc.threshold = 1023;
     common_param.drc.ratio = 64;
@@ -371,7 +388,7 @@ struct dac_platform_data dac_data = {//临时处理
     .fade_points    = 1,
     .fade_volume    = 4,
     .pa_sel         = 0,
-    .epa_dsm_mode   = EPA_DSM_MODE_375K,
+    .epa_dsm_mode   = EPA_DSM_MODE_750K,
     .epa_pwm_mode   = EPA_PWM_MODE1,
 };
 

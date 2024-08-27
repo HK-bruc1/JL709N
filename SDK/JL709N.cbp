@@ -851,7 +851,6 @@
 <Unit filename="apps/earphone/board/br52/board_jl709n_demo_cfg.h" />
 <Unit filename="apps/earphone/board/br52/board_jl709n_demo_global_build_cfg.h" />
 <Unit filename="apps/earphone/board/br52/jlstream_node_cfg.h" />
-<Unit filename="apps/earphone/board/br52/lp_touch_key_config.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/board/br52/sdk_config.h" />
 <Unit filename="apps/earphone/board/br52/undef_func.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/board/sdk_board_config.c"><Option compilerVer="CC"/></Unit>

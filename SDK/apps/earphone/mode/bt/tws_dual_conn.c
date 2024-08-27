@@ -717,7 +717,7 @@ static int dual_conn_btstack_event_handler(int *_event)
     struct bt_event *event = (struct bt_event *)_event;
     int state = tws_api_get_tws_state();
 
-    printf("dual_conn_btstack_event_handler:0x%x\n", event->event);
+    printf("dual_conn_btstack_event_handler:%d\n", event->event);
     switch (event->event) {
     case BT_STATUS_INIT_OK:
         dual_conn_page_devices_init();

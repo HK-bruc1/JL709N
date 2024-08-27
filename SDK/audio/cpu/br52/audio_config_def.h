@@ -166,7 +166,7 @@
 
 //ANC防破音-限制音乐幅度时, BR52默认不限制
 #if TCFG_AUDIO_ANC_ENABLE
-#define ANC_MODE_DIG_VOL_LIMIT	(0.0f)
+// #define ANC_MODE_DIG_VOL_LIMIT	(0.0f)
 #endif/*TCFG_AUDIO_ANC_ENABLE*/
 
 
