@@ -168,7 +168,7 @@ u32 lpctmu_get_ana_cur_level(u32 ch)
 
 void lpctmu_isel_trim(u8 ch)
 {
-    SFR(P11_LPCTM0->CHEN, 0, 5, ch + 1);//使能对应通道
+    SFR(P11_LPCTM0->ANA1, 4, 4, ch + 1);//使能对应通道
 
     u32 diff, diff_min = -1;
     u8 aim_cur_level;
@@ -200,7 +200,7 @@ void lpctmu_vsel_isel_trim(void)
     SFR(P11_LPCTM0->ANA1, 3, 1, 1);//软件控制
     SFR(P11_LPCTM0->ANA1, 2, 1, 1);//模拟模块偏置使能
     SFR(P11_LPCTM0->ANA0, 0, 1, 1);//模拟模块使能
-    SFR(P11_LPCTM0->CHEN, 0, 5, 0);//先不使能任何通道
+    SFR(P11_LPCTM0->ANA1, 4, 4, 0);//先不使能任何通道
 
     lpctmu_vsel_trim();
 

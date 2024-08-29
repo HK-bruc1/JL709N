@@ -4,7 +4,7 @@ cd %~dp0
 
 copy ..\..\anc_coeff.bin .
 copy ..\..\anc_gains.bin .
-copy ..\..\br50loader.bin .
+copy ..\..\br52loader.bin .
 copy ..\..\ota.bin .
 
 if not %KEY_FILE_PATH%A==A set KEY_FILE=-key %KEY_FILE_PATH%

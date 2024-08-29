@@ -57,6 +57,8 @@
 
 #define DEVICE_EVENT_FROM_CHARGE	(('C' << 24) | ('H' << 16) | ('G' << 8) | '\0')
 
+#define TRICKLE_EN_FLAG         BIT(9)  //判断是否开启涓流充电使能标志位
+
 struct charge_platform_data {
     u8 charge_en;	        //内置充电使能
     u8 charge_poweron_en;	//开机充电使能

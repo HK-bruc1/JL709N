@@ -50,12 +50,12 @@ void charge_wakeup_init()
 }
 
 static const struct charge_platform_data charge_data  = {
-    .charge_en              = TCFG_CHARGE_ENABLE,              //内置充电使能
-    .charge_poweron_en      = TCFG_CHARGE_POWERON_ENABLE,      //是否支持充电开机
-    .charge_full_V          = TCFG_CHARGE_FULL_V,              //充电截止电压
-    .charge_full_mA			= TCFG_CHARGE_FULL_MA,             //充电截止电流
-    .charge_mA				= TCFG_CHARGE_MA,                  //充电电流
-    .charge_trickle_mA		= TCFG_CHARGE_TRICKLE_MA | BIT(9), //涓流电流
+    .charge_en              = TCFG_CHARGE_ENABLE,                       //内置充电使能
+    .charge_poweron_en      = TCFG_CHARGE_POWERON_ENABLE,               //是否支持充电开机
+    .charge_full_V          = TCFG_CHARGE_FULL_V,                       //充电截止电压
+    .charge_full_mA			= TCFG_CHARGE_FULL_MA,                      //充电截止电流
+    .charge_mA				= TCFG_CHARGE_MA,                           //充电电流
+    .charge_trickle_mA		= TCFG_CHARGE_TRICKLE_MA | TRICKLE_EN_FLAG, //涓流电流
 
     /* ldo5v拔出过滤值，过滤时间 = (filter*2 + 20)ms,
      * ldoin < 0.6V且时间大于过滤时间才认为拔出

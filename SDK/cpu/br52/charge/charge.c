@@ -434,16 +434,16 @@ void set_charge_mA(u16 charge_mA)
     u8 vref, type;
     u16 chgi, temp;
 
-    type = (charge_mA & BIT(9)) ? 1 : 0;
-    charge_mA &= ~BIT(9);
+    type = (charge_mA & TRICKLE_EN_FLAG) ? 1 : 0;
+    charge_mA &= ~TRICKLE_EN_FLAG;
     log_info("charge_mA: %d, type: %d", charge_mA, type);
 
     for (vref = 0; vref < 8; vref++) {
         for (chgi = 0; chgi < 1024; chgi++) {
             if (type) {
-                temp = (float)(1.16f + 0.01f * vref) * 0.0179f * (chgi + 1);
+                temp = (float)(1.16f + 0.01f * vref) * 0.0146484f * (chgi + 1);
             } else {
-                temp = (float)(1.16f + 0.01f * vref) * 0.179f * (chgi + 1);
+                temp = (float)(1.16f + 0.01f * vref) * 0.146484f * (chgi + 1);
             }
             if (!((temp > charge_mA) ? (temp - charge_mA) : (charge_mA - temp))) {
                 log_info("chgi check success!");
