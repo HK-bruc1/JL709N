@@ -32,7 +32,7 @@
 #endif
 
 
-#if TCFG_IIS_NODE_ENABLE
+#if TCFG_IIS_NODE_ENABLE || TCFG_MULTI_CH_IIS_NODE_ENABLE || TCFG_MULTI_CH_IIS_RX_NODE_ENABLE
 
 struct _iis_hdl *iis_hdl[2] = {NULL};
 

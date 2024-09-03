@@ -24,27 +24,28 @@
 // 			音频模块链接配置
 //**************************************
 /*音效处理链接配置*/
+#define AFx_SPATIAL_EFFECT_AT_RAM           1 //空间音效
 
 /*通话语音处理算法*/
-#define AUDIO_CVP_TEXT_AT_RAM		1	//COMMON TEXT
-#define AUDIO_CVP_AEC_AT_RAM		1	//AEC
-#define AUDIO_CVP_NLP_AT_RAM		1	//NLP
-#define AUDIO_CVP_NS_AT_RAM			1	//ANS/下行降噪
-#define AUDIO_CVP_COMMON_AT_RAM		1	//COMMON
-#define AUDIO_CVP_DNS_AT_RAM		1	//DNS
-#define AUDIO_CVP_AGC_AT_RAM		1	//AGC
-#define AUDIO_CVP_DMS_AT_RAM		1	//双MIC DNS
-#define AUDIO_CVP_PREP_AT_RAM		1	//COMMON 预处理
-#define AUDIO_CVP_WN_AT_RAM			1	//抗风噪
-#define AUDIO_CVP_THIRD_AT_RAM		1	//3MIC
+#define AUDIO_CVP_TEXT_AT_RAM	        	1	//COMMON TEXT
+#define AUDIO_CVP_AEC_AT_RAM        		1	//AEC
+#define AUDIO_CVP_NLP_AT_RAM        		1	//NLP
+#define AUDIO_CVP_NS_AT_RAM	        		1	//ANS/下行降噪
+#define AUDIO_CVP_COMMON_AT_RAM		     	1	//COMMON
+#define AUDIO_CVP_DNS_AT_RAM		     	1	//DNS
+#define AUDIO_CVP_AGC_AT_RAM		     	1	//AGC
+#define AUDIO_CVP_DMS_AT_RAM		     	1	//双MIC DNS
+#define AUDIO_CVP_PREP_AT_RAM		     	1	//COMMON 预处理
+#define AUDIO_CVP_WN_AT_RAM			     	1	//抗风噪
+#define AUDIO_CVP_THIRD_AT_RAM		     	1	//3MIC
 
 /*编解码编译链接配置*/
-#define AUD_AAC_DEC_AT_RAM		    1   //AAC解码
-#define AUDIO_LDAC_AT_RAM			1	//LDAC解码
-#define AUDIO_MSBC_CODEC_AT_RAM		1	//MSBC 编解码
-#define AUDIO_CVSD_CODEC_AT_RAM		1	//CVSD 编解码
-#define AUDIO_JLA_CODEC_AT_RAM		1	//JLA 编解码
-#define AUDIO_LC3_CODEC_AT_RAM		0	//LC3 编解码
+#define AUD_AAC_DEC_AT_RAM		        	1   //AAC解码
+#define AUDIO_LDAC_AT_RAM			     	1	//LDAC解码
+#define AUDIO_MSBC_CODEC_AT_RAM		     	1	//MSBC 编解码
+#define AUDIO_CVSD_CODEC_AT_RAM		     	1	//CVSD 编解码
+#define AUDIO_JLA_CODEC_AT_RAM		     	1	//JLA 编解码
+#define AUDIO_LC3_CODEC_AT_RAM		     	0	//LC3 编解码
 
 /*语音识别算法编译链接配置*/
 #define AUDIO_KWS_COMMON_AT_RAM             0   //kws公共部分 ，0:放flash，1:放ram

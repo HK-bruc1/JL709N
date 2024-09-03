@@ -16,7 +16,7 @@
 #include "app_config.h"
 #include "audio_link.h"
 
-#if TCFG_IIS_NODE_ENABLE
+#if TCFG_IIS_NODE_ENABLE || TCFG_MULTI_CH_IIS_NODE_ENABLE || TCFG_MULTI_CH_IIS_RX_NODE_ENABLE
 
 #define test_32bit 0//使用24bit配置流程，配置成32bit测试32bit的情况
 

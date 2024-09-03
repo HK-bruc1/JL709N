@@ -114,6 +114,7 @@ static void adc_pmu_ch_select(u32 ch)
     u8 pmu_ch = (ch & ADC_CH_MASK_CH_SEL);
     if (pmu_ch == 0) {  //VBG通道
         SFR(P3_PMU_ADC0, 4, 2, vbg_ch);
+        SFR(P3_PMU_ADC0, 3, 1, 1);  //VBG_TEST_EN
     }
     SFR(P3_PMU_ADC1, 0, 5, pmu_ch);
     SFR(P3_PMU_ADC0, 1, 1, 1);  //PMU_TEST_OE ENABLE
@@ -233,6 +234,11 @@ void adc_sample(enum AD_CH ch, u32 ie) //启动一次cpu模式的adc采样
         break;
     }
     JL_ADC->CON = adc_con;
+    //if (ch == AD_CH_LDOREF) {
+    //    JL_PORTUSB->DIR &= ~BIT(1);
+    //    JL_PORTUSB->OUT |= BIT(1);
+    //    printf("ADC_CON %x, %x, P3_PMU_ADC0 %x", JL_ADC->CON, adc_con, P3_PMU_ADC0);
+    //}
     JL_ADC->CON |= BIT(6);//kistart
 }
 static void adc_wait_idle_timeout()
@@ -310,6 +316,7 @@ void adc_close()     //adc close
 ___interrupt
 static void adc_isr()   //中断函数
 {
+    //JL_PORTUSB->OUT &= ~BIT(1);
     if (adc_queue[ADC_MAX_CH].ch != -1) {
         adc_close();
         return;

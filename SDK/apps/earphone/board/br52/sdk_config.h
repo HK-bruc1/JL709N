@@ -328,8 +328,8 @@
 
 #define TCFG_AUDIO_GLOBAL_SAMPLE_RATE 44100 // 全局采样率
 #define TCFG_AEC_TOOL_ONLINE_ENABLE 0x0 // 手机APP在线调试
-#define TCFG_AUDIO_CVP_SYNC 0x1 // 通话上行同步
-#define TCFG_ESCO_DL_CVSD_SR_USE_16K 0x0 // 通话下行固定16k
+#define TCFG_AUDIO_CVP_SYNC 0x0 // 通话上行同步
+#define TCFG_ESCO_DL_CVSD_SR_USE_16K 0x1 // 通话下行固定16k
 #define TCFG_AUDIO_SMS_SEL SMS_DEFAULT // 1mic算法选择
 #define TCFG_AUDIO_DMS_GLOBAL_VERSION DMS_GLOBAL_V200 // 2micDNS算法选择
 #define TCFG_3MIC_MODE_SEL JLSP_3MIC_MODE2 // 3mic算法选择
