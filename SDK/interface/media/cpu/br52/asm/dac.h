@@ -255,6 +255,8 @@ struct audio_dac_hdl {
     struct audio_cfifo fifo;        /*DAC cfifo结构管理*/
     struct audio_dac_channel main_ch;
 
+    u16 mute_timer;           //DAC PA Mute Timer
+    u8 mute_ch;               //DAC PA Mute Channel
 	u8 dvol_mute;             //DAC数字音量是否mute
 #if 0
     struct audio_dac_sync sync;
