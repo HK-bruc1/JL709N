@@ -53,6 +53,14 @@
 #include "audio_anc_mult_scene.h"
 #endif/*ANC_MULT_ORDER_ENABLE*/
 
+#if TCFG_AUDIO_FREQUENCY_GET_ENABLE
+#include "icsd_afq_app.h"
+#endif/*TCFG_AUDIO_FREQUENCY_GET_ENABLE*/
+
+#if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
+#include "icsd_aeq_app.h"
+#endif/*TCFG_AUDIO_ADAPTIVE_EQ_ENABLE*/
+
 #if TCFG_USER_TWS_ENABLE
 #include "bt_tws.h"
 #endif/*TCFG_USER_TWS_ENABLE*/
@@ -523,7 +531,7 @@ static void anc_task(void *p)
 #endif
 #endif/*ANC_MUSIC_DYNAMIC_GAIN_EN*/
                 if ((anc_hdl->param.mode != ANC_OFF) && anc_hdl->param.anc_fade_en) {
-                    os_time_dly(6);	//延时避免切模式反馈有哒哒声
+                    os_time_dly(ANC_MODE_SWITCH_DELAY_MS / 10);	//延时避免切模式反馈有哒哒声
                 }
 #if ANC_ADAPTIVE_EN
                 audio_anc_power_adaptive_reset();
@@ -595,6 +603,11 @@ static void anc_task(void *p)
                 audio_anc_music_dynamic_gain_process();
                 break;
 #endif/*ANC_MUSIC_DYNAMIC_GAIN_EN*/
+#if TCFG_AUDIO_FREQUENCY_GET_ENABLE
+            case ANC_MSG_AFQ_CMD:
+                icsd_afq_anctask_handler(&anc_hdl->param, msg);
+                break;
+#endif/*TCFG_AUDIO_FREQUENCY_GET_ENABLE*/
 #if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
             case ANC_MSG_ADT:
                 icsd_adt_anctask_handle((u8)msg[2]);
@@ -929,9 +942,18 @@ void anc_init(void)
     anc_hdl->param.adt = zalloc(sizeof(anc_adt_param_t));
     ASSERT(anc_hdl->param.adt);
 #endif /*TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN*/
+#if (TCFG_AUDIO_ANC_EXT_VERSION == ANC_EXT_V2)
+    audio_afq_common_init();
+#endif
 #if ANC_EAR_ADAPTIVE_EN
     anc_ear_adaptive_init(&anc_hdl->param);
 #endif/*ANC_EAR_ADAPTIVE_EN*/
+#if TCFG_AUDIO_FREQUENCY_GET_ENABLE
+    audio_icsd_afq_init();
+#endif/*TCFG_AUDIO_FREQUENCY_GET_ENABLE*/
+#if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
+    audio_adaptive_eq_init();
+#endif/*TCFG_AUDIO_ADAPTIVE_EQ_ENABLE*/
 #if TCFG_AUDIO_ANC_EXT_TOOL_ENABLE
     anc_ext_tool_init();
 #endif
@@ -1601,6 +1623,13 @@ void anc_mode_switch(u8 mode, u8 tone_play)
         user_anc_log("anc mode switch err:%d", mode);
         return;
     }
+#if TCFG_AUDIO_FREQUENCY_GET_ENABLE
+    //获取频响时 不允许其他模式切换
+    if (audio_icsd_afq_is_running()) {
+        user_anc_log("Error :audio_icsd_afq_is_runnin\n");
+        return;
+    }
+#endif
     /*模式切换同一个*/
 #if ANC_EAR_ADAPTIVE_EN
     if (anc_hdl->ear_adaptive) {

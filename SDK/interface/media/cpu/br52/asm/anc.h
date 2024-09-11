@@ -90,12 +90,17 @@ typedef enum {
     ANC_L_ADAP_TARGET = 0x23,
     ANC_L_ADAP_GOLD_CURVE = 0x24,//自适应金机曲线
     ANC_L_ADAP_TARGET_CMP = 0x25,
+    ANC_L_ADAP_TARGET_BEFORE_CMP = 0x26,
+    ANC_L_ADAP_CMP_FORM_TRAIN = 0x27,
+
     ANC_R_ADAP_FRE = 0x30,
     ANC_R_ADAP_PZ = 0x31,
     ANC_R_ADAP_SZPZ = 0x32,
     ANC_R_ADAP_TARGET = 0x33,
     ANC_R_ADAP_GOLD_CURVE = 0x34,
     ANC_R_ADAP_TARGET_CMP = 0x35,
+    ANC_R_ADAP_TARGET_BEFORE_CMP = 0x36,
+    ANC_R_ADAP_CMP_FORM_TRAIN = 0x37,
 
 } ANC_config_seg_id_t;
 
@@ -927,6 +932,10 @@ void anc_dma_on_double(u8 out_sel, int *buf, int irq_point);
  */
 void anc_dma_on_double_4ch(u8 ch1_out_sel, u8 ch2_out_sel, int *buf, int irq_point);
 
+/* 注册ANC DMA输出回调函数 */
+void audio_anc_dma_add_output_handler(const char *name, void (*output)(void));
 
+/* 删除ANC DMA输出回调函数 */
+void audio_anc_dma_del_output_handler(const char *name);
 
 #endif/*_ANC_H_*/

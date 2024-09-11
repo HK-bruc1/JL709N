@@ -272,6 +272,10 @@ INCLUDES := \
 	-Iaudio/common/icsd/config \
 	-Iaudio/common/icsd/rt_anc \
 	-Iaudio/common/icsd/tool \
+	-Iaudio/common/icsd/aeq \
+	-Iaudio/common/icsd/afq \
+	-Iaudio/common/icsd/cmp \
+	-Iaudio/common/icsd/demo \
 	-Iaudio/common/power \
 	-Iaudio/anc \
 	-Iaudio/cpu/br52/audio_dai \
@@ -678,6 +682,12 @@ c_SRC_FILES := \
 	audio/common/icsd/adt/icsd_adt.c \
 	audio/common/icsd/adt/icsd_adt_app.c \
 	audio/common/icsd/adt/icsd_adt_config.c \
+	audio/common/icsd/aeq/icsd_aeq.c \
+	audio/common/icsd/aeq/icsd_aeq_app.c \
+	audio/common/icsd/aeq/icsd_aeq_config.c \
+	audio/common/icsd/afq/icsd_afq.c \
+	audio/common/icsd/afq/icsd_afq_app.c \
+	audio/common/icsd/afq/icsd_afq_config.c \
 	audio/common/icsd/anc/icsd_anc_app.c \
 	audio/common/icsd/anc/icsd_anc_board.c \
 	audio/common/icsd/anc/icsd_anc_data.c \
@@ -685,9 +695,13 @@ c_SRC_FILES := \
 	audio/common/icsd/anc_v2/icsd_anc_v2.c \
 	audio/common/icsd/anc_v2/icsd_anc_v2_app.c \
 	audio/common/icsd/anc_v2/icsd_anc_v2_interactive.c \
+	audio/common/icsd/cmp/icsd_cmp_app.c \
+	audio/common/icsd/cmp/icsd_cmp_config.c \
 	audio/common/icsd/common/icsd_common.c \
 	audio/common/icsd/common_v2/icsd_common_v2.c \
+	audio/common/icsd/common_v2/icsd_common_v2_app.c \
 	audio/common/icsd/config/icsd_anc_v2_config.c \
+	audio/common/icsd/demo/icsd_demo.c \
 	audio/common/icsd/dot/icsd_dot.c \
 	audio/common/icsd/dot/icsd_dot_app.c \
 	audio/common/icsd/rt_anc/rt_anc.c \
@@ -975,6 +989,10 @@ LFLAGS := \
 	cpu/br52/liba/lib_icsd_common_v2.a \
 	cpu/br52/liba/lib_icsd_anc_v2.a \
 	cpu/br52/liba/lib_icsd_rt_anc.a \
+	cpu/br52/liba/lib_icsd_dot.a \
+	cpu/br52/liba/lib_icsd_aeq.a \
+	cpu/br52/liba/lib_icsd_afq.a \
+	cpu/br52/liba/lib_icsd_cmp.a \
 	cpu/br52/liba/lib_limiter.a \
 	cpu/br52/liba/le_audio_profile.a \
 	cpu/br52/liba/jla_codec_lib.a \

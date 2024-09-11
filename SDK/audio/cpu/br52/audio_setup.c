@@ -149,10 +149,7 @@ void audio_dac_initcall(void)
     common_param.drc.attack_time = 3;
     common_param.drc.release_time = 10;
 
-    if (TCFG_AUDIO_DAC_VOLUME_BOOST >= 2) {
-        dac_data.power_mode = DAC_MODE_ULTRA_POWER;
-        common_param.vcm_level = AUDIO_COMMON_VCM_LEVEL3;
-    } else if (TCFG_AUDIO_DAC_VOLUME_BOOST >= 1) {
+    if (TCFG_AUDIO_DAC_VOLUME_BOOST >= 1) {
         dac_data.power_mode = DAC_MODE_LARGE_POWER;
         common_param.vcm_level = AUDIO_COMMON_VCM_LEVEL2;
     } else {
