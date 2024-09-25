@@ -177,6 +177,7 @@
 #define IRQ_SOFT7_IDX           127
 
 #define MAX_IRQ_ENTRY_NUM   128
+extern u32 _IRQ_MEM_ADDR[];
 
 //=================================================
 

@@ -105,31 +105,6 @@
 #define TCFG_LINEIN_AD_DETECT_VALUE 0 // AD检测时阈值
 #endif // TCFG_LINEIN_DETECT_ENABLE
 
-#define TCFG_LINEIN0_ENABLE 1 // LINEIN 0 配置
-#if TCFG_LINEIN0_ENABLE
-#define TCFG_LINEIN0_MODE 3 // 模式
-#define TCFG_LINEIN0_GAIN 0 // 增益
-#define TCFG_LINEIN0_PRE_GAIN 0 // 前级增益
-#define TCFG_LINEIN0_CH 1 // 输入选择
-#define TCFG_LINEIN0_DCC 1 // DCC 档位、DCC 档位
-#endif // TCFG_LINEIN0_ENABLE
-
-#define TCFG_LINEIN1_ENABLE 1 // LINEIN 1 配置
-#if TCFG_LINEIN1_ENABLE
-#define TCFG_LINEIN1_MODE 3 // 模式
-#define TCFG_LINEIN1_GAIN 0 // 增益
-#define TCFG_LINEIN1_PRE_GAIN 0 // 前级增益
-#define TCFG_LINEIN1_CH 1 // 输入选择
-#endif // TCFG_LINEIN1_ENABLE
-
-#define TCFG_LINEIN2_ENABLE 0 // LINEIN 2 配置
-#if TCFG_LINEIN2_ENABLE
-#define TCFG_LINEIN2_MODE 3 // 模式
-#define TCFG_LINEIN2_GAIN 0 // 增益
-#define TCFG_LINEIN2_PRE_GAIN 0 // 前级增益
-#define TCFG_LINEIN2_CH 1 // 输入选择
-#endif // TCFG_LINEIN2_ENABLE
-
 #define TCFG_IO_CFG_AT_POWER_ON 0 // 开机时IO配置
 
 #define TCFG_IO_CFG_AT_POWER_OFF 0 // 关机时IO配置
@@ -275,14 +250,39 @@
 #define TCFG_DAC_PERFORMANCE_MODE DAC_MODE_HIGH_PERFORMANCE // 性能模式
 #define TCFG_AUDIO_VCM_CAP_EN 0x1 // VCM电容
 #define TCFG_AUDIO_DAC_BUFFER_TIME_MS 80 // 缓冲长度(ms)
+#define TCFG_AUDIO_DAC_VOLUME_BOOST 0 // 音量增强
 #define TCFG_AUDIO_L_CHANNEL_GAIN 0x01 // L Channel
 #define TCFG_AUDIO_R_CHANNEL_GAIN 0x01 // R Channel
-#define TCFG_AUDIO_DAC_VOLUME_BOOST 0 // 音量增强档位(dB)
+#define TCFG_AUDIO_DIGITAL_GAIN 0 // Digital Gain
 
 #define TCFG_AUDIO_ADC_ENABLE 1 // ADC配置
 #if TCFG_AUDIO_ADC_ENABLE
 #define TCFG_AUDIO_MIC_LDO_VSEL 4 // MICLDO电压
 #define TCFG_ADC_PERFORMANCE_MODE ADC_MODE_HIGH_PERFORMANCE // 性能模式
+#define TCFG_ADC0_ENABLE 1 // 使能
+#define TCFG_ADC0_MODE 0 // 模式
+#define TCFG_ADC0_AIN_SEL 1 // 输入端口
+#define TCFG_ADC0_BIAS_SEL 1 // 供电端口
+#define TCFG_ADC0_BIAS_RSEL 3 // MIC BIAS上拉电阻挡位
+#define TCFG_ADC0_POWER_IO 0 // IO供电选择
+#define TCFG_ADC0_DCC_EN 1 // DCC使能
+#define TCFG_ADC0_DCC_LEVEL 1 // DCC 截止频率
+#define TCFG_ADC1_ENABLE 1 // 使能
+#define TCFG_ADC1_MODE 0 // 模式
+#define TCFG_ADC1_AIN_SEL 1 // 输入端口
+#define TCFG_ADC1_BIAS_SEL 2 // 供电端口
+#define TCFG_ADC1_BIAS_RSEL 3 // MIC BIAS上拉电阻挡位
+#define TCFG_ADC1_POWER_IO 0 // IO供电选择
+#define TCFG_ADC1_DCC_EN 1 // DCC使能
+#define TCFG_ADC1_DCC_LEVEL 1 // DCC 截止频率
+#define TCFG_ADC2_ENABLE 1 // 使能
+#define TCFG_ADC2_MODE 0 // 模式
+#define TCFG_ADC2_AIN_SEL 1 // 输入端口
+#define TCFG_ADC2_BIAS_SEL 4 // 供电端口
+#define TCFG_ADC2_BIAS_RSEL 3 // MIC BIAS上拉电阻挡位
+#define TCFG_ADC2_POWER_IO 0 // IO供电选择
+#define TCFG_ADC2_DCC_EN 1 // DCC使能
+#define TCFG_ADC2_DCC_LEVEL 1 // DCC 截止频率
 #endif // TCFG_AUDIO_ADC_ENABLE
 
 #define CONFIG_ANC_ENABLE 0 // ANC 配置

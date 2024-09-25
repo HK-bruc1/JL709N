@@ -229,11 +229,12 @@ void setup_arch()
 
     efuse_init();
 
-#if (TCFG_MAX_LIMIT_SYS_CLOCK==MAX_LIMIT_SYS_CLOCK_160M)
-    clk_early_init(PLL_REF_XOSC_DIFF, TCFG_CLOCK_OSC_HZ, 240 * MHz);//  240:max clock 160
-#else
-    clk_early_init(PLL_REF_XOSC_DIFF, TCFG_CLOCK_OSC_HZ, 192 * MHz);
+#if TCFG_AUDIO_DAC_VOLUME_BOOST
+#include "asm/clock_hal.h"
+    clk_vdc_mode_init(CLOCK_MODE_USR, DCVDD_VOL_1250V);
 #endif
+
+    clk_early_init(PLL_REF_XOSC_DIFF, TCFG_CLOCK_OSC_HZ, 192 * MHz);
 
     //临时添加：by IC wangjie
     SFR(JL_LSBCLK->PRP_CON1,  0, 3, 1);

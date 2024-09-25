@@ -65,6 +65,13 @@ enum lpctmu_ext_stop_sel {
     BT_SIG_ACT0_ACT1_AND,
 };
 
+enum lpctmu_wakeup_cfg {
+    LPCTMU_WAKEUP_DISABLE,
+    LPCTMU_WAKEUP_EN_WITHOUT_CHARGE_ONLINE,
+    LPCTMU_WAKEUP_EN_ALWAYS,
+};
+
+
 struct lpctmu_platform_data {
     u8 ext_stop_ch_en;
     u8 ext_stop_sel;
@@ -76,11 +83,11 @@ struct lpctmu_platform_data {
 };
 
 struct lpctmu_config_data {
-    u8 ch_idx;
     u8 ch_num;
     u8 ch_list[LPCTMU_CHANNEL_SIZE];
+    u8 ch_en;
     u8 ch_wkp_en;
-    u8 softoff_keep_work;
+    u8 softoff_wakeup_cfg;
     const struct lpctmu_platform_data *pdata;
 };
 

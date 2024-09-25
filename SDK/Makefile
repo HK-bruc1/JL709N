@@ -926,7 +926,9 @@ LFLAGS := \
 	cpu/br52/liba/cpu.a \
 	cpu/br52/liba/system.a \
 	cpu/br52/liba/btstack.a \
+	cpu/br52/liba/bt_hash_enc.a \
 	cpu/br52/liba/rcsp_stack.a \
+	cpu/br52/liba/google_fps.a \
 	cpu/br52/liba/btctrler.a \
 	cpu/br52/liba/aec.a \
 	cpu/br52/liba/media.a \
@@ -998,6 +1000,11 @@ LFLAGS := \
 	cpu/br52/liba/jla_codec_lib.a \
 	cpu/br52/liba/lib_lc3_codec.a \
 	cpu/br52/liba/lib_ccm_cipher.a \
+	cpu/br52/liba/lib_noisegate_pro.a \
+	cpu/br52/liba/lib_PcmDelay.a \
+	cpu/br52/liba/lib_SurroundEffect.a \
+	cpu/br52/liba/lib_StereoWidener.a \
+	cpu/br52/liba/lib_ThreeD_effect.a \
 	cpu/br52/liba/libFFT_pi32v2_OnChip.a \
 	cpu/br52/liba/lib_wtg_dec.a \
 	cpu/br52/liba/bfilterfun_lib.a \

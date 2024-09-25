@@ -10,16 +10,19 @@
 extern struct audio_dac_hdl dac_hdl;
 extern struct audio_adc_hdl adc_hdl;
 
-struct adc_file_param {
+struct adc_platform_cfg {
     u8 mic_mode;          // MIC工作模式
-    u8 mic_gain;          // MIC增益
-    u8 mic_pre_gain;      // MIC前级增益 0:0dB   1:6dB
     u8 mic_ain_sel;       // 0/1/2
     u8 mic_bias_sel;      // A(PA0)/B(PA1)/C(PC10)/D(PA5)
     u8 mic_bias_rsel;     // 单端隔直电容mic bias rsel
     u16 power_io;         // MIC供电IO
     u8 mic_dcc_en;        // DCC Enable
     u8 mic_dcc;           // DCC level
+};
+
+struct adc_file_param {
+    u8 mic_gain;          // MIC增益
+    u8 mic_pre_gain;      // MIC前级增益 0:0dB   1:6dB
 } __attribute__((packed));
 
 static const char *audio_vol_str[] = {
@@ -254,7 +257,9 @@ void dac_node_write_callback_add(const char *name, u8 scene, void (*cb)(void *, 
 
 void dac_node_write_callback_del(const char *name);
 
-void audio_adc_param_fill(struct mic_open_param *mic_param, struct adc_file_param *param);
+void audio_adc_param_fill(struct mic_open_param *mic_param, struct adc_platform_cfg *platform_cfg);
+
+void audio_linein_param_fill(struct linein_open_param *linein_param, const struct adc_platform_cfg *platform_cfg);
 
 void audio_fast_mode_test();
 

@@ -17,6 +17,8 @@
 
 #define CHG_VILOOP_EN(en)           p33_fast_access(P3_CHG_CON0, BIT(5), en)
 
+#define IS_CHG_VILOOP_EN()          ((P33_CON_GET(P3_CHG_CON0) & BIT(5)) ? 1: 0 )
+
 #define CHG_VILOOP2_EN(en)          p33_fast_access(P3_CHG_CON0, BIT(6), en)
 
 #define CHG_VINLOOP_SLT(sel)        p33_fast_access(P3_CHG_CON0, BIT(7), sel)

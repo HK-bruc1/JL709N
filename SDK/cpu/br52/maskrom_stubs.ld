@@ -17,6 +17,7 @@
   __udivdi3 = ABSOLUTE(0xffd44);
   __udivmoddi4 = ABSOLUTE(0xffd48);
   ic_pll_init = ABSOLUTE(0xffd4c);
+  ic_btosc_init = ABSOLUTE(0xfb030);
   sfc_suspend = ABSOLUTE(0xffd50);
   sfc_resume = ABSOLUTE(0xffd54);
   sfc_drop_cache = ABSOLUTE(0xffd58);

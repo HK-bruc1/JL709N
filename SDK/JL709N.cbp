@@ -239,7 +239,9 @@
 <Add option="cpu/br52/liba/cpu.a" />
 <Add option="cpu/br52/liba/system.a" />
 <Add option="cpu/br52/liba/btstack.a" />
+<Add option="cpu/br52/liba/bt_hash_enc.a" />
 <Add option="cpu/br52/liba/rcsp_stack.a" />
+<Add option="cpu/br52/liba/google_fps.a" />
 <Add option="cpu/br52/liba/btctrler.a" />
 <Add option="cpu/br52/liba/aec.a" />
 <Add option="cpu/br52/liba/media.a" />
@@ -311,6 +313,11 @@
 <Add option="cpu/br52/liba/jla_codec_lib.a" />
 <Add option="cpu/br52/liba/lib_lc3_codec.a" />
 <Add option="cpu/br52/liba/lib_ccm_cipher.a" />
+<Add option="cpu/br52/liba/lib_noisegate_pro.a" />
+<Add option="cpu/br52/liba/lib_PcmDelay.a" />
+<Add option="cpu/br52/liba/lib_SurroundEffect.a" />
+<Add option="cpu/br52/liba/lib_StereoWidener.a" />
+<Add option="cpu/br52/liba/lib_ThreeD_effect.a" />
 <Add option="cpu/br52/liba/libFFT_pi32v2_OnChip.a" />
 <Add option="cpu/br52/liba/lib_wtg_dec.a" />
 <Add option="cpu/br52/liba/bfilterfun_lib.a" />
