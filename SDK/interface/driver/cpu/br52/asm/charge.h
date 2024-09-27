@@ -44,8 +44,8 @@
 /*充满判断电流为恒流电流的比例配置*/
 #define CHARGE_FC_IS_CC_DIV_5		0 // full current = constant current / 5
 #define CHARGE_FC_IS_CC_DIV_10		1 // default
-#define CHARGE_FC_IS_CC_DIV_12P5	2
-#define CHARGE_FC_IS_CC_DIV_15		3
+#define CHARGE_FC_IS_CC_DIV_15      2
+#define CHARGE_FC_IS_CC_DIV_20		3
 
 /* 充电口下拉电阻 50k ~ 200k */
 #define CHARGE_PULLDOWN_50K     0
