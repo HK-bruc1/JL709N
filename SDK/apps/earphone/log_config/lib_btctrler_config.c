@@ -275,8 +275,7 @@ const int CONFIG_LMP_MASTER_ESCO_ENABLE  =  0;
 	#endif
 
 #else
-#if defined CONFIG_CPU_BR50
-/* #if defined CONFIG_CPU_BR50 || defined CONFIG_CPU_BR52 || defined CONFIG_CPU_BR29 */
+#if defined CONFIG_CPU_BR50 || defined CONFIG_CPU_BR52 || defined CONFIG_CPU_BR56
 	const int CONFIG_WIFI_DETECT_ENABLE = 3;
 
 #if TCFG_USER_TWS_ENABLE
