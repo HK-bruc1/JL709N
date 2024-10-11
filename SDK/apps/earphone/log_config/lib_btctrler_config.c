@@ -257,7 +257,7 @@ const int CONFIG_LMP_MASTER_ESCO_ENABLE  =  0;
 
 #ifdef CONFIG_SUPPORT_AES_CCM_FOR_EDR
     #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
-        const int CONFIG_AES_CCM_FOR_EDR_ENABLE     = 1;
+        const int CONFIG_AES_CCM_FOR_EDR_ENABLE     = 0;
     #else
         const int CONFIG_AES_CCM_FOR_EDR_ENABLE     = 0;
     #endif

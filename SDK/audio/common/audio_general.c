@@ -159,3 +159,25 @@ int audio_general_init()
 #endif
     return 0;
 }
+
+#if (CONFIG_CPU_BR27 || CONFIG_CPU_BR28 || CONFIG_CPU_BR29 || CONFIG_CPU_BR36)
+static const int general_sample_rate_table[] = {8000, 16000, 32000, 44100, 48000, 96000};
+#else
+static const int general_sample_rate_table[] = {8000, 16000, 32000, 44100, 48000, 96000, 192000};
+#endif
+
+int audio_general_set_global_sample_rate(int sample_rate)
+{
+    local_irq_disable();
+    for (u8 i = 0; i < ARRAY_SIZE(general_sample_rate_table); i++) {
+        if (general_sample_rate_table[i] == sample_rate) {
+            audio_general_param.sample_rate = sample_rate;
+            local_irq_enable();
+            printf("cur_global_samplerate %d", sample_rate);
+            return 0;
+        }
+    }
+    local_irq_enable();
+    return -1;
+}
+
