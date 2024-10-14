@@ -46,6 +46,7 @@ const int config_audio_cfg_online_enable = 1;
 const int config_audio_cfg_online_enable = 0;
 #endif
 
+const int config_audio_dac_dma_buf_realloc_enable = 1;
 
 /*
  *******************************************************************

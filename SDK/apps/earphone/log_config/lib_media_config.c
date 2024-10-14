@@ -98,10 +98,10 @@ const u8 const_adc_async_en = 0;
 /* #endif */
 
 //<DAC NoiseGate>
-#if (TCFG_MIC_EFFECT_ENABLE || TCFG_AUDIO_HEARING_AID_ENABLE)
-const int config_audio_dac_noisefloor_optimize_enable = 0;
+#if (defined(TCFG_AUDIO_DAC_NOISEGATE_ENABLE) && TCFG_AUDIO_DAC_NOISEGATE_ENABLE)
+const int config_audio_dac_noisefloor_optimize_enable = BIT(0) | BIT(2);
 #else
-const int config_audio_dac_noisefloor_optimize_enable = BIT(1);
+const int config_audio_dac_noisefloor_optimize_enable = 0;
 #endif
 
 

@@ -295,7 +295,9 @@ static int audio_pcmic_syncts_handler(struct stream_iport *iport, int arg)
 
     switch (params->cmd) {
     case AUDIO_SYNCTS_MOUNT_ON_SNDPCM:
-        audio_pcmic_add_syncts_with_timestamp(&hdl->pcmic_ch, (void *)params->data[0], params->data[1]);
+        if (hdl->attr.dev_properties != SYNC_TO_MASTER_DEV) {
+            audio_pcmic_add_syncts_with_timestamp(&hdl->pcmic_ch, (void *)params->data[0], params->data[1]);
+        }
         if (hdl->reference_network == 0xff) {
             hdl->reference_network = params->data[2];
         }
@@ -818,13 +820,6 @@ static void pc_mic_ioc_start(struct pc_mic_node_hdl *hdl)
     hdl->iport_bit_width = hdl_node(hdl)->iport->prev->fmt.bit_wide;
     hdl->start = 1;
 
-    int ret = jlstream_read_node_data_new(hdl_node(hdl)->uuid, hdl_node(hdl)->subid, (void *)&hdl->attr, hdl->name);
-    if (!ret) {
-        hdl->attr.delay_time = 50;
-        hdl->attr.protect_time = 8;
-        hdl->attr.write_mode = WRITE_MODE_BLOCK;
-        log_error("pcmic node param read err, set default\n");
-    }
     pcmic_hdl.iport_bit_width = audio_general_out_dev_bit_width();;
     log_debug("---------------------- %s, pcmic_hdl.iport_bit_width %d\n", hdl->name, pcmic_hdl.iport_bit_width);
     audio_pcmic_new_channel(hdl, (void *)&hdl->pcmic_ch);
@@ -967,6 +962,15 @@ static int pc_mic_adapter_bind(struct stream_node *node, u16 uuid)
         INIT_LIST_HEAD(&pcmic_hdl.dev_sync_list);
         init = 1;
     }
+
+    int ret = jlstream_read_node_data_new(hdl_node(hdl)->uuid, hdl_node(hdl)->subid, (void *)&hdl->attr, hdl->name);
+    if (!ret) {
+        hdl->attr.delay_time = 50;
+        hdl->attr.protect_time = 8;
+        hdl->attr.write_mode = WRITE_MODE_BLOCK;
+        log_error("pcmic node param read err, set default\n");
+    }
+    hdl->reference_network = 0xff;
     return 0;
 }
 

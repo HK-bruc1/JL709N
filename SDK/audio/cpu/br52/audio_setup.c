@@ -186,6 +186,7 @@ void audio_dac_initcall(void)
     dac_data.hpvdd_sel = 0;//audio_dac_hpvdd_check();
     dac_data.bit_width = audio_general_out_dev_bit_width();
     audio_dac_init(&dac_hdl, &dac_data);
+    /* dac_hdl.ng_threshold = 4; //dac底噪优化阈值 */
 
     //ANC & DAC_CIC时钟分配参数设置在audio_common_init & audio_dac_init之后
 #if TCFG_AUDIO_ANC_ENABLE

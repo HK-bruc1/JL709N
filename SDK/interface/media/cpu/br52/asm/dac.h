@@ -219,6 +219,7 @@ struct audio_dac_hdl {
     volatile u8 mute;
     volatile u8 state;
     volatile u8 agree_on;
+    u8 ng_threshold;
     u8 gain;
     u8 vol_l;
     u8 vol_r;
@@ -667,5 +668,7 @@ int audio_dac_read(s16 points_offset, void *data, int len, u8 read_channel);
 
 void audio_dac_digital_mute(struct audio_dac_hdl *dac, u8 mute);
 u8 audio_dac_digital_mute_state(struct audio_dac_hdl *dac);
+
+int audio_dac_noisefloor_optimize_onoff(u8 onoff);
 #endif
 

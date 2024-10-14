@@ -80,6 +80,7 @@
 #define TCFG_AUDIO_DAC_24BIT_MODE           0
 #define AUDIO_DAC_MAX_SAMPLE_RATE           48000
 
+#define TCFG_AUDIO_DAC_NOISEGATE_ENABLE     1
 
 /*
  *该配置适用于没有音量按键的产品，防止打开音量同步之后
