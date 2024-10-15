@@ -286,7 +286,9 @@ void update_close_hw(void *filter_name)
     list_for_each_update_target(p) {
         if (memcmp(filter_name, p->name, strlen(filter_name)) != 0) {
             printf("close Hw Name : %s\n", p->name);
-            p->driver_close();
+            if (p->driver_close) {
+                p->driver_close();
+            }
         }
     }
 }

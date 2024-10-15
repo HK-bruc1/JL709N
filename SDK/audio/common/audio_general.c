@@ -46,6 +46,27 @@ const int config_audio_cfg_online_enable = 1;
 const int config_audio_cfg_online_enable = 0;
 #endif
 
+const int config_audio_dac_dma_buf_realloc_enable = 1;
+
+/*
+ *******************************************************************
+ *						Audio Codec Config
+ *******************************************************************
+ */
+////////////////////ID3信息使能/////////////////
+const u8 config_flac_id3_enable = 0;
+const u8 config_ape_id3_enable  = 0;
+const u8 config_m4a_id3_enable  = 0;
+const u8 config_wav_id3_enable = 0;
+const u8 config_wma_id3_enable = 0;
+
+/////////////////////wma codec//////////////////
+const int const_audio_codec_wma_dec_supoort_POS_play = 1; //是否支持指定位置播放
+
+/////////////////////wav codec/////////////////
+const int const_audio_codec_wav_dec_bitDepth_set_en = 0;
+
+
 
 __attribute__((weak))
 int get_system_stream_bit_width(void *par)
@@ -139,3 +160,25 @@ int audio_general_init()
 #endif
     return 0;
 }
+
+#if (CONFIG_CPU_BR27 || CONFIG_CPU_BR28 || CONFIG_CPU_BR29 || CONFIG_CPU_BR36)
+static const int general_sample_rate_table[] = {8000, 16000, 32000, 44100, 48000, 96000};
+#else
+static const int general_sample_rate_table[] = {8000, 16000, 32000, 44100, 48000, 96000, 192000};
+#endif
+
+int audio_general_set_global_sample_rate(int sample_rate)
+{
+    local_irq_disable();
+    for (u8 i = 0; i < ARRAY_SIZE(general_sample_rate_table); i++) {
+        if (general_sample_rate_table[i] == sample_rate) {
+            audio_general_param.sample_rate = sample_rate;
+            local_irq_enable();
+            printf("cur_global_samplerate %d", sample_rate);
+            return 0;
+        }
+    }
+    local_irq_enable();
+    return -1;
+}
+

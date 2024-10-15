@@ -272,6 +272,10 @@ INCLUDES := \
 	-Iaudio/common/icsd/config \
 	-Iaudio/common/icsd/rt_anc \
 	-Iaudio/common/icsd/tool \
+	-Iaudio/common/icsd/aeq \
+	-Iaudio/common/icsd/afq \
+	-Iaudio/common/icsd/cmp \
+	-Iaudio/common/icsd/demo \
 	-Iaudio/common/power \
 	-Iaudio/anc \
 	-Iaudio/cpu/br52/audio_dai \
@@ -565,7 +569,6 @@ c_SRC_FILES := \
 	apps/earphone/ble/ble_adv.c \
 	apps/earphone/ble/bt_ble.c \
 	apps/earphone/board/br52/board_config.c \
-	apps/earphone/board/br52/lp_touch_key_config.c \
 	apps/earphone/board/br52/undef_func.c \
 	apps/earphone/board/sdk_board_config.c \
 	apps/earphone/demo/debug_record_demo.c \
@@ -679,6 +682,12 @@ c_SRC_FILES := \
 	audio/common/icsd/adt/icsd_adt.c \
 	audio/common/icsd/adt/icsd_adt_app.c \
 	audio/common/icsd/adt/icsd_adt_config.c \
+	audio/common/icsd/aeq/icsd_aeq.c \
+	audio/common/icsd/aeq/icsd_aeq_app.c \
+	audio/common/icsd/aeq/icsd_aeq_config.c \
+	audio/common/icsd/afq/icsd_afq.c \
+	audio/common/icsd/afq/icsd_afq_app.c \
+	audio/common/icsd/afq/icsd_afq_config.c \
 	audio/common/icsd/anc/icsd_anc_app.c \
 	audio/common/icsd/anc/icsd_anc_board.c \
 	audio/common/icsd/anc/icsd_anc_data.c \
@@ -686,9 +695,13 @@ c_SRC_FILES := \
 	audio/common/icsd/anc_v2/icsd_anc_v2.c \
 	audio/common/icsd/anc_v2/icsd_anc_v2_app.c \
 	audio/common/icsd/anc_v2/icsd_anc_v2_interactive.c \
+	audio/common/icsd/cmp/icsd_cmp_app.c \
+	audio/common/icsd/cmp/icsd_cmp_config.c \
 	audio/common/icsd/common/icsd_common.c \
 	audio/common/icsd/common_v2/icsd_common_v2.c \
+	audio/common/icsd/common_v2/icsd_common_v2_app.c \
 	audio/common/icsd/config/icsd_anc_v2_config.c \
+	audio/common/icsd/demo/icsd_demo.c \
 	audio/common/icsd/dot/icsd_dot.c \
 	audio/common/icsd/dot/icsd_dot_app.c \
 	audio/common/icsd/rt_anc/rt_anc.c \
@@ -913,7 +926,9 @@ LFLAGS := \
 	cpu/br52/liba/cpu.a \
 	cpu/br52/liba/system.a \
 	cpu/br52/liba/btstack.a \
+	cpu/br52/liba/bt_hash_enc.a \
 	cpu/br52/liba/rcsp_stack.a \
+	cpu/br52/liba/google_fps.a \
 	cpu/br52/liba/btctrler.a \
 	cpu/br52/liba/aec.a \
 	cpu/br52/liba/media.a \
@@ -976,11 +991,20 @@ LFLAGS := \
 	cpu/br52/liba/lib_icsd_common_v2.a \
 	cpu/br52/liba/lib_icsd_anc_v2.a \
 	cpu/br52/liba/lib_icsd_rt_anc.a \
+	cpu/br52/liba/lib_icsd_dot.a \
+	cpu/br52/liba/lib_icsd_aeq.a \
+	cpu/br52/liba/lib_icsd_afq.a \
+	cpu/br52/liba/lib_icsd_cmp.a \
 	cpu/br52/liba/lib_limiter.a \
 	cpu/br52/liba/le_audio_profile.a \
 	cpu/br52/liba/jla_codec_lib.a \
 	cpu/br52/liba/lib_lc3_codec.a \
 	cpu/br52/liba/lib_ccm_cipher.a \
+	cpu/br52/liba/lib_noisegate_pro.a \
+	cpu/br52/liba/lib_PcmDelay.a \
+	cpu/br52/liba/lib_SurroundEffect.a \
+	cpu/br52/liba/lib_StereoWidener.a \
+	cpu/br52/liba/lib_ThreeD_effect.a \
 	cpu/br52/liba/libFFT_pi32v2_OnChip.a \
 	cpu/br52/liba/lib_wtg_dec.a \
 	cpu/br52/liba/bfilterfun_lib.a \

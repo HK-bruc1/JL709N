@@ -15,5 +15,6 @@ struct audio_general_params *audio_general_get_param(void);
 int audio_general_out_dev_bit_width();
 int audio_general_in_dev_bit_width();
 int audio_general_init();
+int audio_general_set_global_sample_rate(int sample_rate);
 
 #endif

@@ -136,11 +136,6 @@ static void a2dp_player_callback(void *private_data, int event)
 #endif
         musci_vocal_remover_update_parm();
         break;
-    case STREAM_EVENT_PREEMPTED:
-#if ANC_EAR_ADAPTIVE_EN
-        audio_anc_ear_adaptive_a2dp_suspend_cb();
-#endif
-        break;
     }
 }
 

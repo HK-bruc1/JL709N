@@ -17,7 +17,7 @@
 #include "le_connected.h"
 #include "wireless_trans.h"
 
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 
 /**************************************************************************************************
   Macros
@@ -154,6 +154,9 @@ typedef struct {
 
 lc3_codec_config_t coder_info;
 
+/*
+ * 实现le_audio_profile.a里面的weak函数，协议商议的参数回调到上层使用
+ * */
 void lea_profile_set_unicast_lc3_decoder_param(void *lc3_info)
 {
     lc3_codec_config_t *coder_info = (lc3_codec_config_t *)lc3_info;

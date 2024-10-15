@@ -1,3 +1,9 @@
+#ifdef SUPPORT_MS_EXTENSIONS
+#pragma bss_seg(".lp_touch_key_slide.data.bss")
+#pragma data_seg(".lp_touch_key_slide.data")
+#pragma const_seg(".lp_touch_key_slide.text.const")
+#pragma code_seg(".lp_touch_key_slide.text")
+#endif
 
 /******************************双通道滑动触摸识别的基础原理***********************************
 
@@ -100,121 +106,127 @@ enum slide_key_type {
     SLIDE_DOWN = 0x21,
 };
 
-static u8 falling_order[2] = {FALLING_NULL, FALLING_NULL};
-static u8 raising_order[2] = {RAISING_NULL, RAISING_NULL};
-static u8 falling_time_interval = 0;
-static u8 raising_time_interval = 0;
-static u8 last_key_type = 0;
+struct touch_key_slide {
+    u8 falling_order[2];
+    u8 raising_order[2];
+    u8 falling_time_interval;
+    u8 raising_time_interval;
+    u8 last_key_type;
+    u8 send_keytone_flag;
+    u8 fast_slide_cnt;
+    u8 fast_slide_type;
+    u16 slide_click_timeout_add;
+    u16 falling_timeout_add;
+    u16 raising_timeout_add;
+    u16 click_idle_timeout_add;
+    u16 first_short_click_timeout_add;
+    u16 send_keytone_timeout_add;
+};
+static struct touch_key_slide slide_key;
+
 
 #define FALLING_TIMEOUT_TIME    30              //两个按下边沿的时间间隔的阈值
-static int falling_timeout_add = 0;
+#define RAISING_TIMEOUT_TIME    30              //两个抬起边沿的时间间隔的阈值
+#define CLICK_IDLE_TIMEOUT_TIME 500             //如果该时间内，没有单击，那么该时间之后的第一次单击，识别为首次单击
+#define FIRST_SHORT_CLICK_TIMEOUT_TIME  190     //只针对首次单击，要满足按够那么长时间。连击时，后面的单击没有该时间要求
+#define SEND_KEYTONE_TIMEOUT_TIME   250         //长按时的按键音，在按下后的多长时间要响
+#define SLIDE_CLICK_TIMEOUT_TIME    500         //识别为滑动之后，该时间内，如果有case7.也要识别为滑动
+#define FAST_SLIDE_CNT_MAX          4           //一来就连续那么多次的case7.，就会识别为一次滑动。
+
+
 static void lp_touch_key_falling_timeout_handle(void *priv)
 {
-    falling_timeout_add = 0;
+    slide_key.falling_timeout_add = 0;
 }
 
-#define RAISING_TIMEOUT_TIME    30              //两个抬起边沿的时间间隔的阈值
-static int raising_timeout_add = 0;
 static void lp_touch_key_raising_timeout_handle(void *priv)
 {
-    raising_timeout_add = 0;
+    slide_key.raising_timeout_add = 0;
 }
 
-#define CLICK_IDLE_TIMEOUT_TIME 500             //如果该时间内，没有单击，那么该时间之后的第一次单击，识别为首次单击
-static int click_idle_timeout_add = 0;
 static void lp_touch_key_click_idle_timeout_handle(void *priv)
 {
-    click_idle_timeout_add = 0;
+    slide_key.click_idle_timeout_add = 0;
 }
 
-#define FIRST_SHORT_CLICK_TIMEOUT_TIME  190     //只针对首次单击，要满足按够那么长时间。连击时，后面的单击没有该时间要求
-static int first_short_click_timeout_add = 0;
 static void lp_touch_key_first_short_click_timeout_handle(void *priv)
 {
-    first_short_click_timeout_add = 0;
+    slide_key.first_short_click_timeout_add = 0;
 }
 
-#define SEND_KEYTONE_TIMEOUT_TIME   250         //长按时的按键音，在按下后的多长时间要响
-static u8 send_keytone_flag = 0;
-static int send_keytone_timeout_add = 0;
 static void lp_touch_key_send_keytone_timeout_handle(void *priv)
 {
     lp_touch_key_send_key_tone_msg();
-    send_keytone_timeout_add = 0;
-    send_keytone_flag = 1;
+    slide_key.send_keytone_timeout_add = 0;
+    slide_key.send_keytone_flag = 1;
 }
 
-#define SLIDE_CLICK_TIMEOUT_TIME    500         //识别为滑动之后，该时间内，如果有case7.也要识别为滑动
-#define FAST_SLIDE_CNT_MAX          4           //一来就连续那么多次的case7.，就会识别为一次滑动。
-static u8 fast_slide_cnt = 0;
-static u8 fast_slide_type = 0;
-static int slide_click_timeout_add = 0;
 void lp_touch_key_slide_click_timeout_handle(void *priv)
 {
-    slide_click_timeout_add = 0;
+    slide_key.slide_click_timeout_add = 0;
 }
 
-static void lp_touch_key_check_channel_falling_info(u8 ch)
+static void lp_touch_key_check_channel_falling_info(u32 ch)
 {
-    falling_order[ch] = FALLING_FIRST;
-    if (falling_order[!ch] == FALLING_FIRST) {
-        falling_order[ch] = FALLING_SECOND;
+    slide_key.falling_order[ch] = FALLING_FIRST;
+    if (slide_key.falling_order[!ch] == FALLING_FIRST) {
+        slide_key.falling_order[ch] = FALLING_SECOND;
     }
-    send_keytone_flag = 0;
-    if (send_keytone_timeout_add == 0) {
-        send_keytone_timeout_add = sys_hi_timeout_add(NULL, lp_touch_key_send_keytone_timeout_handle, SEND_KEYTONE_TIMEOUT_TIME);
+    slide_key.send_keytone_flag = 0;
+    if (slide_key.send_keytone_timeout_add == 0) {
+        slide_key.send_keytone_timeout_add = sys_hi_timeout_add(NULL, lp_touch_key_send_keytone_timeout_handle, SEND_KEYTONE_TIMEOUT_TIME);
     } else {
-        sys_hi_timer_modify(send_keytone_timeout_add, SEND_KEYTONE_TIMEOUT_TIME);
+        sys_hi_timer_modify(slide_key.send_keytone_timeout_add, SEND_KEYTONE_TIMEOUT_TIME);
     }
-    if ((last_key_type != SHORT_CLICK) || (click_idle_timeout_add == 0)) {
-        if (first_short_click_timeout_add == 0) {
-            first_short_click_timeout_add = sys_hi_timeout_add(NULL, lp_touch_key_first_short_click_timeout_handle, FIRST_SHORT_CLICK_TIMEOUT_TIME);
+    if ((slide_key.last_key_type != SHORT_CLICK) || (slide_key.click_idle_timeout_add == 0)) {
+        if (slide_key.first_short_click_timeout_add == 0) {
+            slide_key.first_short_click_timeout_add = sys_hi_timeout_add(NULL, lp_touch_key_first_short_click_timeout_handle, FIRST_SHORT_CLICK_TIMEOUT_TIME);
         } else {
-            sys_hi_timer_modify(first_short_click_timeout_add, FIRST_SHORT_CLICK_TIMEOUT_TIME);
+            sys_hi_timer_modify(slide_key.first_short_click_timeout_add, FIRST_SHORT_CLICK_TIMEOUT_TIME);
         }
     }
-    if (falling_order[ch] == FALLING_FIRST) {
-        if (falling_timeout_add == 0) {
-            falling_timeout_add = sys_hi_timeout_add(NULL, lp_touch_key_falling_timeout_handle, FALLING_TIMEOUT_TIME);
+    if (slide_key.falling_order[ch] == FALLING_FIRST) {
+        if (slide_key.falling_timeout_add == 0) {
+            slide_key.falling_timeout_add = sys_hi_timeout_add(NULL, lp_touch_key_falling_timeout_handle, FALLING_TIMEOUT_TIME);
         } else {
-            sys_hi_timer_modify(falling_timeout_add, FALLING_TIMEOUT_TIME);
+            sys_hi_timer_modify(slide_key.falling_timeout_add, FALLING_TIMEOUT_TIME);
         }
-        falling_time_interval = SHORT_TIME;
-    } else if (falling_order[ch] == FALLING_SECOND) {
-        if (falling_timeout_add) {
-            sys_hi_timeout_del(falling_timeout_add);
-            falling_timeout_add = 0;
-            falling_time_interval = SHORT_TIME;
+        slide_key.falling_time_interval = SHORT_TIME;
+    } else if (slide_key.falling_order[ch] == FALLING_SECOND) {
+        if (slide_key.falling_timeout_add) {
+            sys_hi_timeout_del(slide_key.falling_timeout_add);
+            slide_key.falling_timeout_add = 0;
+            slide_key.falling_time_interval = SHORT_TIME;
         } else {
-            falling_time_interval = LONG_TIME;
+            slide_key.falling_time_interval = LONG_TIME;
         }
     }
 }
 
-static u8 lp_touch_key_check_channel_raising_info_and_key_type(u8 ch)
+static u32 lp_touch_key_check_channel_raising_info_and_key_type(u32 ch)
 {
-    u8 key_type = 0;
-    fast_slide_type = 0;
-    if (falling_order[ch] == FALLING_NULL) {
+    u32 key_type = 0;
+    slide_key.fast_slide_type = 0;
+    if (slide_key.falling_order[ch] == FALLING_NULL) {
         return key_type;
     }
-    raising_order[ch] = RAISING_FIRST;
-    if (raising_order[!ch] == RAISING_FIRST) {
-        raising_order[ch] = RAISING_SECOND;
+    slide_key.raising_order[ch] = RAISING_FIRST;
+    if (slide_key.raising_order[!ch] == RAISING_FIRST) {
+        slide_key.raising_order[ch] = RAISING_SECOND;
     }
-    if (falling_order[ch] > falling_order[!ch]) {
-        if (raising_order[ch] == RAISING_FIRST) {
+    if (slide_key.falling_order[ch] > slide_key.falling_order[!ch]) {
+        if (slide_key.raising_order[ch] == RAISING_FIRST) {
             key_type = SHORT_CLICK;             //case 1~5.
         } else {
-            if (falling_time_interval == SHORT_TIME) {
-                if (raising_timeout_add) {
-                    sys_hi_timeout_del(raising_timeout_add);
-                    raising_timeout_add = 0;
+            if (slide_key.falling_time_interval == SHORT_TIME) {
+                if (slide_key.raising_timeout_add) {
+                    sys_hi_timeout_del(slide_key.raising_timeout_add);
+                    slide_key.raising_timeout_add = 0;
                     key_type = SHORT_CLICK;     //case 6~7.
                     if (ch == 0) {
-                        fast_slide_type = SLIDE_DOWN;
+                        slide_key.fast_slide_type = SLIDE_DOWN;
                     } else {
-                        fast_slide_type = SLIDE_UP;
+                        slide_key.fast_slide_type = SLIDE_UP;
                     }
                 } else if (ch == 0) {
                     key_type = SLIDE_DOWN;      //case 10.
@@ -228,12 +240,12 @@ static u8 lp_touch_key_check_channel_raising_info_and_key_type(u8 ch)
             }
         }
     } else {
-        if (raising_order[ch] == RAISING_FIRST) {
-            if (falling_time_interval == SHORT_TIME) {
-                if (raising_timeout_add == 0) {
-                    raising_timeout_add = sys_hi_timeout_add(NULL, lp_touch_key_raising_timeout_handle, RAISING_TIMEOUT_TIME);
+        if (slide_key.raising_order[ch] == RAISING_FIRST) {
+            if (slide_key.falling_time_interval == SHORT_TIME) {
+                if (slide_key.raising_timeout_add == 0) {
+                    slide_key.raising_timeout_add = sys_hi_timeout_add(NULL, lp_touch_key_raising_timeout_handle, RAISING_TIMEOUT_TIME);
                 } else {
-                    sys_hi_timer_modify(raising_timeout_add, RAISING_TIMEOUT_TIME);
+                    sys_hi_timer_modify(slide_key.raising_timeout_add, RAISING_TIMEOUT_TIME);
                 }
             } else if (ch == 0) {
                 key_type = SLIDE_UP;            //case 8~9.
@@ -241,15 +253,15 @@ static u8 lp_touch_key_check_channel_raising_info_and_key_type(u8 ch)
                 key_type = SLIDE_DOWN;          //case 8~9.
             }
         } else {
-            if (falling_time_interval == SHORT_TIME) {
-                if (raising_timeout_add) {
-                    sys_hi_timeout_del(raising_timeout_add);
-                    raising_timeout_add = 0;
+            if (slide_key.falling_time_interval == SHORT_TIME) {
+                if (slide_key.raising_timeout_add) {
+                    sys_hi_timeout_del(slide_key.raising_timeout_add);
+                    slide_key.raising_timeout_add = 0;
                     key_type = SHORT_CLICK;     //case 6~7
                     if (ch == 0) {
-                        fast_slide_type = SLIDE_UP;
+                        slide_key.fast_slide_type = SLIDE_UP;
                     } else {
-                        fast_slide_type = SLIDE_DOWN;
+                        slide_key.fast_slide_type = SLIDE_DOWN;
                     }
                 } else if (ch == 0) {
                     key_type = SLIDE_UP;        //case 10.
@@ -266,33 +278,24 @@ static u8 lp_touch_key_check_channel_raising_info_and_key_type(u8 ch)
     return key_type;
 }
 
-static u8 lp_touch_key_get_slide_event_ch(void)
+static u32 lp_touch_key_get_slide_event_ch(void)
 {
-    u8 event_ch = 1;
-    for (u8 ch = 0; ch < LPCTMU_CHANNEL_SIZE; ch ++) {
-        if (__this->key[ch].enable) {
-            event_ch = ch;
-            break;
-        }
-    }
-    return event_ch;
+    return __this->pdata->key_cfg[0].key_ch;
 }
 
-static u8 lp_touch_key_check_slide_key_type(u8 event, u8 ch)
+static u32 lp_touch_key_check_slide_key_type(u32 event, u32 ch)
 {
-    u8 key_type = 0;
-    u8 event_ch = lp_touch_key_get_slide_event_ch();
+    u32 key_type = 0;
+    u32 event_ch = lp_touch_key_get_slide_event_ch();
     if (event == (CTMU_P2M_CH0_FALLING_EVENT + ch * 8)) {
-        log_debug("touch key%d FALLING !\n", ch);
         if (ch == event_ch) {
             lp_touch_key_check_channel_falling_info(0);
         } else {
             lp_touch_key_check_channel_falling_info(1);
         }
     } else if (event == (CTMU_P2M_CH0_RAISING_EVENT + ch * 8)) {
-        log_debug("touch key%d RAISING !\n", ch);
         if (ch == event_ch) {
-            if ((last_key_type == LONG_CLICK) || (last_key_type == LONG_HOLD_CLICK)) {
+            if ((slide_key.last_key_type == LONG_CLICK) || (slide_key.last_key_type == LONG_HOLD_CLICK)) {
                 key_type = LONG_UP_CLICK;       //一定是长按抬起
             } else {
                 key_type = lp_touch_key_check_channel_raising_info_and_key_type(0);
@@ -301,81 +304,79 @@ static u8 lp_touch_key_check_slide_key_type(u8 event, u8 ch)
             key_type = lp_touch_key_check_channel_raising_info_and_key_type(1);
         }
     } else if (event == (CTMU_P2M_CH0_LONG_KEY_EVENT + event_ch * 8)) {//长按只判断通道号小的那个按键
-        log_debug("touch key%d LONG !\n", ch);
         key_type = LONG_CLICK;
     } else if (event == (CTMU_P2M_CH0_HOLD_KEY_EVENT + event_ch * 8)) {//长按只判断通道号小的那个按键
-        log_debug("touch key%d HOLD !\n", ch);
         key_type = LONG_HOLD_CLICK;
     }
 
     if (key_type) {
-        falling_order[0] = FALLING_NULL;
-        falling_order[1] = FALLING_NULL;
-        raising_order[0] = RAISING_NULL;
-        raising_order[1] = RAISING_NULL;
-        falling_time_interval = 0;
-        last_key_type = key_type;
-        if (send_keytone_timeout_add) {
-            sys_hi_timeout_del(send_keytone_timeout_add);
-            send_keytone_timeout_add = 0;
+        slide_key.falling_order[0] = FALLING_NULL;
+        slide_key.falling_order[1] = FALLING_NULL;
+        slide_key.raising_order[0] = RAISING_NULL;
+        slide_key.raising_order[1] = RAISING_NULL;
+        slide_key.falling_time_interval = 0;
+        slide_key.last_key_type = key_type;
+        if (slide_key.send_keytone_timeout_add) {
+            sys_hi_timeout_del(slide_key.send_keytone_timeout_add);
+            slide_key.send_keytone_timeout_add = 0;
         }
         if (key_type == SHORT_CLICK) {                  //case 6~7 的进一步处理
-            if (first_short_click_timeout_add) {
-                sys_hi_timeout_del(first_short_click_timeout_add);
-                first_short_click_timeout_add = 0;
+            if (slide_key.first_short_click_timeout_add) {
+                sys_hi_timeout_del(slide_key.first_short_click_timeout_add);
+                slide_key.first_short_click_timeout_add = 0;
 
-                if (slide_click_timeout_add) {
-                    sys_hi_timeout_del(slide_click_timeout_add);
-                    slide_click_timeout_add = 0;
-                    if (fast_slide_type) {
-                        key_type = fast_slide_type;
-                        last_key_type = key_type;
+                if (slide_key.slide_click_timeout_add) {
+                    sys_hi_timeout_del(slide_key.slide_click_timeout_add);
+                    slide_key.slide_click_timeout_add = 0;
+                    if (slide_key.fast_slide_type) {
+                        key_type = slide_key.fast_slide_type;
+                        slide_key.last_key_type = key_type;
                     } else {
                         key_type = 0xff;
-                        last_key_type = key_type;
+                        slide_key.last_key_type = key_type;
                     }
-                    fast_slide_cnt = 0;
+                    slide_key.fast_slide_cnt = 0;
                 } else {
-                    if (fast_slide_type) {
-                        fast_slide_cnt ++;
-                        if (fast_slide_cnt >= FAST_SLIDE_CNT_MAX) {
-                            fast_slide_cnt = 0;
-                            key_type = fast_slide_type;
-                            last_key_type = key_type;
+                    if (slide_key.fast_slide_type) {
+                        slide_key.fast_slide_cnt ++;
+                        if (slide_key.fast_slide_cnt >= FAST_SLIDE_CNT_MAX) {
+                            slide_key.fast_slide_cnt = 0;
+                            key_type = slide_key.fast_slide_type;
+                            slide_key.last_key_type = key_type;
                         } else {
                             key_type = 0xff;
-                            last_key_type = key_type;
+                            slide_key.last_key_type = key_type;
                         }
                     } else {
-                        fast_slide_cnt = 0;
+                        slide_key.fast_slide_cnt = 0;
                         key_type = 0xff;
-                        last_key_type = key_type;
+                        slide_key.last_key_type = key_type;
                     }
                 }
             } else {
-                if (send_keytone_flag == 0) {
+                if (slide_key.send_keytone_flag == 0) {
                     lp_touch_key_send_key_tone_msg();
                 }
-                if (slide_click_timeout_add) {
-                    sys_hi_timeout_del(slide_click_timeout_add);
-                    slide_click_timeout_add = 0;
+                if (slide_key.slide_click_timeout_add) {
+                    sys_hi_timeout_del(slide_key.slide_click_timeout_add);
+                    slide_key.slide_click_timeout_add = 0;
                 }
-                fast_slide_cnt = 0;
+                slide_key.fast_slide_cnt = 0;
             }
-            if (click_idle_timeout_add == 0) {
-                click_idle_timeout_add = sys_hi_timeout_add(NULL, lp_touch_key_click_idle_timeout_handle, CLICK_IDLE_TIMEOUT_TIME);
+            if (slide_key.click_idle_timeout_add == 0) {
+                slide_key.click_idle_timeout_add = sys_hi_timeout_add(NULL, lp_touch_key_click_idle_timeout_handle, CLICK_IDLE_TIMEOUT_TIME);
             } else {
-                sys_hi_timer_modify(click_idle_timeout_add, CLICK_IDLE_TIMEOUT_TIME);
+                sys_hi_timer_modify(slide_key.click_idle_timeout_add, CLICK_IDLE_TIMEOUT_TIME);
             }
         } else {
-            fast_slide_cnt = 0;
+            slide_key.fast_slide_cnt = 0;
         }
 
         if ((key_type == SLIDE_UP) || (key_type == SLIDE_DOWN)) {
-            if (slide_click_timeout_add == 0) {
-                slide_click_timeout_add = sys_hi_timeout_add(NULL, lp_touch_key_slide_click_timeout_handle, SLIDE_CLICK_TIMEOUT_TIME);
+            if (slide_key.slide_click_timeout_add == 0) {
+                slide_key.slide_click_timeout_add = sys_hi_timeout_add(NULL, lp_touch_key_slide_click_timeout_handle, SLIDE_CLICK_TIMEOUT_TIME);
             } else {
-                sys_hi_timer_modify(slide_click_timeout_add, SLIDE_CLICK_TIMEOUT_TIME);
+                sys_hi_timer_modify(slide_key.slide_click_timeout_add, SLIDE_CLICK_TIMEOUT_TIME);
             }
         }
     }
@@ -383,27 +384,38 @@ static u8 lp_touch_key_check_slide_key_type(u8 event, u8 ch)
     return key_type;
 }
 
-static void lp_touch_key_send_slide_key_type_event(u8 key_type)
+static void lp_touch_key_send_slide_key_type_event(u32 key_type)
 {
-    u8 event_ch = lp_touch_key_get_slide_event_ch();
     switch (key_type) {
     case SHORT_CLICK:           //单击
-        lp_touch_key_short_click_handle(event_ch);
+        lp_touch_key_short_click_handle(0);
         break;
     case LONG_CLICK:            //长按
-        lp_touch_key_long_click_handle(event_ch);
+#if CTMU_CHECK_LONG_CLICK_BY_RES
+        if (lp_touch_key_check_long_click_by_ctmu_res(0)) {
+            slide_key.last_key_type = 0;
+            return;
+        }
+#endif
+        lp_touch_key_long_click_handle(0);
         break;
     case LONG_HOLD_CLICK:       //长按保持
-        lp_touch_key_hold_click_handle(event_ch);
+#if CTMU_CHECK_LONG_CLICK_BY_RES
+        if (lp_touch_key_check_long_click_by_ctmu_res(0)) {
+            slide_key.last_key_type = 0;
+            return;
+        }
+#endif
+        lp_touch_key_hold_click_handle(0);
         break;
     case LONG_UP_CLICK:         //长按抬起
-        lp_touch_key_raise_click_handle(event_ch);
+        lp_touch_key_raise_click_handle(0);
         break;
     case SLIDE_UP:              //向上滑动
-        lp_touch_key_slide_up_handle(event_ch);
+        lp_touch_key_slide_up_handle(0);
         break;
     case SLIDE_DOWN:            //向下滑动
-        lp_touch_key_slide_down_handle(event_ch);
+        lp_touch_key_slide_down_handle(0);
         break;
     default:
         break;

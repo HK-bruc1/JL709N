@@ -92,27 +92,17 @@ set TONE_ZH_ENABLE=1
 set TONE_ZH_ENABLE=0
 #endif
 
+#if RCSP_MODE
+set RCSP_EN=1
+#endif
+
 #if TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN
 copy anc_ext.bin download\earphone\ALIGN_DIR\.
 #else
 del download\earphone\ALIGN_DIR\anc_ext.bin
 #endif
 
-#ifdef CONFIG_WATCH_CASE_ENABLE
-call download/watch/download.bat
-#elif defined(CONFIG_SOUNDBOX_CASE_ENABLE)
-call download/soundbox/download.bat
-#elif defined(CONFIG_EARPHONE_CASE_ENABLE)
-#if (RCSP_ADV_EN == 0)
 call download/earphone/download.bat
-#else
-call download/earphone/download_app_ota.bat
-#endif
-#elif defined(CONFIG_HID_CASE_ENABLE) ||defined(CONFIG_SPP_AND_LE_CASE_ENABLE)||defined(CONFIG_MESH_CASE_ENABLE)||defined(CONFIG_DONGLE_CASE_ENABLE)    //数传
-call download/data_trans/download.bat
-#else
-//to do other case
-#endif  //endif app_case
 
 #endif
 

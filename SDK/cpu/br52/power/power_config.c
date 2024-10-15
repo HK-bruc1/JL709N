@@ -43,7 +43,7 @@ void board_power_init()
     power_control(PCONTROL_PD_VDDIO_KEEP, VDDIO_KEEP_TYPE_NORMAL);
     power_control(PCONTROL_SF_VDDIO_KEEP, VDDIO_KEEP_TYPE_NORMAL);
 
-    /* phw_control(PCONTROL_SF_KEEP_NVDD, 1); */
+    power_control(PCONTROL_SF_KEEP_NVDD, 1);
     power_set_dcdc_type(CONFIG_DCDC_TYPE);
 
     power_init(&power_pdata);

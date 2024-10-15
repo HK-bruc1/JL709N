@@ -114,12 +114,15 @@ enum CLK_OUT_SOURCE {
 u32 clk_out_fixed_io_check(u32 gpio);
 
 
-
+void ic_btosc_init(void);
+u32 ic_pll_init(u32 osc_freq);
 
 
 //for bt
 void clk_set_osc_cap(u8 sel_l, u8 sel_r);
 u32 clk_get_osc_cap();
+u32 get_btosc_info_for_update(void *info);
+void clk_vdc_mode_init(u32 mode, u32 vdc_level);
 
 #define BT_CLOCK_IN(x)          //SFR(JL_CLOCK->CLK_CON1,  14,  2,  x)
 //for MACRO - BT_CLOCK_IN

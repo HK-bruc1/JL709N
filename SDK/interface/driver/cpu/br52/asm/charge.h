@@ -44,8 +44,8 @@
 /*充满判断电流为恒流电流的比例配置*/
 #define CHARGE_FC_IS_CC_DIV_5		0 // full current = constant current / 5
 #define CHARGE_FC_IS_CC_DIV_10		1 // default
-#define CHARGE_FC_IS_CC_DIV_12P5	2
-#define CHARGE_FC_IS_CC_DIV_15		3
+#define CHARGE_FC_IS_CC_DIV_15      2
+#define CHARGE_FC_IS_CC_DIV_20		3
 
 /* 充电口下拉电阻 50k ~ 200k */
 #define CHARGE_PULLDOWN_50K     0
@@ -56,6 +56,8 @@
 #define CHARGE_CCVOL_V			300		//涓流充电向恒流充电的转换点
 
 #define DEVICE_EVENT_FROM_CHARGE	(('C' << 24) | ('H' << 16) | ('G' << 8) | '\0')
+
+#define TRICKLE_EN_FLAG         BIT(9)  //判断是否开启涓流充电使能标志位
 
 struct charge_platform_data {
     u8 charge_en;	        //内置充电使能

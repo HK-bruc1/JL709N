@@ -380,8 +380,8 @@ static int a2dp_bt_status_event_handler(int *event)
         }
         if (memcmp(a2dp_drop_packet_detect_addr, bt->args, 6) == 0) {
             g_printf("bt_action_is_drop_flag");
-            if (memcmp(a2dp_energy_detect_addr, addr_b, 6) == 0 ||
-                memcmp(a2dp_preempted_addr, addr_b, 6) == 0) {
+            if (addr_b && ((memcmp(a2dp_energy_detect_addr, addr_b, 6) == 0) ||
+                           (memcmp(a2dp_preempted_addr, addr_b, 6) == 0))) {
                 tws_a2dp_play_send_cmd(CMD_A2DP_MUTE, bt->args, 6, 1);
                 break;
             }
@@ -470,7 +470,7 @@ static int a2dp_bt_status_event_handler(int *event)
         if (tws_api_get_role() == TWS_ROLE_SLAVE) {
             break;
         }
-        if (device_b && a2dp_player_is_playing(addr_b)) {
+        if (addr_b && device_b && a2dp_player_is_playing(addr_b)) {
             puts("--a2dp_mute\n");
             put_buf(addr_b, 6);
             memcpy(a2dp_preempted_addr, addr_b, 6);
@@ -484,7 +484,7 @@ static int a2dp_bt_status_event_handler(int *event)
         if (tws_api_get_role() == TWS_ROLE_SLAVE) {
             break;
         }
-        if (device_b && bt_not_in_phone_call_state(device_b)) {
+        if (addr_b && device_b && bt_not_in_phone_call_state(device_b)) {
             if (memcmp(a2dp_preempted_addr, addr_b, 6) == 0) {
                 if (a2dp_media_is_mute(addr_b)) {
                     puts("--a2dp_unmute-b\n");

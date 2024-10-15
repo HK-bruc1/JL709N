@@ -454,7 +454,6 @@ void pwm_led_hw_init(void *pdata)
     pwm_led_io_mount();
 
     SFR(P11_SYSTEM->P2M_CLK_CON0, 6, 3, 3);
-    //SFR(P11_SYSTEM->P2M_CLK_CON0, 0, 5, BIT(3));
     JL_PLED->CON0 &= ~(0b11 << 2);      //PWM_LED选择LRD_200K做时钟源
     JL_PLED->CON0 &= ~(0b1111 << 4);    //时钟源不分频
 
@@ -487,6 +486,7 @@ void pwm_led_hw_init(void *pdata)
 void pwm_led_hw_close(void)
 {
     JL_PLED->CON0 &= ~BIT(0);
+    SFR(P11_SYSTEM->P2M_CLK_CON0, 6, 3, 0);
     pwm_led_io_unmount();
     pwm_led_data_init = 0;
 }

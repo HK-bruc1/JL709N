@@ -46,6 +46,7 @@ typedef struct {
     u8 plnk_cken;			// PLNK时钟使能
     u8 a2d_cken;			// AD2DA_HW时钟总使能
 
+    u8 epa_clk_div;         // EPA时钟分频系数
     u8 ff_clk_div;
     u8 fb_clk_div;
     u8 sz_clk_div;

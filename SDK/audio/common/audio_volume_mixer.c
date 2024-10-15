@@ -35,13 +35,17 @@
 #include "volume_node.h"
 #include "tone_player.h"
 #include "ring_player.h"
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_BIS_RX_EN)||(BT_AI_SEL_PROTOCOL & LE_AUDIO_BIS_TX_EN)||(BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_AURACAST_SINK_EN | LE_AUDIO_JL_AURACAST_SINK_EN)))||((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_AURACAST_SOURCE_EN | LE_AUDIO_JL_AURACAST_SOURCE_EN)))||((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 #include "le_audio_player.h"
 #endif
 
 #if TCFG_AUDIO_DUT_ENABLE
 #include "audio_dut_control.h"
 #endif/*TCFG_AUDIO_DUT_ENABLE*/
+
+#if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
+#include "icsd_aeq_app.h"
+#endif
 
 #ifdef SUPPORT_MS_EXTENSIONS
 #pragma const_seg(	".app_audio_const")
@@ -472,7 +476,7 @@ const u16 hw_dig_vol_table[DVOL_HW_LEVEL_MAX + 1] = {
 void audio_hw_digital_vol_init(u8 cfg_en)
 {
     float dB_value = BT_MUSIC_VOL_MAX ;
-#if (TCFG_AUDIO_ANC_ENABLE)
+#if ((TCFG_AUDIO_ANC_ENABLE) && (defined ANC_MODE_DIG_VOL_LIMIT))
     dB_value = (dB_value > ANC_MODE_DIG_VOL_LIMIT) ? ANC_MODE_DIG_VOL_LIMIT : dB_value;
 #endif/*TCFG_AUDIO_ANC_ENABLE*/
     app_var.aec_dac_gain = (app_var.aec_dac_gain > BT_CALL_VOL_LEAVE_MAX) ? BT_CALL_VOL_LEAVE_MAX : app_var.aec_dac_gain;
@@ -678,10 +682,18 @@ int audio_digital_vol_node_name_get(u8 dvol_idx, char *node_name)
     struct app_mode *mode;
     mode = app_get_current_mode();
     int i = 0;
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
-    if (le_audio_player_is_playing()) {
-        sprintf(node_name, "%s%s", "Vol_LE_", "Audio");
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+    if (le_audio_player_get_stream_scene() == STREAM_SCENE_LE_AUDIO) {
+        sprintf(node_name, "%s%s", "LEA_", "Media");
         return 0;
+    } else if (le_audio_player_get_stream_scene() == STREAM_SCENE_LEA_CALL) {
+        sprintf(node_name, "%s%s", "LEA_", "Call");
+        return 0;
+    } else {
+        if (le_audio_player_is_playing()) {
+            sprintf(node_name, "%s%s", "Vol_LE_", "Audio");
+            return 0;
+        }
     }
 #endif
 
@@ -836,6 +848,9 @@ void audio_app_volume_set(u8 state, s16 volume, u8 fade)
     case APP_AUDIO_STATE_MUSIC:
         app_var.music_volume = volume;
         dvol_idx = MUSIC_DVOL;
+#if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE && ADAPTIVE_EQ_VOLUME_GRADE_EN
+        audio_adaptive_eq_vol_update(volume);
+#endif
         break;
     case APP_AUDIO_STATE_CALL:
         app_var.call_volume = volume;
@@ -1244,7 +1259,7 @@ void app_audio_state_switch(u8 state, s16 max_volume, dvol_handle *dvol_hdl)
     }
 
     float dB_value = DEFAULT_DIGITAL_VOLUME;
-#if (TCFG_AUDIO_ANC_ENABLE)
+#if ((TCFG_AUDIO_ANC_ENABLE) && (defined ANC_MODE_DIG_VOL_LIMIT))
     dB_value = (dB_value > ANC_MODE_DIG_VOL_LIMIT) ? ANC_MODE_DIG_VOL_LIMIT : dB_value;
 #endif/*TCFG_AUDIO_ANC_ENABLE*/
     u16 dvol_max = (u16)(16384.0f * dB_Convert_Mag(dB_value));

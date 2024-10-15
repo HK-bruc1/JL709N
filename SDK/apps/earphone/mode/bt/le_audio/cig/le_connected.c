@@ -21,9 +21,8 @@
 #include "wireless_trans.h"
 #include "clock_manager/clock_manager.h"
 #include "le_audio_stream.h"
-/* #include "bt_event_func.h" */
 
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 
 /**************************************************************************************************
   Macros
@@ -361,6 +360,11 @@ int connected_perip_connect_deal(void *priv)
         }
         if (!connected_hdl->cis_hdl_info[index].recorder) {
             //TODO:打开recorder
+#if TCFG_AUDIO_BIT_WIDTH
+            params.latency = 80 * 1000;//tx延时暂时先设置 50ms
+#else
+            params.latency = 50 * 1000;//tx延时暂时先设置 50ms
+#endif
             if (le_audio_switch_ops && le_audio_switch_ops->tx_le_audio_open) {
                 connected_hdl->cis_hdl_info[index].recorder = le_audio_switch_ops->tx_le_audio_open(&params);
             }
@@ -598,7 +602,9 @@ static void connected_perip_event_callback(const CIG_EVENT event, void *priv)
         break;
     }
 }
-//u32 get_cig_sdu_period_us(void);
+/*
+ * CIS通道收到数据回连到上层处理
+ * */
 static void connected_iso_callback(const void *const buf, size_t length, void *priv)
 {
     static u32 old_timestamp = 0;

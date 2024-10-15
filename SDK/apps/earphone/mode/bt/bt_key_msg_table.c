@@ -14,6 +14,9 @@
 #include "poweroff.h"
 #include "bt_key_func.h"
 #include "low_latency.h"
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+#include "app_le_connected.h"
+#endif
 
 
 #define LOG_TAG             "[EARPHONE]"
@@ -184,7 +187,12 @@ int bt_key_power_msg_remap(int *msg)
     } else {
         /* 非通话相关状态 */
         int tws_state = tws_api_get_tws_state();
-        if (tws_state & TWS_STA_PHONE_CONNECTED) { //已连接手机
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+        int tws_cig_state = is_cig_phone_conn();
+        if (tws_state & TWS_STA_PHONE_CONNECTED || tws_cig_state) { //已连接手机经典蓝牙或者cig
+#else
+        if (tws_state & TWS_STA_PHONE_CONNECTED) { //已连接手机经典蓝牙
+#endif
             char channel = tws_api_get_local_channel();
             switch (key_action) {
             case KEY_ACTION_CLICK:
@@ -269,6 +277,37 @@ int bt_key_power_msg_remap(int *msg)
     default:
         break;
     }
+#if 0 //anc功能测试
+    app_msg = APP_MSG_NULL;
+    switch (key_action) {
+    case KEY_ACTION_CLICK:
+        y_printf("APP_MSG_MUSIC_PP 95 >>>>>>>>>>>>>>KEY_ACTION_CLICK \n");
+        app_msg = APP_MSG_MUSIC_PP;
+        break;
+    case KEY_ACTION_HOLD_1SEC:   //长按1s 切换anc模式
+        y_printf("APP_MSG_ANC_SWITCH 66 >>>>>>>>>>>>>>KEY_ACTION_HOLD_1SEC \n");
+        app_msg = APP_MSG_ANC_SWITCH;
+        break;
+    case KEY_ACTION_DOUBLE_CLICK:    //双击切换智能免摘
+        y_printf("audio_speak_to_chat_demo 72 >>>>>>>>>>>>>>KEY_ACTION_DOUBLE_CLICK \n");
+        app_msg = APP_MSG_SPEAK_TO_CHAT_SWITCH;
+        break;
+    case KEY_ACTION_TRIPLE_CLICK:   //三击切换广域点击
+        y_printf("audio_wat_click_demo 73  >>>>>>>>>>>>>>KEY_ACTION_TRIPLE_CLICK \n");
+        app_msg = APP_MSG_WAT_CLICK_SWITCH;
+        break;
+    case KEY_ACTION_FOURTH_CLICK:   //四击切换风噪检测
+        y_printf("audio_icsd_wind_detect_demo 74 >>>>>>>>>>>>>>KEY_ACTION_FOURTH_CLICK \n");
+        app_msg = APP_MSG_WIND_DETECT_SWITCH;
+        break;
+    case KEY_ACTION_FIRTH_CLICK:   //五击切换自适应 自适应开启一段时间会自己关
+        y_printf("audio_anc_ear_adaptive_open 70  >>>>>>>>>>>>>>KEY_ACTION_FIRTH_CLICK \n");
+        app_msg = APP_MSG_EAR_ADAPTIVE_OPEN;
+        break;
+    default:
+        break;
+    }
+#endif
     printf("bt_key_msg_remap, key_action: %d, app_msg: %d\n", key_action, app_msg);
     return app_msg;
 }

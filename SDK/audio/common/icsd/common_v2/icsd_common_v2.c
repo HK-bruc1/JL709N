@@ -20,6 +20,11 @@ const u8 ICSD_ANC_CPU = ICSD_BR28;
 const u8 ICSD_ANC_CPU = ICSD_BR50;
 #endif
 
+int icsd_printf_off(const char *format, ...)
+{
+    return 0;
+}
+
 float icsd_anc_pow10(float n)
 {
     float pow10n = exp_float((float)n / icsd_log10_anc(exp_float((float)1.0)));
@@ -60,4 +65,14 @@ void icsd_anc_fft128(int *in_cur, int *out)
     fft_config = hw_fft_config(128, 7, 1, 0, 1);
     hw_fft_run(fft_config, in_cur, out);
 }
+
+void icsd_anc_fft64(int *in_cur, int *out)
+{
+    u32 fft_config;
+    fft_config = hw_fft_config(64, 6, 1, 0, 1);
+    hw_fft_run(fft_config, in_cur, out);
+}
+
+
+
 #endif/*TCFG_AUDIO_ANC_ENABLE*/

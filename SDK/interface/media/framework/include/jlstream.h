@@ -126,6 +126,8 @@ enum stream_event {
 
     STREAM_EVENT_GET_SWITCH_CALLBACK,
     STREAM_EVENT_GET_MERGER_CALLBACK,
+
+    STREAM_EVENT_GLOBAL_PAUSE,
 };
 
 enum stream_scene : u8 {
@@ -157,6 +159,8 @@ enum stream_scene : u8 {
     STREAM_SCENE_TONE = 0x20,
     STREAM_SCENE_RING = 0x60,
     STREAM_SCENE_KEY_TONE = 0xa0,
+
+    STREAM_SCENE_NONE = 0xff,
 };
 
 enum stream_coexist : u8 {

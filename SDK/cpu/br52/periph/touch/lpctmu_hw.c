@@ -1,6 +1,13 @@
+#ifdef SUPPORT_MS_EXTENSIONS
+#pragma bss_seg(".lpctmu_hw.data.bss")
+#pragma data_seg(".lpctmu_hw.data")
+#pragma const_seg(".lpctmu_hw.text.const")
+#pragma code_seg(".lpctmu_hw.text")
+#endif
 #include "system/includes.h"
 #include "asm/power_interface.h"
 #include "asm/lpctmu_hw.h"
+#include "asm/charge.h"
 #include "gpadc.h"
 
 #if 1
@@ -29,15 +36,7 @@ static const u8 ch_port[LPCTMU_CHANNEL_SIZE] = {
     IO_PORTB_04,
 };
 
-static u8 ch_idx_buf[LPCTMU_CHANNEL_SIZE];
-static u8 ch_idx_max = LPCTMU_CHANNEL_SIZE;
-static u8 ch_idx = 0;
-
-static u8 ch_cur_level[LPCTMU_CHANNEL_SIZE];
-
-static struct lpctmu_platform_data *__this = NULL;
-
-static u8 softoff_keep_work = 0;
+static struct lpctmu_config_data *__this = NULL;
 
 extern u32 __get_lrc_hz();
 
@@ -52,23 +51,23 @@ void lpctmu_send_m2p_cmd(enum CTMU_M2P_CMD cmd)
 }
 
 
-u8 lpctmu_get_cur_ch_by_idx(u8 idx)
+u32 lpctmu_get_cur_ch_by_idx(u32 ch_idx)
 {
-    idx %= ch_idx_max;
-    return ch_idx_buf[idx];
+    ch_idx %= __this->ch_num;
+    return __this->ch_list[ch_idx];
 }
 
-u8 lpctmu_get_idx_by_cur_ch(u8 cur_ch)
+u32 lpctmu_get_idx_by_cur_ch(u32 cur_ch)
 {
-    for (u8 idx = 0; idx < ch_idx_max; idx ++) {
-        if (cur_ch == ch_idx_buf[idx]) {
-            return idx;
+    for (u32 ch_idx = 0; ch_idx < __this->ch_num; ch_idx ++) {
+        if (cur_ch == __this->ch_list[ch_idx]) {
+            return ch_idx;
         }
     }
     return 0;
 }
 
-void lpctmu_port_init(u8 ch)
+void lpctmu_port_init(u32 ch)
 {
     u8 port = ch_port[ch];
     gpio_set_mode(port / 16, BIT(port % 16), PORT_HIGHZ);
@@ -82,23 +81,23 @@ void lpctmu_port_init(u8 ch)
 }
 
 
-void lpctmu_set_ana_hv_level(u8 level)
+void lpctmu_set_ana_hv_level(u32 level)
 {
-    SFR(P11_LPCTM0->ANA0, 5, 3, level);
+    SFR(P11_LPCTM0->ANA0, 5, 3, level & 0b111);
 }
 
-u8 lpctmu_get_ana_hv_level(void)
+u32 lpctmu_get_ana_hv_level(void)
 {
-    u8 level = (P11_LPCTM0->ANA0 >> 5) & 0b111;
+    u32 level = (P11_LPCTM0->ANA0 >> 5) & 0b111;
     return level;
 }
 
 void lpctmu_vsel_trim(void)
 {
-    if (__this->aim_vol_delta < 8) {
-        lpctmu_set_ana_hv_level(__this->aim_vol_delta);
+    if (__this->pdata->aim_vol_delta < 8) {
+        lpctmu_set_ana_hv_level(__this->pdata->aim_vol_delta);
         SFR(P11_LPCTM0->ANA1, 0, 2, 0b00);//关闭HV/LV
-        log_debug("hv_level = %d", __this->aim_vol_delta);
+        log_debug("hv_level = %d", __this->pdata->aim_vol_delta);
         return;
     }
     SFR(P11_LPCTM0->ANA1, 0, 2, 0b01);//先使能LV
@@ -117,10 +116,10 @@ void lpctmu_vsel_trim(void)
         } else {
             delta = lv_vol - hv_vol;
         }
-        if (delta > __this->aim_vol_delta) {
-            diff = delta - __this->aim_vol_delta;
+        if (delta > __this->pdata->aim_vol_delta) {
+            diff = delta - __this->pdata->aim_vol_delta;
         } else {
-            diff = __this->aim_vol_delta - delta;
+            diff = __this->pdata->aim_vol_delta - delta;
         }
         if (diff_min >= diff) {
             diff_min = diff;
@@ -157,35 +156,34 @@ u32 lpctmu_get_charge_clk(void)
     return charge_clk;
 }
 
-void lpctmu_set_ana_cur_level(u8 ch, u8 cur_level)
+void lpctmu_set_ana_cur_level(u32 ch, u32 cur_level)
 {
     SFR(P11_LPCTM0->CHIS, ch * 4, 3, cur_level);
 }
 
-u8 lpctmu_get_ana_cur_level(u8 ch)
+u32 lpctmu_get_ana_cur_level(u32 ch)
 {
-    u8 level = 0;
-    level = (P11_LPCTM0->CHIS >> (ch * 4)) & 0b111;
+    u32 level = (P11_LPCTM0->CHIS >> (ch * 4)) & 0b111;
     return level;
 }
 
 void lpctmu_isel_trim(u8 ch)
 {
-    SFR(P11_LPCTM0->CHEN, 0, 5, ch + 1);//使能对应通道
+    SFR(P11_LPCTM0->ANA1, 4, 4, ch + 1);//使能对应通道
 
     u32 diff, diff_min = -1;
     u8 aim_cur_level;
-    if (__this->aim_charge_khz < 8) {
-        aim_cur_level = __this->aim_charge_khz;
+    if (__this->pdata->aim_charge_khz < 8) {
+        aim_cur_level = __this->pdata->aim_charge_khz;
     } else {
         for (u8 cur_level = 0; cur_level < 8; cur_level ++) {
             SFR(P11_LPCTM0->ANA0, 1, 3, cur_level);
             lpctmu_set_ana_cur_level(ch, cur_level);
             u32 charge_clk = lpctmu_get_charge_clk();
-            if (charge_clk > __this->aim_charge_khz) {
-                diff = charge_clk - __this->aim_charge_khz;
+            if (charge_clk > __this->pdata->aim_charge_khz) {
+                diff = charge_clk - __this->pdata->aim_charge_khz;
             } else {
-                diff = __this->aim_charge_khz - charge_clk;
+                diff = __this->pdata->aim_charge_khz - charge_clk;
             }
             if (diff_min >= diff) {
                 diff_min = diff;
@@ -194,7 +192,6 @@ void lpctmu_isel_trim(u8 ch)
         }
     }
     log_debug("ch%d cur_level = %d  diff %d", ch, aim_cur_level, diff_min);
-    ch_cur_level[ch] = aim_cur_level;
     SFR(P11_LPCTM0->ANA0, 1, 3, aim_cur_level);
     lpctmu_set_ana_cur_level(ch, aim_cur_level);
 }
@@ -204,34 +201,32 @@ void lpctmu_vsel_isel_trim(void)
     SFR(P11_LPCTM0->ANA1, 3, 1, 1);//软件控制
     SFR(P11_LPCTM0->ANA1, 2, 1, 1);//模拟模块偏置使能
     SFR(P11_LPCTM0->ANA0, 0, 1, 1);//模拟模块使能
-    SFR(P11_LPCTM0->CHEN, 0, 5, 0);//先不使能任何通道
+    SFR(P11_LPCTM0->ANA1, 4, 4, 0);//先不使能任何通道
 
     lpctmu_vsel_trim();
 
-    ch_idx = 0;
-__isel_trim:
-
-    lpctmu_isel_trim(ch_idx_buf[ch_idx]);
-    ch_idx ++;
-    if (ch_idx < ch_idx_max) {
-        goto __isel_trim;
-    } else {
-        ch_idx = 0;
+    for (u32 ch_idx = 0; ch_idx < __this->ch_num; ch_idx ++) {
+        lpctmu_isel_trim(__this->ch_list[ch_idx]);
     }
 }
 
-void lpctmu_lptimer3_disable(void)
+void lpctmu_lptimer_disable(void)
 {
     P11_LPTMR3->CON0 &= ~BIT(0);
 }
 
-void lpctmu_lptimer3_enable(void)
+void lpctmu_lptimer_enable(void)
 {
     P11_LPTMR3->CON0 |=  BIT(0);
     P11_LPTMR3->CON2 |=  BIT(8);
 }
 
-void lpctmu_lptimer3_init(u32 scan_time)
+u32 lpctmu_lptimer_is_working(void)
+{
+    return (!!(P11_LPTMR3->CON0 & BIT(0)));
+}
+
+void lpctmu_lptimer_init(u32 scan_time)
 {
     P11_LPTMR3->CON0 = 0x50;											//clr lc pending
 
@@ -270,56 +265,25 @@ void lpctmu_dump(void)
     log_debug("P11_LPCTM0->SLEEP_CON      = 0x%x", P11_LPCTM0->SLEEP_CON);
 }
 
-#if 0
-void clk_rst_lrc_clk_init()
+void lpctmu_init(struct lpctmu_config_data *cfg_data)
 {
-    //P33_CON_SET(P3_LRC_CON1,  6,  1,  0);
-    //P33_CON_SET(P3_LRC_CON1,  5,  1,  0);
-    //P33_CON_SET(P3_LRC_CON1,  0,  5,  7);
-    //P33_CON_SET(P3_LRC_CON0,  2,  2,  1);
-    //P33_CON_SET(P3_LRC_CON1,  31, 1, 0 );
-    P33_CON_SET(P3_LRC_CON1,  0,  16, 0);
-    P33_CON_SET(P3_LRC_CON0,  1,  1,  1);
-    P33_CON_SET(P3_LRC_CON0,  0,  1,  1);
-}
-#endif
-
-void lpctmu_init(struct lpctmu_platform_data *pdata)
-{
-    __this = pdata;
+    __this = cfg_data;
     if (!__this) {
         return;
     }
 
-    u8 ch_en = 0;
-    u8 ch_wkp_en = 0;
-    ch_idx = 0;
-    ch_idx_max = 0;
-    softoff_keep_work = 0;
-    for (u8 ch = 0; ch < LPCTMU_CHANNEL_SIZE; ch ++) {
-        ch_idx_buf[ch] = 0;
-        if (__this->ch[ch].enable) {
-            ch_en |= BIT(ch);
-            ch_idx_buf[ch_idx_max] = ch;
-            ch_idx_max ++;
-            lpctmu_port_init(ch);
-            ch_cur_level[ch] = (P11_LPCTM0->CHIS >> (ch * 4)) & 0x7;
-            if (__this->ch[ch].wakeup_en) {
-                softoff_keep_work = 1;
-                ch_wkp_en |= BIT(ch);
-            }
-        }
+    for (u32 ch_idx = 0; ch_idx < __this->ch_num; ch_idx ++) {
+        lpctmu_port_init(__this->ch_list[ch_idx]);
     }
-    ASSERT(ch_idx_max);
 
-    M2P_CTMU_CH_ENABLE = ch_en;
-    M2P_CTMU_CH_WAKEUP_EN = ch_wkp_en;
-    M2P_CTMU_SCAN_TIME = __this->sample_scan_time;
-    M2P_CTMU_LOWPOER_SCAN_TIME = __this->lowpower_sample_scan_time;
+    M2P_CTMU_CH_ENABLE = __this->ch_en;
+    M2P_CTMU_CH_WAKEUP_EN = __this->ch_wkp_en;
+    M2P_CTMU_SCAN_TIME = __this->pdata->sample_scan_time;
+    M2P_CTMU_LOWPOER_SCAN_TIME = __this->pdata->lowpower_sample_scan_time;
 
     if (!is_wakeup_source(PWR_WK_REASON_P11)) {
 
-        lpctmu_lptimer3_disable();
+        lpctmu_lptimer_disable();
         memset(P11_LPCTM0, 0, sizeof(P11_LPCTM_TypeDef));
 
         lpctmu_send_m2p_cmd(REQUEST_LPCTMU_IRQ);
@@ -331,7 +295,7 @@ void lpctmu_init(struct lpctmu_platform_data *pdata)
         //设置分频
         SFR(P11_LPCTM0->CLKC, 6, 1, 0); //divB = 1分频
         SFR(P11_LPCTM0->CLKC, 7, 1, 0); //divC = 1分频
-        SFR(P11_LPCTM0->CLKC, 3, 3, 0); //div  = 1分频
+        SFR(P11_LPCTM0->CLKC, 3, 3, 2); //div  = 2^2 = 4分频
         /**********************/
         //通道采集前的待稳定时间配置
         SFR(P11_LPCTM0->PPRD, 4, 4, 9);      //prp_prd = (9 + 1) * t 约等 50us > 10us
@@ -339,9 +303,8 @@ void lpctmu_init(struct lpctmu_platform_data *pdata)
         SFR(P11_LPCTM0->PPRD, 0, 4, 9);      //stop_prd= (9 + 1) * t 约等 50us > 10us
 
         //每个通道采集的周期，常设几个毫秒
-        //u16 det_prd = __this->sample_window_time * lpctmu_clk / 4 / 1000 - 1;
-        u16 det_prd = __this->sample_window_time * lpctmu_clk  / 1000 - 1;
-        SFR(P11_LPCTM0->DPRD, 0, 12, det_prd);
+        u8 det_prd = __this->pdata->sample_window_time * lpctmu_clk / 4 / 1000 - 1;
+        SFR(P11_LPCTM0->DPRD, 0, 8, det_prd);
 
         SFR(P11_LPCTM0->CON0, 2, 1, 1);      //LPCTM WKUP en
         SFR(P11_LPCTM0->CON0, 4, 1, 1);      //模拟滤波使能
@@ -353,21 +316,12 @@ void lpctmu_init(struct lpctmu_platform_data *pdata)
         SFR(P11_LPCTM0->ANA0, 0, 1, 0);
         SFR(P11_LPCTM0->ANA1, 3, 1, 0);
         SFR(P11_LPCTM0->ANA1, 2, 1, 0);
-        for (u8 ch = 0; ch < LPCTMU_CHANNEL_SIZE; ch ++) {
-            if (__this->ch[ch].enable) {
-                SFR(P11_LPCTM0->CHEN, ch, 1, 1);
-            } else {
-                SFR(P11_LPCTM0->CHEN, ch, 1, 0);
-            }
-        }
 
-        if (__this->ext_stop_ch_en) {
-            for (u8 ch = 0; ch < LPCTMU_CHANNEL_SIZE; ch ++) {
-                if ((__this->ch[ch].enable) && (__this->ext_stop_ch_en & BIT(ch))) {
-                    SFR(P11_LPCTM0->EXEN, ch, 1, 1);
-                }
-            }
-            SFR(P11_LPCTM0->ECON, 2, 2, __this->ext_stop_sel);
+        SFR(P11_LPCTM0->CHEN, 0, 5, __this->ch_en);
+
+        if (__this->pdata->ext_stop_ch_en) {
+            SFR(P11_LPCTM0->EXEN, 0, 5, __this->pdata->ext_stop_ch_en);
+            SFR(P11_LPCTM0->ECON, 2, 2, __this->pdata->ext_stop_sel);
             SFR(P11_LPCTM0->ECON, 0, 1, 1);//与蓝牙的互斥使能
 
             extern void set_bt_wl_rab_wl2ext(u8 wl2ext_act0, u8 wl2ext_act1);
@@ -376,15 +330,14 @@ void lpctmu_init(struct lpctmu_platform_data *pdata)
 
         SFR(P11_LPCTM0->WCON, 6, 1, 1);     //clear pnd
         SFR(P11_LPCTM0->CON0, 0, 1, 0);     //模块先关闭
-        SFR(P11_LPCTM0->WCON, 6, 1, 1);     //clear pnd
         SFR(P11_LPCTM0->CON0, 1, 1, 1);     //模块的RES中断使能
 
-        lpctmu_lptimer3_init(__this->sample_scan_time);
+        lpctmu_lptimer_init(__this->pdata->sample_scan_time);
 
     } else {
-        if ((P11_LPCTM0->CON0 & BIT(0)) == 0) {
-            SFR(P11_LPCTM0->CON0, 0, 1, 1);//模块总开关
-            lpctmu_lptimer3_enable();
+
+        if (0 == lpctmu_lptimer_is_working()) {
+            lpctmu_lptimer_init(__this->pdata->sample_scan_time);
         }
     }
 
@@ -393,25 +346,45 @@ void lpctmu_init(struct lpctmu_platform_data *pdata)
 
 void lpctmu_disable(void)
 {
-    lpctmu_lptimer3_disable();
-    SFR(P11_LPCTM0->CON0, 0, 1, 0);      //模块总开关
+    lpctmu_lptimer_disable();
 }
 
 void lpctmu_enable(void)
 {
-    SFR(P11_LPCTM0->CON0, 0, 1, 1);      //模块总开关
-    lpctmu_lptimer3_enable();
+    lpctmu_lptimer_enable();
 }
 
-u8 lpctmu_is_sf_keep(void)
+u32 lpctmu_is_sf_keep(void)
 {
     /* extern void pvdd_output(u32 output); */
     /* pvdd_output(1); */
     if (!__this) {
         return 0;
     }
-    if (P11_LPTMR3->CON0 & BIT(0)) {
-        if (softoff_keep_work == 0) {
+
+    u32 lpctmu_softoff_keep_work;
+
+    if (lpctmu_lptimer_is_working()) {
+
+        switch (__this->softoff_wakeup_cfg) {
+        case LPCTMU_WAKEUP_DISABLE:
+            lpctmu_softoff_keep_work = 0;
+            break;
+        case LPCTMU_WAKEUP_EN_WITHOUT_CHARGE_ONLINE:
+            lpctmu_softoff_keep_work = 1;
+            if (get_charge_online_flag()) {
+                lpctmu_softoff_keep_work = 0;
+            }
+            break;
+        case LPCTMU_WAKEUP_EN_ALWAYS:
+            lpctmu_softoff_keep_work = 1;
+            break;
+        default :
+            lpctmu_softoff_keep_work = 1;
+            break;
+        }
+
+        if (lpctmu_softoff_keep_work == 0) {
             lpctmu_disable();
             return 0;
         } else {

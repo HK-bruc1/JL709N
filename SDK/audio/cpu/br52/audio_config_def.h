@@ -24,27 +24,28 @@
 // 			音频模块链接配置
 //**************************************
 /*音效处理链接配置*/
+#define AFx_SPATIAL_EFFECT_AT_RAM           1 //空间音效
 
 /*通话语音处理算法*/
-#define AUDIO_CVP_TEXT_AT_RAM		1	//COMMON TEXT
-#define AUDIO_CVP_AEC_AT_RAM		1	//AEC
-#define AUDIO_CVP_NLP_AT_RAM		1	//NLP
-#define AUDIO_CVP_NS_AT_RAM			1	//ANS/下行降噪
-#define AUDIO_CVP_COMMON_AT_RAM		1	//COMMON
-#define AUDIO_CVP_DNS_AT_RAM		1	//DNS
-#define AUDIO_CVP_AGC_AT_RAM		1	//AGC
-#define AUDIO_CVP_DMS_AT_RAM		1	//双MIC DNS
-#define AUDIO_CVP_PREP_AT_RAM		1	//COMMON 预处理
-#define AUDIO_CVP_WN_AT_RAM			1	//抗风噪
-#define AUDIO_CVP_THIRD_AT_RAM		1	//3MIC
+#define AUDIO_CVP_TEXT_AT_RAM	        	1	//COMMON TEXT
+#define AUDIO_CVP_AEC_AT_RAM        		1	//AEC
+#define AUDIO_CVP_NLP_AT_RAM        		1	//NLP
+#define AUDIO_CVP_NS_AT_RAM	        		1	//ANS/下行降噪
+#define AUDIO_CVP_COMMON_AT_RAM		     	1	//COMMON
+#define AUDIO_CVP_DNS_AT_RAM		     	1	//DNS
+#define AUDIO_CVP_AGC_AT_RAM		     	1	//AGC
+#define AUDIO_CVP_DMS_AT_RAM		     	1	//双MIC DNS
+#define AUDIO_CVP_PREP_AT_RAM		     	1	//COMMON 预处理
+#define AUDIO_CVP_WN_AT_RAM			     	1	//抗风噪
+#define AUDIO_CVP_THIRD_AT_RAM		     	1	//3MIC
 
 /*编解码编译链接配置*/
-#define AUD_AAC_DEC_AT_RAM		    1   //AAC解码
-#define AUDIO_LDAC_AT_RAM			1	//LDAC解码
-#define AUDIO_MSBC_CODEC_AT_RAM		1	//MSBC 编解码
-#define AUDIO_CVSD_CODEC_AT_RAM		1	//CVSD 编解码
-#define AUDIO_JLA_CODEC_AT_RAM		1	//JLA 编解码
-#define AUDIO_LC3_CODEC_AT_RAM		0	//LC3 编解码
+#define AUD_AAC_DEC_AT_RAM		        	1   //AAC解码
+#define AUDIO_LDAC_AT_RAM			     	1	//LDAC解码
+#define AUDIO_MSBC_CODEC_AT_RAM		     	1	//MSBC 编解码
+#define AUDIO_CVSD_CODEC_AT_RAM		     	1	//CVSD 编解码
+#define AUDIO_JLA_CODEC_AT_RAM		     	1	//JLA 编解码
+#define AUDIO_LC3_CODEC_AT_RAM		     	0	//LC3 编解码
 
 /*语音识别算法编译链接配置*/
 #define AUDIO_KWS_COMMON_AT_RAM             0   //kws公共部分 ，0:放flash，1:放ram
@@ -79,6 +80,7 @@
 #define TCFG_AUDIO_DAC_24BIT_MODE           0
 #define AUDIO_DAC_MAX_SAMPLE_RATE           48000
 
+#define TCFG_AUDIO_DAC_NOISEGATE_ENABLE     1
 
 /*
  *该配置适用于没有音量按键的产品，防止打开音量同步之后
@@ -158,7 +160,7 @@
 #endif*/
 
 /*数字音量最大值定义*/
-#define DEFAULT_DIGITAL_VOLUME   TCFG_AUDIO_DAC_VOLUME_BOOST
+#define DEFAULT_DIGITAL_VOLUME   (TCFG_AUDIO_DIGITAL_GAIN)
 #define IDLE_DEFAULT_MAX_VOLUME  16     //音量调节IDLE 状态的最大音量
 
 #define ANC_CLIPPING_MODE_MUSIC_LIMIT		1	//ANC防破音-限制音乐幅度，牺牲音乐
@@ -166,7 +168,7 @@
 
 //ANC防破音-限制音乐幅度时, BR52默认不限制
 #if TCFG_AUDIO_ANC_ENABLE
-#define ANC_MODE_DIG_VOL_LIMIT	(0.0f)
+// #define ANC_MODE_DIG_VOL_LIMIT	(0.0f)
 #endif/*TCFG_AUDIO_ANC_ENABLE*/
 
 

@@ -1,3 +1,9 @@
+#ifdef SUPPORT_MS_EXTENSIONS
+#pragma bss_seg(".lp_touch_key_range_algo.data.bss")
+#pragma data_seg(".lp_touch_key_range_algo.data")
+#pragma const_seg(".lp_touch_key_range_algo.text.const")
+#pragma code_seg(".lp_touch_key_range_algo.text")
+#endif
 #include "system/includes.h"
 #include "asm/lp_touch_key_range_algo.h"
 
@@ -93,7 +99,7 @@ typedef struct {
 #endif
 } TouchRangeAlgo_t;
 
-static TouchRangeAlgo_t tra_ch[5];
+static TouchRangeAlgo_t *tra_ch[5];
 
 static inline unsigned short kth_smallest_ushort(unsigned short a[], int n, int k)
 {
@@ -478,9 +484,13 @@ static void TouchRangeAlgo_tracing(TouchRangeAlgo_t *tra, u16 x)
 }
 
 
-void TouchRangeAlgo_Init(u8 ch, u16 min, u16 max)
+void TouchRangeAlgo_Init(u32 ch_idx, u16 min, u16 max)
 {
-    TouchRangeAlgo_t *tra = (TouchRangeAlgo_t *)&tra_ch[ch];
+    if (tra_ch[ch_idx] == NULL) {
+        tra_ch[ch_idx] = (TouchRangeAlgo_t *)zalloc(sizeof(TouchRangeAlgo_t));
+    }
+
+    TouchRangeAlgo_t *tra = tra_ch[ch_idx];
 
     tra->count = 0;
 
@@ -530,9 +540,9 @@ void TouchRangeAlgo_Init(u8 ch, u16 min, u16 max)
 #endif
 }
 
-void TouchRangeAlgo_Update(u8 ch, u16 x)
+void TouchRangeAlgo_Update(u32 ch_idx, u16 x)
 {
-    TouchRangeAlgo_t *tra = (TouchRangeAlgo_t *)&tra_ch[ch];
+    TouchRangeAlgo_t *tra = tra_ch[ch_idx];
     u16 dat0;
 
     dat0 = medfilt(tra, x);
@@ -549,27 +559,27 @@ void TouchRangeAlgo_Update(u8 ch, u16 x)
     return;
 }
 
-void TouchRangeAlgo_Reset(u8 ch, u16 min, u16 max)
+void TouchRangeAlgo_Reset(u32 ch_idx, u16 min, u16 max)
 {
-    TouchRangeAlgo_Init(ch, min, max);
+    TouchRangeAlgo_Init(ch_idx, min, max);
 }
 
-s32 TouchRangeAlgo_GetSigma(u8 ch)
+s32 TouchRangeAlgo_GetSigma(u32 ch_idx)
 {
-    TouchRangeAlgo_t *tra = (TouchRangeAlgo_t *)&tra_ch[ch];
+    TouchRangeAlgo_t *tra = tra_ch[ch_idx];
     return tra->sigma_iir_state;
 }
 
-u16 TouchRangeAlgo_GetRange(u8 ch, u8 *valid)
+u16 TouchRangeAlgo_GetRange(u32 ch_idx, u8 *valid)
 {
-    TouchRangeAlgo_t *tra = (TouchRangeAlgo_t *)&tra_ch[ch];
+    TouchRangeAlgo_t *tra = tra_ch[ch_idx];
     *valid = tra->range_valid;
     return tra->range_valid ? tra->range : 0;
 }
 
-void TouchRangeAlgo_SetRange(u8 ch, u16 range)
+void TouchRangeAlgo_SetRange(u32 ch_idx, u16 range)
 {
-    TouchRangeAlgo_t *tra = (TouchRangeAlgo_t *)&tra_ch[ch];
+    TouchRangeAlgo_t *tra = tra_ch[ch_idx];
     tra->range = range;
     tra->range_valid = 1;
 
@@ -578,9 +588,9 @@ void TouchRangeAlgo_SetRange(u8 ch, u16 range)
     tra->range_pos = 1;
 }
 
-void TouchRangeAlgo_SetSigma(u8 ch, s32 sigma)
+void TouchRangeAlgo_SetSigma(u32 ch_idx, s32 sigma)
 {
-    TouchRangeAlgo_t *tra = (TouchRangeAlgo_t *)&tra_ch[ch];
+    TouchRangeAlgo_t *tra = tra_ch[ch_idx];
     tra->sigma_iir_state = sigma;
 }
 

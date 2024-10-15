@@ -38,11 +38,14 @@
 #if TCFG_KWS_VOICE_RECOGNITION_ENABLE
 #include "jl_kws/jl_kws_api.h"
 #endif
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 #include "app_le_connected.h"
 #endif
 #if TCFG_AUDIO_SOMATOSENSORY_ENABLE
 #include "somatosensory/audio_somatosensory.h"
+#endif
+#if TCFG_AUDIO_ANC_ENABLE
+#include "audio_anc.h"
 #endif
 
 #if (TCFG_USER_TWS_ENABLE)
@@ -56,6 +59,10 @@
 
 
 #define SECONDE_PHONE_IN_RING_COEXIST   1
+#if TCFG_BT_INBAND_RING == 0
+#undef  SECONDE_PHONE_IN_RING_COEXIST
+#define SECONDE_PHONE_IN_RING_COEXIST   0
+#endif
 
 /*配置通话时前面丢掉的数据包包数*/
 #define ESCO_DUMP_PACKET_ADJUST		1	/*配置使能*/
@@ -291,7 +298,7 @@ int bt_phone_income(u8 after_conn, u8 *bt_addr)
 #else
         g_bt_hdl.inband_ringtone = 0 ;
 #endif
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
         if (is_cig_phone_conn()) {
             g_bt_hdl.inband_ringtone = 1;
         }
@@ -385,6 +392,12 @@ int bt_phone_out(u8 *bt_addr)
 }
 static int esco_audio_open(u8 *bt_addr)
 {
+#if TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN && TCFG_AUDIO_ANC_ENABLE
+    //自适应与通话互斥，等待自适应结束之后再打开音频流程
+    if (anc_ear_adaptive_busy_get()) {
+        anc_ear_adaptive_forced_exit(1, 1);
+    }
+#endif
     esco_player_open(bt_addr);
 #if TCFG_TWS_POWER_BALANCE_ENABLE && TCFG_USER_TWS_ENABLE
     if (tws_api_get_role() == TWS_ROLE_MASTER) {

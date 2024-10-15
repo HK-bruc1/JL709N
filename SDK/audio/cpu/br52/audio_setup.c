@@ -121,9 +121,26 @@ void audio_dac_initcall(void)
     printf("audio_dac_initcall\n");
 
     audio_common_param_t common_param = {0};
-    common_param.cic.en = TCFG_AUDIO_ANC_ENABLE;
+    common_param.cic.en = 1;
     common_param.cic.scale = 0;
-    common_param.cic.shift = 15;
+    if (dac_data.pa_sel) {
+        if (dac_data.epa_dsm_mode == EPA_DSM_MODE_375K) {
+            common_param.epa_clk_div = 7;
+            common_param.cic.shift = 15;
+        } else if (dac_data.epa_dsm_mode == EPA_DSM_MODE_750K) {
+            common_param.epa_clk_div = 3;
+            common_param.cic.shift = 11;
+        } else if (dac_data.epa_dsm_mode == EPA_DSM_MODE_1500K) {
+            common_param.epa_clk_div = 1;
+            common_param.cic.shift = 7;
+        } else {
+            printf("[ERROR]EPA_DSM_MODE: %d !!!!!\n", dac_data.epa_dsm_mode);
+        }
+    } else {
+        common_param.epa_clk_div = 0;
+        common_param.fb_clk_div = 7;
+        common_param.cic.shift = 15;
+    }
     common_param.drc.bypass = 1;
     common_param.drc.threshold = 1023;
     common_param.drc.ratio = 64;
@@ -132,16 +149,13 @@ void audio_dac_initcall(void)
     common_param.drc.attack_time = 3;
     common_param.drc.release_time = 10;
 
-    if (TCFG_AUDIO_DAC_VOLUME_BOOST >= 2) {
-        dac_data.power_mode = DAC_MODE_ULTRA_POWER;
-        common_param.vcm_level = AUDIO_COMMON_VCM_LEVEL3;
-    } else if (TCFG_AUDIO_DAC_VOLUME_BOOST >= 1) {
-        dac_data.power_mode = DAC_MODE_LARGE_POWER;
-        common_param.vcm_level = AUDIO_COMMON_VCM_LEVEL2;
-    } else {
-        dac_data.power_mode = DAC_MODE_STANDARD_POWER;
-        common_param.vcm_level = AUDIO_COMMON_VCM_LEVEL1;
-    }
+#if TCFG_AUDIO_DAC_VOLUME_BOOST
+    dac_data.power_mode = DAC_MODE_LARGE_POWER;
+    common_param.vcm_level = AUDIO_COMMON_VCM_LEVEL2;
+#else
+    dac_data.power_mode = DAC_MODE_STANDARD_POWER;
+    common_param.vcm_level = AUDIO_COMMON_VCM_LEVEL1;
+#endif
     //audio vbg trim配置
 
     common_param.vbg_i_trim_value = (JL_ADDA->ADDA_CON0 >> 20) & 0xf;  //默认VBG电流档位(没有trim过才会使用)
@@ -172,6 +186,7 @@ void audio_dac_initcall(void)
     dac_data.hpvdd_sel = 0;//audio_dac_hpvdd_check();
     dac_data.bit_width = audio_general_out_dev_bit_width();
     audio_dac_init(&dac_hdl, &dac_data);
+    /* dac_hdl.ng_threshold = 4; //dac底噪优化阈值 */
 
     //ANC & DAC_CIC时钟分配参数设置在audio_common_init & audio_dac_init之后
 #if TCFG_AUDIO_ANC_ENABLE
@@ -261,68 +276,39 @@ struct audio_adc_private_param adc_private_param = {
     .lowpower_lvl = 0,
 };
 
-struct adc_file_cfg adc_file_cfg_default = {
-    .mic_en_map       = 0b0001,
-
-    .param[0].mic_gain      = 10,
-    .param[0].mic_pre_gain  = 1,   // 0:0dB   1:6dB
-    .param[0].mic_mode      = AUDIO_MIC_CAP_MODE,
-    .param[0].mic_ain_sel   = AUDIO_MIC0_CH0,
-    .param[0].mic_bias_sel  = AUDIO_MIC_BIAS_CH0,
-    .param[0].mic_bias_rsel = 4,
-    .param[0].mic_dcc       = 8,
-
-    .param[1].mic_gain      = 10,
-    .param[1].mic_pre_gain  = 1,   // 0:0dB   1:6dB
-    .param[1].mic_mode      = AUDIO_MIC_CAP_MODE,
-    .param[1].mic_ain_sel   = AUDIO_MIC1_CH0,
-    .param[1].mic_bias_sel  = AUDIO_MIC_BIAS_CH1,
-    .param[1].mic_bias_rsel = 4,
-    .param[1].mic_dcc       = 8,
-};
-
-#if TCFG_AUDIO_LINEIN_ENABLE
-#include "linein_file.h"
-const struct linein_platform_cfg linein_platform_cfg_table[] = {
-#if TCFG_LINEIN0_ENABLE
+#if TCFG_AUDIO_ADC_ENABLE
+const struct adc_platform_cfg adc_platform_cfg_table[AUDIO_ADC_MAX_NUM] = {
+#if TCFG_ADC0_ENABLE
     [0] = {
-        .linein_mode        = TCFG_LINEIN0_MODE,
-        .linein_gain        = TCFG_LINEIN0_GAIN,
-        .linein_pre_gain    = TCFG_LINEIN0_PRE_GAIN,    // 0:0dB   1:6dB
-        .linein_ain_sel     = TCFG_LINEIN0_CH,
-        .linein_dcc         = TCFG_LINEIN0_DCC,
-    },
-#else
-    [0] = {
-        .linein_mode        = 0xff,
+        .mic_mode           = TCFG_ADC0_MODE,
+        .mic_ain_sel        = TCFG_ADC0_AIN_SEL,
+        .mic_bias_sel       = TCFG_ADC0_BIAS_SEL,
+        .mic_bias_rsel      = TCFG_ADC0_BIAS_RSEL,
+        .power_io           = TCFG_ADC0_POWER_IO,
+        .mic_dcc_en         = TCFG_ADC0_DCC_EN,
+        .mic_dcc            = TCFG_ADC0_DCC_LEVEL,
     },
 #endif
-
-#if TCFG_LINEIN1_ENABLE
+#if TCFG_ADC1_ENABLE
     [1] = {
-        .linein_mode        = TCFG_LINEIN1_MODE,
-        .linein_gain        = TCFG_LINEIN1_GAIN,
-        .linein_pre_gain    = TCFG_LINEIN1_PRE_GAIN,    // 0:0dB   1:6dB
-        .linein_ain_sel     = TCFG_LINEIN1_CH,
-        .linein_dcc         = TCFG_LINEIN1_DCC,
-    },
-#else
-    [1] = {
-        .linein_mode        = 0xff,
+        .mic_mode           = TCFG_ADC1_MODE,
+        .mic_ain_sel        = TCFG_ADC1_AIN_SEL,
+        .mic_bias_sel       = TCFG_ADC1_BIAS_SEL,
+        .mic_bias_rsel      = TCFG_ADC1_BIAS_RSEL,
+        .power_io           = TCFG_ADC1_POWER_IO,
+        .mic_dcc_en         = TCFG_ADC1_DCC_EN,
+        .mic_dcc            = TCFG_ADC1_DCC_LEVEL,
     },
 #endif
-
-#if TCFG_LINEIN2_ENABLE
+#if TCFG_ADC2_ENABLE
     [2] = {
-        .linein_mode        = TCFG_LINEIN2_MODE,
-        .linein_gain        = TCFG_LINEIN2_GAIN,
-        .linein_pre_gain    = TCFG_LINEIN2_PRE_GAIN,    // 0:0dB   1:6dB
-        .linein_ain_sel     = TCFG_LINEIN2_CH,
-        .linein_dcc         = TCFG_LINEIN2_DCC,
-    },
-#else
-    [2] = {
-        .linein_mode        = 0xff,
+        .mic_mode           = TCFG_ADC2_MODE,
+        .mic_ain_sel        = TCFG_ADC2_AIN_SEL,
+        .mic_bias_sel       = TCFG_ADC2_BIAS_SEL,
+        .mic_bias_rsel      = TCFG_ADC2_BIAS_RSEL,
+        .power_io           = TCFG_ADC2_POWER_IO,
+        .mic_dcc_en         = TCFG_ADC2_DCC_EN,
+        .mic_dcc            = TCFG_ADC2_DCC_LEVEL,
     },
 #endif
 };
@@ -371,7 +357,7 @@ struct dac_platform_data dac_data = {//临时处理
     .fade_points    = 1,
     .fade_volume    = 4,
     .pa_sel         = 0,
-    .epa_dsm_mode   = EPA_DSM_MODE_375K,
+    .epa_dsm_mode   = EPA_DSM_MODE_750K,
     .epa_pwm_mode   = EPA_PWM_MODE1,
 };
 

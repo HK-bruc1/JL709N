@@ -22,6 +22,10 @@
 #include "test_tools/audio_dut_control.h"
 #endif
 
+#if TCFG_AUDIO_ANC_ENABLE
+#include "audio_anc.h"
+#endif
+
 #define PIPELINE_UUID_TONE_NORMAL   0x7674
 #define PIPELINE_UUID_A2DP          0xD96F
 #define PIPELINE_UUID_ESCO          0xBA11
@@ -163,11 +167,17 @@ static int get_pipeline_uuid(const char *name)
         return PIPELINE_UUID_MIC_EFFECT;
     }
 #endif
-    if (!strcmp(name, "le_audio") || \
-        !strcmp(name, "mic_le_audio")) {
+#if LE_AUDIO_STREAM_ENABLE
+    if (!strcmp(name, "le_audio")) {
         clock_alloc("le_audio", 24 * 1000000UL);
         return PIPELINE_UUID_LE_AUDIO;
     }
+    if (!strcmp(name, "le_audio_call") || \
+        !strcmp(name, "mic_le_audio_call")) {
+        clock_alloc("le_audio", 24 * 1000000UL);
+        return PIPELINE_UUID_ESCO;
+    }
+#endif
     if (!strcmp(name, "adda_loop")) {
         clock_alloc("adda_loop", 24 * 1000000UL);
         return PIPELINE_UUID_A2DP_DUT;
@@ -330,6 +340,12 @@ int jlstream_event_notify(enum stream_event event, int arg)
         ret = get_merge_node_callback((const char *)arg);
         break;
 #endif
+    case STREAM_EVENT_GLOBAL_PAUSE:
+#if TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN && TCFG_AUDIO_ANC_ENABLE
+        audio_anc_ear_adaptive_a2dp_suspend_cb();
+#endif
+        break;
+
     default:
         break;
     }

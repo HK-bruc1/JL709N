@@ -37,8 +37,14 @@
 #if TCFG_KWS_VOICE_RECOGNITION_ENABLE
 #include "jl_kws/jl_kws_api.h"
 #endif
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+#include "app_le_connected.h"
+#endif
 #if TCFG_AUDIO_SOMATOSENSORY_ENABLE
 #include "somatosensory/audio_somatosensory.h"
+#endif
+#if TCFG_AUDIO_ANC_ENABLE
+#include "audio_anc.h"
 #endif
 
 
@@ -136,6 +142,11 @@ int bt_phone_income(u8 after_conn, u8 *bt_addr)
 #else
     g_bt_hdl.inband_ringtone = 0 ;
 #endif
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+    if (is_cig_phone_conn()) {
+        g_bt_hdl.inband_ringtone = 1;
+    }
+#endif
 
     printf("inband_ringtone=0x%x %d\n", g_bt_hdl.inband_ringtone, after_conn);
     g_bt_hdl.phone_ring_flag = 1;
@@ -214,6 +225,12 @@ static int bt_phone_out(u8 *bt_addr)
 
 static int esco_audio_open(u8 *bt_addr)
 {
+#if TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN && TCFG_AUDIO_ANC_ENABLE
+    //自适应与通话互斥，等待自适应结束之后再打开音频流程
+    if (anc_ear_adaptive_busy_get()) {
+        anc_ear_adaptive_forced_exit(1, 1);
+    }
+#endif
     esco_player_open(bt_addr);
 #if TCFG_TWS_POWER_BALANCE_ENABLE && TCFG_USER_TWS_ENABLE
     /* #if 0	//功能未完善，暂时关闭 */
@@ -508,6 +525,9 @@ static int bt_phone_status_event_handler(int *msg)
         break;
     case BT_STATUS_PHONE_NUMBER:
         log_info("BT_STATUS_PHONE_NUMBER\n");
+#if TCFG_BT_SUPPORT_PBAP_LIST
+        bt_cmd_prepare(USER_CTRL_PBAP_READ_LIST, 0, NULL);
+#endif
 #if TCFG_BT_PHONE_NUMBER_ENABLE
         phone_number = (u8 *)bt->value;
         if (g_bt_hdl.phone_num_flag == 1) {
@@ -531,6 +551,11 @@ static int bt_phone_status_event_handler(int *msg)
             log_info("PHONE_NUMBER len err\n");
         }
 #endif
+        break;
+    case BT_STATUS_PHONE_NAME:
+        log_info("BT_STATUS_PHONE_NAME\n");
+        u8 *phone_name = (u8 *)bt->value;
+        log_info(">>name:%s\n", phone_name);
         break;
     case BT_STATUS_INBAND_RINGTONE:
         log_info("BT_STATUS_INBAND_RINGTONE\n");
@@ -633,6 +658,11 @@ static int bt_phone_status_event_handler(int *msg)
     case BT_STATUS_SCO_CONNECTION_REQ :
         g_printf(" BT_STATUS_SCO_CONNECTION_REQ");
         put_buf(bt->args, 6);
+        break;
+    case BT_STATUS_RECONN_OR_CONN :
+#if TCFG_BT_SUPPORT_PBAP_LIST
+        bt_cmd_prepare(USER_CTRL_PBAP_CONNECT, 0, NULL);
+#endif
         break;
     default:
         log_info(" BT STATUS DEFAULT\n");

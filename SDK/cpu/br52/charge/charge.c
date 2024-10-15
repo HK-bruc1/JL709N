@@ -37,6 +37,7 @@ typedef struct _CHARGE_VAR {
     u16 ldo5v_timer;   //检测LDOIN状态变化的usr timer
     u16 charge_timer;  //检测充电是否充满的usr timer
     u16 cc_timer;      //涓流切恒流的usr timer
+    u16 charge_follow_timer;
 } CHARGE_VAR;
 
 #define __this 	(&charge_var)
@@ -91,10 +92,72 @@ static spinlock_t ldo5v_lock;
 #define GET_PINR_LEVEL()	((P33_CON_GET(P3_PINR_CON1) & BIT(2)) ? 1: 0)
 #define GET_PINR_PIN()		((P33_CON_GET(P3_PINR_CON1) & BIT(3)) ? 1: 0)
 
+#define GET_VBTCH_AWKUP_P_IE()     ((P33_CON_GET(P3_AWKUP_P_IE) & BIT(1)) ? 1: 0)
+#define GET_VBTCH_AWKUP_N_IE()     ((P33_CON_GET(P3_AWKUP_N_IE) & BIT(1)) ? 1: 0)
+#define GET_VBTCH_AWKUP_FLT_EN()   ((P33_CON_GET(P3_AWKUP_FLT_EN) & BIT(1)) ? 1: 0)
+#define GET_VBTCH_AWKUP_CLK_SET()  (P33_CON_GET(P3_AWKUP_CLK_SEL) & 0x03)
+
 extern void charge_event_to_user(u8 event);
 extern u16 efuse_get_vbat_trim();
 extern u16 efuse_get_vbat_trim_4p35(void);
 extern u16 efuse_get_charge_cur_trim(void);
+
+#if (!CHARGE_VILOOP2_ENABLE)
+static u8 vbat_port_wakeup_edge = 0;
+static u8 vbat_port_wakeup_filter = 0;
+
+static u8 get_vbat_port_wakeup_edge(void)
+{
+    if (GET_VBTCH_AWKUP_P_IE() && GET_VBTCH_AWKUP_N_IE()) {
+        return BOTH_EDGE;
+    } else if (GET_VBTCH_AWKUP_P_IE()) {
+        return RISING_EDGE;
+    } else {
+        return FALLING_EDGE;
+    }
+}
+
+static u8 get_vbat_port_wakeup_filter(void)
+{
+    if (GET_VBTCH_AWKUP_FLT_EN()) {
+        if (GET_VBTCH_AWKUP_CLK_SET() == 0) {
+            return PORT_FLT_16us;
+        } else if (GET_VBTCH_AWKUP_CLK_SET() == 1) {
+            return PORT_FLT_128us;
+        } else if (GET_VBTCH_AWKUP_CLK_SET() == 2) {
+            return PORT_FLT_1ms;
+        } else {
+            return PORT_FLT_16ms;
+        }
+    } else {
+        return PORT_FLT_DISABLE;
+    }
+}
+static void charge_volt_difference_switch(void *priv)
+{
+    static u8 volt_switch_cnt = 0;
+    u16 charge_curr = adc_get_voltage(AD_CH_PMU_PROGI) * 180 / 1200;
+    log_debug("charge_curr:%d volt_switch_cnt:%d\n", charge_curr, volt_switch_cnt);
+    //跟随充恒流电流切换小压差
+    if (charge_curr > 30) {
+        volt_switch_cnt++;
+        if (volt_switch_cnt > 5) {
+            if (IS_CHG_VILOOP_EN()) {
+                CHG_VILOOP_EN(0);
+                p33_io_wakeup_filter(IO_VBTCH_DET, PORT_FLT_DISABLE);
+                p33_io_wakeup_edge(IO_VBTCH_DET, FALLING_EDGE);
+            }
+            volt_switch_cnt = 0;
+            if (__this->charge_follow_timer) {
+                sys_timer_del(__this->charge_follow_timer);
+                __this->charge_follow_timer = 0;
+            }
+        }
+    } else {
+        volt_switch_cnt = 0;
+    }
+}
+#endif
 
 u8 check_pinr_shutdown_enable(void)
 {
@@ -195,6 +258,11 @@ static void charge_cc_check(void *priv)
     if ((adc_get_voltage(AD_CH_PMU_VBAT) * 4 / 10) > CHARGE_CCVOL_V) {
         set_charge_mA(__this->data->charge_mA);
         usr_timer_del(__this->cc_timer);
+#if (!CHARGE_VILOOP2_ENABLE)
+        if (!__this->charge_follow_timer) {
+            __this->charge_follow_timer = sys_timer_add(NULL, charge_volt_difference_switch, 1000);
+        }
+#endif
         __this->cc_timer = 0;
         p33_io_wakeup_enable(IO_CHGFL_DET, 1);
         charge_wakeup_isr();
@@ -210,11 +278,21 @@ void charge_start(void)
         usr_timer_del(__this->charge_timer);
         __this->charge_timer = 0;
     }
-
+#if (!CHARGE_VILOOP2_ENABLE)
+    if (__this->charge_follow_timer) {
+        sys_timer_del(__this->charge_follow_timer);
+        __this->charge_follow_timer = 0;
+    }
+#endif
     //进入恒流充电之后,才开启充满检测
     if ((adc_get_voltage(AD_CH_PMU_VBAT) * 4 / 10) > CHARGE_CCVOL_V) {
         set_charge_mA(__this->data->charge_mA);
         p33_io_wakeup_enable(IO_CHGFL_DET, 1);
+#if (!CHARGE_VILOOP2_ENABLE)
+        if (!__this->charge_follow_timer) {
+            __this->charge_follow_timer = sys_timer_add(NULL, charge_volt_difference_switch, 1000);
+        }
+#endif
         check_full = 1;
     } else {
         //涓流阶段系统不进入低功耗,防止电池电量更新过慢导致涓流切恒流时间过长
@@ -241,7 +319,14 @@ void charge_start(void)
 void charge_close(void)
 {
     log_info("%s\n", __func__);
-
+#if (!CHARGE_VILOOP2_ENABLE)
+    if (__this->charge_follow_timer) {
+        sys_timer_del(__this->charge_follow_timer);
+        __this->charge_follow_timer = 0;
+    }
+    p33_io_wakeup_filter(IO_VBTCH_DET, vbat_port_wakeup_filter);
+    p33_io_wakeup_edge(IO_VBTCH_DET, vbat_port_wakeup_edge);
+#endif
     CHARGE_EN(0);
     CHGGO_EN(0);
     CHG_VILOOP_EN(0);
@@ -400,6 +485,18 @@ void ldoin_wakeup_isr(void)
     if (!__this->init_ok) {
         return;
     }
+#if (!CHARGE_VILOOP2_ENABLE)
+    //之前为小压差,切换回大压差
+    if (!IS_CHG_VILOOP_EN() && IS_CHARGE_EN() && LDO5V_DET_GET()) {
+        CHG_VILOOP_EN(1);
+        /* putchar('D'); */
+        p33_io_wakeup_filter(IO_VBTCH_DET, vbat_port_wakeup_filter);
+        p33_io_wakeup_edge(IO_VBTCH_DET, vbat_port_wakeup_edge);
+        if (!__this->charge_follow_timer) {
+            __this->charge_follow_timer = sys_timer_add(NULL, charge_volt_difference_switch, 1000);
+        }
+    }
+#endif
     spin_lock(&ldo5v_lock);
     if (__this->ldo5v_timer == 0) {
         __this->ldo5v_timer = usr_timer_add(0, ldo5v_detect, 2, 1);
@@ -434,16 +531,16 @@ void set_charge_mA(u16 charge_mA)
     u8 vref, type;
     u16 chgi, temp;
 
-    type = (charge_mA & BIT(9)) ? 1 : 0;
-    charge_mA &= ~BIT(9);
+    type = (charge_mA & TRICKLE_EN_FLAG) ? 1 : 0;
+    charge_mA &= ~TRICKLE_EN_FLAG;
     log_info("charge_mA: %d, type: %d", charge_mA, type);
 
     for (vref = 0; vref < 8; vref++) {
         for (chgi = 0; chgi < 1024; chgi++) {
             if (type) {
-                temp = (float)(1.16f + 0.01f * vref) * 0.0179f * (chgi + 1);
+                temp = (float)(1.16f + 0.01f * vref) * 0.0146484f * (chgi + 1);
             } else {
-                temp = (float)(1.16f + 0.01f * vref) * 0.179f * (chgi + 1);
+                temp = (float)(1.16f + 0.01f * vref) * 0.146484f * (chgi + 1);
             }
             if (!((temp > charge_mA) ? (temp - charge_mA) : (charge_mA - temp))) {
                 log_info("chgi check success!");
@@ -554,7 +651,12 @@ int charge_init(const struct charge_platform_data *data)
     __this->init_ok = 0;
     __this->charge_online_flag = 0;
     __this->charge_poweron_en = data->charge_poweron_en;
-
+#if (!CHARGE_VILOOP2_ENABLE)
+    //获取初始化VBTCH通道的滤波时间和边沿
+    vbat_port_wakeup_edge = get_vbat_port_wakeup_edge();
+    vbat_port_wakeup_filter = get_vbat_port_wakeup_filter();
+    adc_add_sample_ch(AD_CH_PMU_PROGI);
+#endif
     spin_lock_init(&charge_lock);
     spin_lock_init(&ldo5v_lock);
 

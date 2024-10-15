@@ -9,6 +9,7 @@
 #include "in_ear_detect/in_ear_manage.h"
 #include "audio_anc_common.h"
 #include "audio_config_def.h"
+#include "audio_anc_common.h"
 #if (TCFG_AUDIO_ANC_EAR_ADAPTIVE_VERSION == ANC_EXT_V2)
 #include "icsd_anc_v2_app.h"
 #endif
@@ -26,12 +27,24 @@
 #define ANC_MODE_FADE_LVL			1	/*降噪模式淡入步进*/
 #define ANC_LR_LOWPOWER_EN	  	    0	/*ANC立体声省功耗使能, 开启之后ANC可用滤波器数会减少*/
 
+#if TCFG_AUDIO_DAC_CONNECT_MODE == DAC_OUTPUT_LR
+/*立体声方案*/
+#define ANC_MODE_SWITCH_DELAY_MS	400	/*ANC 模式切换延时: 处理开ADC不稳定导致,切模式有po声, 单位ms */
+#else
+/*TWS方案*/
+#define ANC_MODE_SWITCH_DELAY_MS	60	/*ANC 模式切换延时: 处理开ADC不稳定导致,切模式有po声, 单位ms */
+#endif
+
 /*
    ANC多场景滤波器配置
  */
 #define ANC_MULT_ORDER_ENABLE				TCFG_AUDIO_ANC_MULT_ORDER_ENABLE	/*ANC多滤波器使能*/
 #define ANC_MULT_ORDER_CMP_ONLY_USE_ID1		1	/*ANC多滤波器-CMP音乐补偿仅使用场景ID1的参数*/
 #define ANC_MULT_ORDER_TRANS_ONLY_USE_ID1	0	/*ANC多滤波器-通透模式仅使用场景ID1的参数*/
+
+//通透+FB功能配置
+#define ANC_MULT_TRANS_FB_ENABLE			0	/*ANC多滤波器- 通透+FB 使能*/
+#define ANC_MULT_TRANS_FB_USB_ANC_ID		2	/*ANC多滤波器- 通透+FB 复用ANC场景ID*/
 
 #define ANC_MULT_ORDER_NORMAL_ID			1	/*ANC多滤波器-开机默认场景ID*/
 
@@ -140,6 +153,7 @@ static const char *anc_mode_str[] = {
     "ANC_ON",		/*降噪模式*/
     "Transparency",	/*通透模式*/
     "ANC_BYPASS",	/*BYPASS模式*/
+    "ANC_EXT",		/*ANC扩展模式-针对使用ANC DMA通路做算法的场景*/
     "ANC_TRAIN",	/*训练模式*/
     "ANC_TRANS_TRAIN",	/*通透训练模式*/
 };
@@ -180,6 +194,7 @@ enum {
     ANC_MSG_ADT,
     ANC_MSG_MODE_SWITCH_IN_ANCTASK,
     ANC_MSG_COEFF_UPDATE,		//无缝切换滤波器
+    ANC_MSG_AFQ_CMD,
 };
 
 /*ANC MIC动态增益调整状态*/
@@ -207,6 +222,12 @@ typedef struct {
 #if ANC_EAR_ADAPTIVE_EN
 
 typedef struct {
+#if (TCFG_AUDIO_ANC_CH & ANC_L_CH)
+    float l_target[TARLEN2 + TARLEN2_L];
+#endif
+#if (TCFG_AUDIO_ANC_CH & ANC_R_CH)
+    float r_target[TARLEN2 + TARLEN2_L];
+#endif
     u8 result;
 #if ANC_CONFIG_LFF_EN
     float lff_gain;
@@ -350,6 +371,9 @@ void audio_anc_dut_enable_set(u8 enablebit);
 
 /*设置fb  mic为复用mic*/
 void audio_anc_mic_mana_fb_mult_set(u8 mult_flag);
+
+/*获取fb mic复用MIC标志，左右耳有一个复用则认为被复用*/
+u8 audio_anc_mic_mana_fb_mult_get(void);
 
 void audio_anc_post_msg_music_dyn_gain(void);
 

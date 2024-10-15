@@ -1,12 +1,19 @@
+#ifdef SUPPORT_MS_EXTENSIONS
+#pragma bss_seg(".lp_touch_key_click.data.bss")
+#pragma data_seg(".lp_touch_key_click.data")
+#pragma const_seg(".lp_touch_key_click.text.const")
+#pragma code_seg(".lp_touch_key_click.text")
+#endif
 
 static void lp_touch_key_short_click_time_out_handle(void *priv)
 {
     u8 ch = *((u8 *)priv);
+    u32 ch_idx = lp_touch_key_get_idx_by_cur_ch(ch);
+    const struct touch_key_cfg *key_cfg = &(__this->pdata->key_cfg[ch_idx]);
+    struct touch_key_arg *arg = &(__this->arg[ch_idx]);
+
     struct key_event e;
-    switch (__this->click_cnt[ch]) {
-    case 0:
-        return;
-        break;
+    switch (arg->click_cnt) {
     case 1:
         e.event = KEY_ACTION_CLICK;
         break;
@@ -26,79 +33,90 @@ static void lp_touch_key_short_click_time_out_handle(void *priv)
         e.event = KEY_ACTION_NO_KEY;
         break;
     }
-    e.value = __this->key[ch].key_value;
+    e.value = key_cfg->key_value;
 
-    log_debug("notify key%d short event, cnt: %d", ch, __this->click_cnt[ch]);
+    log_debug("notify key:%d short event, cnt: %d", ch_idx, arg->click_cnt);
     lp_touch_key_notify_key_event(&e, ch);
 
-    __this->short_timer[ch] = 0;
-    __this->last_key[ch] = TOUCH_KEY_NULL;
-    __this->click_cnt[ch] = 0;
+    arg->short_timer = 0;
+    arg->last_key = 0;
+    arg->click_cnt = 0;
 }
 
-static void lp_touch_key_short_click_handle(u8 ch)
+static void lp_touch_key_short_click_handle(u32 ch_idx)
 {
-    __this->last_key[ch] = TOUCH_KEY_SHORT_CLICK;
-    if (__this->short_timer[ch] == 0) {
-        __this->click_cnt[ch] = 1;
-        __this->short_timer[ch] = usr_timeout_add((void *)&lp_touch_key_idx_table[ch], lp_touch_key_short_click_time_out_handle, __this->short_click_check_time, 1);
+    const struct touch_key_cfg *key_cfg = &(__this->pdata->key_cfg[ch_idx]);
+    struct touch_key_arg *arg = &(__this->arg[ch_idx]);
+    arg->last_key =  TOUCH_KEY_SHORT_CLICK;
+    if (arg->short_timer == 0) {
+        arg->click_cnt = 1;
+        arg->short_timer = usr_timeout_add((void *)&key_cfg->key_ch, lp_touch_key_short_click_time_out_handle, __this->pdata->short_click_check_time, 1);
     } else {
-        __this->click_cnt[ch]++;
-        usr_timer_modify(__this->short_timer[ch], __this->short_click_check_time);
+        arg->click_cnt++;
+        usr_timer_modify(arg->short_timer, __this->pdata->short_click_check_time);
     }
 }
 
-static void lp_touch_key_raise_click_handle(u8 ch)
+static void lp_touch_key_raise_click_handle(u32 ch_idx)
 {
-    struct key_event e = {0};
-    if (__this->last_key[ch] >= TOUCH_KEY_LONG_CLICK) {
-        e.event = KEY_ACTION_UP;
-        e.value = __this->key[ch].key_value;
-        lp_touch_key_notify_key_event(&e, ch);
+    const struct touch_key_cfg *key_cfg = &(__this->pdata->key_cfg[ch_idx]);
+    struct touch_key_arg *arg = &(__this->arg[ch_idx]);
 
-        __this->last_key[ch] = TOUCH_KEY_NULL;
+    struct key_event e = {0};
+    if (arg->last_key >= TOUCH_KEY_LONG_CLICK) {
+        e.event = KEY_ACTION_UP;
+        e.value = key_cfg->key_value;
+        lp_touch_key_notify_key_event(&e, key_cfg->key_ch);
+
+        arg->last_key =  TOUCH_KEY_NULL;
         log_debug("notify key HOLD UP event");
     } else {
-        lp_touch_key_short_click_handle(ch);
+        lp_touch_key_short_click_handle(ch_idx);
     }
 }
 
-static void lp_touch_key_long_click_handle(u8 ch)
+static void lp_touch_key_long_click_handle(u32 ch_idx)
 {
-    __this->last_key[ch] = TOUCH_KEY_LONG_CLICK;
+    const struct touch_key_cfg *key_cfg = &(__this->pdata->key_cfg[ch_idx]);
+    struct touch_key_arg *arg = &(__this->arg[ch_idx]);
+    arg->last_key = TOUCH_KEY_LONG_CLICK;
 
     struct key_event e;
     e.event = KEY_ACTION_LONG;
-    e.value = __this->key[ch].key_value;
+    e.value = key_cfg->key_value;
 
-    lp_touch_key_notify_key_event(&e, ch);
+    lp_touch_key_notify_key_event(&e, key_cfg->key_ch);
 }
 
-static void lp_touch_key_hold_click_handle(u8 ch)
+static void lp_touch_key_hold_click_handle(u32 ch_idx)
 {
-    __this->last_key[ch] = TOUCH_KEY_HOLD_CLICK;
+    const struct touch_key_cfg *key_cfg = &(__this->pdata->key_cfg[ch_idx]);
+    struct touch_key_arg *arg = &(__this->arg[ch_idx]);
+    arg->last_key =  TOUCH_KEY_HOLD_CLICK;
 
     struct key_event e;
     e.event = KEY_ACTION_HOLD;
-    e.value = __this->key[ch].key_value;
+    e.value = key_cfg->key_value;
 
-    lp_touch_key_notify_key_event(&e, ch);
+    lp_touch_key_notify_key_event(&e, key_cfg->key_ch);
 }
 
-static void lp_touch_key_slide_up_handle(u8 ch)
+static void lp_touch_key_slide_up_handle(u32 ch_idx)
 {
+    const struct touch_key_cfg *key_cfg = &(__this->pdata->key_cfg[ch_idx]);
     struct key_event e;
     e.event = KEY_SLIDER_UP;
-    e.value = __this->slide_mode_key_value;
-    lp_touch_key_notify_key_event(&e, ch);
+    e.value = __this->pdata->slide_mode_key_value;
+    lp_touch_key_notify_key_event(&e, key_cfg->key_ch);
 }
 
-static void lp_touch_key_slide_down_handle(u8 ch)
+static void lp_touch_key_slide_down_handle(u32 ch_idx)
 {
+    const struct touch_key_cfg *key_cfg = &(__this->pdata->key_cfg[ch_idx]);
     struct key_event e;
     e.event = KEY_SLIDER_DOWN;
-    e.value = __this->slide_mode_key_value;
-    lp_touch_key_notify_key_event(&e, ch);
+    e.value = __this->pdata->slide_mode_key_value;
+    lp_touch_key_notify_key_event(&e, key_cfg->key_ch);
 }
 
 

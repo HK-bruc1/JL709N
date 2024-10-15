@@ -27,8 +27,10 @@
 #endif
 #if TCFG_BT_DUAL_CONN_ENABLE
 const int CONFIG_LMP_CONNECTION_NUM = 2;
+const int CONFIG_LMP_CONNECTION_LIMIT_NUM = 2;
 #else
 const int CONFIG_LMP_CONNECTION_NUM = 1;
+const int CONFIG_LMP_CONNECTION_LIMIT_NUM = 1;
 #endif
 
 
@@ -121,7 +123,7 @@ const int CONFIG_LNA_CHECK_VAL = -80;
     const int CONFIG_LOW_LATENCY_ENABLE         = 1;
 #else //TCFG_USER_TWS_ENABLE
 	#if (TCFG_USER_BLE_ENABLE)
-        #if (BT_AI_SEL_PROTOCOL & LE_AUDIO_BIS_RX_EN)
+        #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_AURACAST_SINK_EN | LE_AUDIO_JL_AURACAST_SINK_EN)))
 		const int config_btctler_modules        = BT_MODULE_LE;
         #else
 		const int config_btctler_modules        = BT_MODULE_CLASSIC | BT_MODULE_LE;
@@ -139,7 +141,12 @@ const int CONFIG_LNA_CHECK_VAL = -80;
 
 
 #if (TCFG_BT_SUPPORT_LHDC_V5 || TCFG_BT_SUPPORT_LHDC || TCFG_BT_SUPPORT_LDAC) //LHDC/LDAC使用较高码率时需要增大蓝牙buf
+#if CONFIG_CPU_BR36
+	// RAM较紧凑的芯片需要使用这个配置
 	const int CONFIG_A2DP_MAX_BUF_SIZE          = 30 * 1024;
+#else
+	const int CONFIG_A2DP_MAX_BUF_SIZE          = 50 * 1024;
+#endif
 	const int CONFIG_EXTWS_NACK_LIMIT_INT_CNT       = 40;
 #else
 	const int CONFIG_A2DP_MAX_BUF_SIZE          = 25 * 1024;
@@ -181,7 +188,7 @@ u8 auto_check_a2dp_play_control_qos(u16 cur_delay_timer,u16 delay_set_timer,u16 
 
 }
 #endif
-const int CONFIG_TWS_SUPER_TIMEOUT          = 8000;
+const int CONFIG_TWS_SUPER_TIMEOUT          = 4000;
 const int CONFIG_BTCTLER_QOS_ENABLE         = 1;
 const int CONFIG_A2DP_DATA_CACHE_LOW_AAC    = 100;
 const int CONFIG_A2DP_DATA_CACHE_HI_AAC     = 250;
@@ -239,7 +246,7 @@ const int CONFIG_INQUIRY_PAGE_OFFSET_ADJUST =  0;
 
 #if TCFG_RCSP_DUAL_CONN_ENABLE
 	const int CONFIG_LMP_NAME_REQ_ENABLE  =  1;
-#elif (BT_AI_SEL_PROTOCOL & REALME_EN)
+#elif (THIRD_PARTY_PROTOCOLS_SEL & REALME_EN)
 	const int CONFIG_LMP_NAME_REQ_ENABLE  =  1;
 #else
 	const int CONFIG_LMP_NAME_REQ_ENABLE  =  0;
@@ -249,8 +256,8 @@ const int CONFIG_LMP_OOB_ENABLE  =  0;
 const int CONFIG_LMP_MASTER_ESCO_ENABLE  =  0;
 
 #ifdef CONFIG_SUPPORT_AES_CCM_FOR_EDR
-    #if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
-        const int CONFIG_AES_CCM_FOR_EDR_ENABLE     = 1;
+    #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+        const int CONFIG_AES_CCM_FOR_EDR_ENABLE     = 0;
     #else
         const int CONFIG_AES_CCM_FOR_EDR_ENABLE     = 0;
     #endif
@@ -268,8 +275,7 @@ const int CONFIG_LMP_MASTER_ESCO_ENABLE  =  0;
 	#endif
 
 #else
-#if defined CONFIG_CPU_BR50
-/* #if defined CONFIG_CPU_BR50 || defined CONFIG_CPU_BR52 || defined CONFIG_CPU_BR29 */
+#if defined CONFIG_CPU_BR50 || defined CONFIG_CPU_BR52 || defined CONFIG_CPU_BR56
 	const int CONFIG_WIFI_DETECT_ENABLE = 3;
 
 #if TCFG_USER_TWS_ENABLE
@@ -311,19 +317,19 @@ const int config_delete_link_key          = 1;           //配置是否连接失
 #if (TCFG_USER_BLE_ENABLE)
 	#define DEFAULT_LE_FEATURES (LE_ENCRYPTION | LE_DATA_PACKET_LENGTH_EXTENSION | LL_FEAT_LE_EXT_ADV)
 
-	#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+	#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 	    #define LE_AUDIO_CIS_LE_FEATURES (LE_ENCRYPTION | LE_FEATURES_CIS | LE_2M_PHY|CHANNEL_SELECTION_ALGORITHM_2|LL_FEAT_LE_EXT_ADV)
     #else
 		#define LE_AUDIO_CIS_LE_FEATURES  0
 	#endif
 
-	#if (BT_AI_SEL_PROTOCOL & RCSP_MODE_EN)
+	#if (THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN)
 	    #define RCSP_MODE_LE_FEATURES (LE_ENCRYPTION | LE_DATA_PACKET_LENGTH_EXTENSION | LE_2M_PHY | LL_FEAT_LE_EXT_ADV)
     #else
        #define RCSP_MODE_LE_FEATURES 0
 	#endif
 
-	#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_BIS_RX_EN)
+	#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_AURACAST_SINK_EN | LE_AUDIO_JL_AURACAST_SINK_EN)))
        #define LE_AUDIO_BIS_RX_LE_FEATURES (LE_FEATURES_BIS | LE_CORE_V50_FEATURES)
        #define LE_AUDIO_BIS_RX_LE_ROLE (LE_MASTER  | LE_SCAN)
     #else
@@ -347,9 +353,9 @@ const int config_btctler_le_slave_multilink = 1;
 const int config_btctler_le_master_multilink = 0;
 // LE RAM Control
 
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 	const int config_btctler_le_hw_nums = 5;
-#elif (BT_AI_SEL_PROTOCOL & LE_AUDIO_BIS_RX_EN)||(BT_AI_SEL_PROTOCOL & LE_AUDIO_BIS_TX_EN)
+#elif ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_AURACAST_SINK_EN | LE_AUDIO_JL_AURACAST_SINK_EN)))||((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_AURACAST_SOURCE_EN | LE_AUDIO_JL_AURACAST_SOURCE_EN)))
 	const int config_btctler_le_hw_nums = 8;
 #else
 	const int config_btctler_le_hw_nums = 2;
@@ -361,13 +367,13 @@ const int config_btctler_le_slave_conn_update_winden = 2500;//range:100 to 2500
 const int config_bb_optimized_ctrl = VENDOR_BB_ISO_DIRECT_PUSH;//BIT(7);//|BIT(8);
 
 
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN)
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
     #define TWS_LE_AUDIO_LE_ROLE_SW_EN (0)
 #else
     #define TWS_LE_AUDIO_LE_ROLE_SW_EN (0)
 #endif
 
-#if (BT_AI_SEL_PROTOCOL & RCSP_MODE_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN)
     #define TWS_RCSP_LE_ROLE_SW_EN (1)
 #else
     #define TWS_RCSP_LE_ROLE_SW_EN (0)

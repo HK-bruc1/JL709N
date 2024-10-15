@@ -53,11 +53,11 @@ lhdc_dec_plug
 #if TCFG_BT_SUPPORT_LHDC_V5
 lhdc_v5_dec_plug
 #endif
-#if (BT_AI_SEL_PROTOCOL & LE_AUDIO_CIS_RX_EN||BT_AI_SEL_PROTOCOL & LE_AUDIO_BIS_RX_EN)
+
+#if LE_AUDIO_STREAM_ENABLE
 lc3_encoder_plug
 lc3_dec_plug
 capture_sync_adapter
-le_audio_file_plug
 #endif
 
 #if TCFG_BT_SUPPORT_LDAC
@@ -202,7 +202,7 @@ wma_dec_plug
 fat_vfs_ops
 #endif
 
-#if CONFIG_FINDMY_INFO_ENABLE || (BT_AI_SEL_PROTOCOL & REALME_EN)
+#if CONFIG_FINDMY_INFO_ENABLE || (THIRD_PARTY_PROTOCOLS_SEL & REALME_EN)
 sdfile_vfs_ops
 #endif
 
@@ -463,4 +463,8 @@ replace_node_adapter
 
 #if TCFG_VOCAL_REMOVER_NODE_ENABLE
 vocal_remover_node_adapter
+#endif
+
+#if TCFG_NOISEGATE_PRO_NODE_ENABLE
+noisegate_pro_node_adapter
 #endif
