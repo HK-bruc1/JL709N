@@ -110,9 +110,12 @@ int audio_mic_en(u8 en, audio_mic_param_t *mic_param,
         audio_adc_mic_start(&audio_mic->mic_ch);
     } else {
         if (audio_mic) {
-            /*设置fb mic为复用mic*/
 #if TCFG_AUDIO_ANC_ENABLE
-            audio_anc_mic_mana_fb_mult_set(1);
+            int mult_flag = audio_anc_mic_mana_fb_mult_get();
+            if (!mult_flag) {
+                /*设置fb mic为复用mic*/
+                audio_anc_mic_mana_fb_mult_set(1);
+            }
 #endif
             audio_adc_mic_close(&audio_mic->mic_ch);
             audio_adc_del_output_handler(&adc_hdl, &audio_mic->adc_output);
@@ -120,8 +123,10 @@ int audio_mic_en(u8 en, audio_mic_param_t *mic_param,
                 /* free(audio_mic->adc_buf);  */
             }
 #if TCFG_AUDIO_ANC_ENABLE
-            /*清除fb mic为复用mic的标志*/
-            audio_anc_mic_mana_fb_mult_set(0);
+            if (!mult_flag) {
+                /*清除fb mic为复用mic的标志*/
+                audio_anc_mic_mana_fb_mult_set(0);
+            }
             if (anc_status_get() == 0)
 #endif
             {

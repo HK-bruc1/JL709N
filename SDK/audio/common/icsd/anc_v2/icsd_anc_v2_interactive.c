@@ -61,11 +61,15 @@
 enum EAR_ADAPTIVE_STATE {
     EAR_ADAPTIVE_STATE_END = 0,			//耳道自适应训练结束
     EAR_ADAPTIVE_STATE_INIT,			//耳道自适应初始化
-    EAR_ADAPTIVE_STATE_ALOGM_START,		//算法启动（提示音播放前）
-    EAR_ADAPTIVE_STATE_ALOGM_STOP,		//算法结束
 
+    EAR_ADAPTIVE_STATE_ALOGM_START,		//算法启动（提示音播放前）
     EAR_ADAPTIVE_STATE_ALOGM_PART1,		//算法 part 1
     EAR_ADAPTIVE_STATE_ALOGM_PART2,		//算法 part 2
+    EAR_ADAPTIVE_STATE_ALOGM_STOP,		//算法结束
+
+    EAR_ADAPTIVE_STATE_END_CHECK,		//训练结束：检查TWS是否都结束
+    EAR_ADAPTIVE_STATE_END_SYNC,		//训练结束：执行同步结束流程
+    EAR_ADAPTIVE_STATE_END_TIMEOUT,		//训练结束：执行同步超时
 };
 
 enum EAR_ADAPTIVE_TONE_STATE {
@@ -84,7 +88,10 @@ struct anc_ear_adaptive_param {
     u8 forced_exit_default_flag;	/*强退恢复默认ANC标志*/
     u8 forced_exit;					/*强退标志*/
     u8 next_mode;					/*自适应结束后目标模式*/
+    u8 tws_end_wait_flag;			/*TWS 结束等待标识：对方已经结束，本地未结束*/
+    u16 tws_end_timeout_id;			/*TWS 命令超时标志*/
     audio_anc_t *param;
+    OS_SEM exit_sem;				/*自适应退出信号量*/
     anc_adaptive_iir_t adaptive_iir;
 
     struct anc_ear_adaptive_train_cfg train_cfg;	/*训练参数*/
@@ -104,6 +111,7 @@ void anc_ear_adaptive_init(audio_anc_t *param)
     //内部使用句柄
     hdl = zalloc(sizeof(struct anc_ear_adaptive_param));
     hdl->ear_adaptive_data_from = ANC_ADAPTIVE_DATA_EMPTY;
+    os_sem_create(&hdl->exit_sem, 0);
     //库关联句柄
     hdl->param = param;
     param->adaptive = zalloc(sizeof(anc_ear_adaptive_param_t));
@@ -183,12 +191,18 @@ void anc_ear_adaptive_tone_play_cb(void)
     anc_log("EAR_ADAPTIVE_TONE_STATE:STOP\n");
     hdl->tone_state = EAR_ADAPTIVE_TONE_STATE_STOP;
     if (hdl->adaptive_state == EAR_ADAPTIVE_STATE_ALOGM_PART2) {
+        if (hdl->forced_exit) {
+            return;
+        }
         icsd_anc_v2_part2_run();
     }
 }
 
 void anc_ear_adaptive_part1_end_cb(void *priv)
 {
+    if (hdl->forced_exit) {
+        return;
+    }
     if (hdl->adaptive_state == EAR_ADAPTIVE_STATE_ALOGM_PART1) {
         anc_log("EAR_ADAPTIVE_STATE:ALOGM_PART2\n");
         hdl->adaptive_state = EAR_ADAPTIVE_STATE_ALOGM_PART2;
@@ -228,6 +242,9 @@ static void audio_anc_dac_check_slience_cb(void *buf, int len)
         s16 *check_buf = (s16 *)buf;
         for (int i = 0; i < len / 2; i++) {
             if (check_buf[i]) {
+                if (hdl->forced_exit) {
+                    return;
+                }
                 hdl->dac_check_slience_flag = 0;
                 anc_log("EAR_ADAPTIVE_TONE_STATE:NO_SLIENCE\n");
                 hdl->tone_state = EAR_ADAPTIVE_TONE_STATE_NO_SLIENCE;
@@ -300,7 +317,12 @@ int audio_anc_ear_adaptive_open(void)
 int audio_anc_ear_adaptive_a2dp_suspend_cb(void)
 {
     if (hdl->adaptive_state == EAR_ADAPTIVE_STATE_INIT) {
-        audio_anc_ear_adaptive_open();
+        int msg[2];
+        msg[0] = (int)audio_anc_ear_adaptive_open;
+        msg[1] = 1;
+        if (os_taskq_post_type("app_core", Q_CALLBACK, 2, msg)) {
+            anc_log("anc ear adaptive taskq_post err\n");
+        }
     }
     return 0;
 }
@@ -331,6 +353,77 @@ int audio_anc_mode_ear_adaptive(u8 tws_sync_en)
     return 0;
 }
 
+#if TCFG_USER_TWS_ENABLE
+
+static void anc_ear_adaptive_end_tws_timeout(void *priv)
+{
+    if (hdl->adaptive_state == EAR_ADAPTIVE_STATE_END_CHECK) {
+        hdl->adaptive_state = EAR_ADAPTIVE_STATE_END_TIMEOUT;
+        hdl->tws_end_wait_flag = 0;
+        anc_log("EAR_ADAPTIVE_STATE:TIMEOUT\n");
+        anc_mode_switch_deal(hdl->next_mode);
+    }
+}
+
+#define TWS_FUNC_ID_ANC_EAR_ADAPTIVE_END_SYNC    		 TWS_FUNC_ID('A', 'E', 'A', 'S')
+static void anc_ear_adaptive_end_tws_sync_cb(int mode, int err)
+{
+    if (hdl->adaptive_state == EAR_ADAPTIVE_STATE_END_CHECK) {
+        sys_timer_del(hdl->tws_end_timeout_id);
+        hdl->adaptive_state = EAR_ADAPTIVE_STATE_END_SYNC;
+        hdl->tws_end_wait_flag = 0;
+        anc_log("EAR_ADAPTIVE_STATE:END_SYNC\n");
+        anc_mode_switch_deal(hdl->next_mode);
+    }
+}
+
+TWS_SYNC_CALL_REGISTER(tws_anc_adaptive_sync) = {
+    .uuid = TWS_FUNC_ID_ANC_EAR_ADAPTIVE_END_SYNC,
+    .task_name = "anc",
+    .func = anc_ear_adaptive_end_tws_sync_cb,
+};
+
+#define TWS_FUNC_ID_ANC_EAR_ADAPTIVE_END_CHECK    TWS_FUNC_ID('A', 'E', 'A', 'C')
+static void anc_ear_adaptive_end_tws_check_cb(void *_data, u16 len, bool rx)
+{
+    if (rx) {
+        anc_log("EAR ADAPTIVE TWS CHECK: slibing_state = %d\n", hdl->adaptive_state);
+        switch (hdl->adaptive_state) {
+        case EAR_ADAPTIVE_STATE_END_CHECK:
+            tws_api_sync_call_by_uuid(TWS_FUNC_ID_ANC_EAR_ADAPTIVE_END_SYNC, hdl->next_mode, 150);
+            break;
+        case EAR_ADAPTIVE_STATE_ALOGM_STOP:
+            hdl->tws_end_wait_flag = 1;
+            break;
+        default:
+            anc_log("ERR!!\n");
+            break;
+        }
+    }
+}
+
+REGISTER_TWS_FUNC_STUB(tws_anc_power_adaptive_compare) = {
+    .func_id = TWS_FUNC_ID_ANC_EAR_ADAPTIVE_END_CHECK,
+    .func    = anc_ear_adaptive_end_tws_check_cb,
+};
+
+static int anc_ear_adaptive_end_tws_check(u8 state)
+{
+    int ret = -EINVAL;
+    local_irq_disable();
+    hdl->tws_end_timeout_id = sys_timeout_add(NULL, anc_ear_adaptive_end_tws_timeout, 2000);
+    if (hdl->tws_end_wait_flag) {
+        hdl->tws_end_wait_flag = 0;
+        //对方已经结束，执行同步结束处理
+        ret = tws_api_sync_call_by_uuid(TWS_FUNC_ID_ANC_EAR_ADAPTIVE_END_SYNC, hdl->next_mode, 150);
+    } else {
+        ret = tws_api_send_data_to_sibling(&state, 1, TWS_FUNC_ID_ANC_EAR_ADAPTIVE_END_CHECK);
+    }
+    local_irq_enable();
+    return ret;
+}
+#endif
+
 int anc_ear_adaptive_close(void)
 {
     //当自适应运行停止，并且使用自适应输出频响的应用全部关闭时，才能结束
@@ -338,17 +431,32 @@ int anc_ear_adaptive_close(void)
     if ((hdl->adaptive_state == EAR_ADAPTIVE_STATE_ALOGM_STOP) && \
         (audio_afq_common_app_is_active() == 0)) {
         //恢复播歌
+        clock_free("ANC_ADAP");
         jlstream_global_resume();
 
         anc_ext_tool_ear_adaptive_end_cb(hdl->adaptive_iir.result);
         //强退模式设置不恢复默认ANC
+
+        os_sem_set(&hdl->exit_sem, 0);
+        os_sem_post(&hdl->exit_sem);
+
         if (!hdl->forced_exit_default_flag && hdl->forced_exit) {
             anc_mode_switch_lock_clean();
             anc_ear_adaptive_mode_end();
             return 0;
         }
+#if TCFG_USER_TWS_ENABLE
+        if (get_tws_sibling_connect_state()) {
+            hdl->adaptive_state = EAR_ADAPTIVE_STATE_END_CHECK;
+            anc_log("EAR_ADAPTIVE_STATE:END_CHECK\n");
+            anc_ear_adaptive_end_tws_check(hdl->adaptive_state);
+        } else {
+            anc_mode_switch_deal(hdl->next_mode);
+        }
+#else
         anc_mode_switch_deal(hdl->next_mode);
         anc_log("%s ok\n", __func__);
+#endif
     }
     return 0;
 }
@@ -370,7 +478,6 @@ void anc_user_train_cb(u8 mode, u8 forced_exit)
         //删除自适应DAC回调接口
         hdl->dac_check_slience_flag = 0;
         dac_node_write_callback_del("ANC_ADAP");
-        clock_free("ANC_ADAP");
     }
     //测试模式：自适应结果必定失败
 
@@ -1032,14 +1139,23 @@ void audio_anc_param_map(u8 coeff_en, u8 gain_en)
 /*
    强制中断自适应
    param: default_flag		1 退出后恢复默认ANC效果； 0 退出后保持ANC_OFF(避免与下一个切模式流程冲突)
+   		  wait_pend			1 阻塞等待自适应退出完毕；0 不等待直接退出
  */
-void anc_ear_adaptive_forced_exit(u8 default_flag)
+void anc_ear_adaptive_forced_exit(u8 default_flag, u8 wait_pend)
 {
     if (hdl) {
-        if (anc_ear_adaptive_busy_get()) {
+        //当自适应启动且算法未停止时，才允许强制停止算法
+        if (hdl->adaptive_state && hdl->adaptive_state < EAR_ADAPTIVE_STATE_ALOGM_STOP) {
             hdl->forced_exit_default_flag = default_flag;
             icsd_anc_v2_forced_exit();
             tone_player_stop();
+#if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
+            //开启自适应EQ时，自适应EQ也强制退出
+            audio_adaptive_eq_force_exit();
+#endif
+            if (wait_pend) {
+                os_sem_pend(&hdl->exit_sem, 300);
+            }
         }
     }
 }
@@ -1192,10 +1308,10 @@ void anc_ear_adaptive_forced_demo(void)
     flag ^= 1;
     if (flag) {
         g_printf("adaptive in ear\n");
-        audio_anc_mode_ear_adaptive(1);
+        audio_anc_mode_ear_adaptive(1, 0);
     } else {
         g_printf("adaptive out ear\n");
-        anc_ear_adaptive_forced_exit(0);
+        anc_ear_adaptive_forced_exit(0, 0);
     }
 #endif
 }
@@ -1238,6 +1354,7 @@ void anc_ear_adaptive_mode_end(void)
 {
     if (hdl) {
         anc_log("EAR_ADAPTIVE_STATE:END\n");
+        hdl->forced_exit = 0;
         hdl->adaptive_state = EAR_ADAPTIVE_STATE_END;
     }
 }

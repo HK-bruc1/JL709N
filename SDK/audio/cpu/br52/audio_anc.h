@@ -372,6 +372,9 @@ void audio_anc_dut_enable_set(u8 enablebit);
 /*设置fb  mic为复用mic*/
 void audio_anc_mic_mana_fb_mult_set(u8 mult_flag);
 
+/*获取fb mic复用MIC标志，左右耳有一个复用则认为被复用*/
+u8 audio_anc_mic_mana_fb_mult_get(void);
+
 void audio_anc_post_msg_music_dyn_gain(void);
 
 void audio_anc_develop_set(u8 mode);

@@ -66,4 +66,13 @@ void icsd_anc_fft128(int *in_cur, int *out)
     hw_fft_run(fft_config, in_cur, out);
 }
 
+void icsd_anc_fft64(int *in_cur, int *out)
+{
+    u32 fft_config;
+    fft_config = hw_fft_config(64, 6, 1, 0, 1);
+    hw_fft_run(fft_config, in_cur, out);
+}
+
+
+
 #endif/*TCFG_AUDIO_ANC_ENABLE*/

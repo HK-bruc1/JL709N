@@ -2553,6 +2553,20 @@ void audio_anc_mic_mana_set_gain(audio_anc_t *param, u8 num, u8 type)
     }
 }
 
+u8 audio_anc_mic_mana_fb_mult_get(void)
+{
+    u8 mult_flag = 0;
+    if (anc_hdl) {
+        audio_anc_t *param = &anc_hdl->param;
+        for (int i = 0; i < 4; i++) {
+            if ((param->mic_param[i].type == ANC_MIC_TYPE_LFB) || (param->mic_param[i].type == ANC_MIC_TYPE_RFB)) {
+                mult_flag |= param->mic_param[i].mult_flag;
+            }
+        }
+    }
+    return mult_flag;
+}
+
 /*设置fb  mic为复用mic*/
 void audio_anc_mic_mana_fb_mult_set(u8 mult_flag)
 {
@@ -2692,7 +2706,7 @@ int audio_anc_mult_scene_set(u16 scene_id)
     anc_hdl->scene_id = scene_id;
 #if ANC_EAR_ADAPTIVE_EN
     if (anc_ear_adaptive_busy_get()) {
-        anc_ear_adaptive_forced_exit(1);
+        anc_ear_adaptive_forced_exit(1, 0);
         return 1;
     }
     //非自适应训练状态，切场景自动切回普通参数

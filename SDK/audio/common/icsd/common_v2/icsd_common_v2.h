@@ -11,6 +11,16 @@
 unsigned long jiffies_usec(void);
 
 enum {
+    ADT_ANC_ON = 0,
+    ADT_ANC_OFF,
+};
+
+enum {
+    RESUME_ANCMODE = 0,
+    RESUME_BYPASSMODE,
+};
+
+enum {
     ANC_PZ = 0,
     ANC_SZ,
 };
@@ -24,6 +34,16 @@ enum {
     DEBUG_ADT_VDT_TRAIN,
     DEBUG_ADT_RESET,
     DEBUG_ADT_DP_STATE,
+};
+
+enum {
+    WAT_DEBUG = 0,
+    WAT_GET_MAX_RANGE,
+    WAT_SEND_MAX_RANGE,
+    ADT_WIND_DATA_SYNC,
+    LIB_DEMO_TWS,
+    LIB_WIND_TWS,
+    ADT_TWS_TONE_PLAY,
 };
 
 enum {
@@ -127,6 +147,7 @@ void icsd_complex_conj_mulf_1p(float *input1, float *input2, float *out);
 
 void icsd_anc_fft256(int *in, int *out);
 void icsd_anc_fft128(int *in, int *out);
+void icsd_anc_fft64(int *in, int *out);
 void icsd_anc_fft(int *in, int *out);
 //--------------------------------------------
 // biquad_operation
@@ -157,12 +178,14 @@ float hz_diff_db(float *_src1, float *_src2, int sp, int ep);
 void fre_resp_resample_v3(float *_src, float *_dest);
 void icsd_anc_h_freq_init(float *freq, u8 mode);
 void icsd_hz2pxdB(float *hz, float *px, int len);
-void icsd_HanningWin_pwr(s16 *input, int *output, int len);
+void icsd_HanningWin_pwr2(s16 *input, int *output, int len);
+void icsd_HanningWin_pwr_float(float *input, int *output, int len);
 void icsd_HanningWin_pwr_s1(s16 *input, int *output, int len);
 void icsd_HanningWin_pwr_s2(s16 *input, int *output, int len);
 void icsd_FFT_radix1024(int *in_cur, int *out);
 void icsd_FFT_radix256(int *in_cur, int *out);
 void icsd_FFT_radix128(int *in_cur, int *out);
+void icsd_FFT_radix64(int *in_cur, int *out);
 void icsd_FFT_lowfreq4096(s16 *in_cur, float *out, int len);
 void icsd_htarget(float *Hpz, float *Hsz, float *Hflt, int len);
 void icsd_pxydivpxxpyy(float *pxy, float *pxx, float *pyy, float *out, int len);
@@ -182,7 +205,7 @@ float icsd_mean_cal(float *data0, u8 len);
 float icsd_min_cal(float *data, u8 len);
 double icsd_devide_float(float data_0, float data_1);
 double icsd_devide_double(double data_0, double data_1);
-void icsd_complex_mul(int *input1, float *input2, float *out, int len);
+void icsd_complex_mul_v2(int *input1, float *input2, float *out, int len);
 void icsd_complex_muln(float *input1, float *input2, float *out, int len);
 void icsd_complex_muln_2(float *input1, float *input2, float *input3, float *out, int len, float alpha);
 void icsd_dsf8_2ch(int *ptr, int len, s16 *datah, s16 *datal);

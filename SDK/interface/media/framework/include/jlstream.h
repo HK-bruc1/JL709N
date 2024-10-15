@@ -126,6 +126,8 @@ enum stream_event {
 
     STREAM_EVENT_GET_SWITCH_CALLBACK,
     STREAM_EVENT_GET_MERGER_CALLBACK,
+
+    STREAM_EVENT_GLOBAL_PAUSE,
 };
 
 enum stream_scene : u8 {

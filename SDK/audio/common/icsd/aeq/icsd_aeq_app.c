@@ -209,7 +209,7 @@ int audio_adaptive_eq_close()
 {
     aeq_printf("%s\n", __func__);
     if (aeq_hdl) {
-        if (aeq_hdl->state == ADAPTIVE_EQ_STATE_OPEN) {
+        if (aeq_hdl->state != ADAPTIVE_EQ_STATE_CLOSE) {
             if (strcmp(os_current_task(), "afq_common") == 0) {
                 //aeq close在AEQ线程执行会造成死锁，需改为在APP任务执行
                 aeq_printf("aeq close post to app_core\n");
@@ -666,6 +666,7 @@ static void audio_adaptive_eq_afq_output_hdl(struct audio_afq_output *p)
     struct eq_default_seg_tab *eq_output;
     float maxgain_dB;
     aeq_printf("AEQ RUN \n");
+    aeq_hdl->state = ADAPTIVE_EQ_STATE_RUN;
 
     //释放上一次AEQ存储空间
     audio_adaptive_eq_cur_list_del();
@@ -685,6 +686,7 @@ static void audio_adaptive_eq_afq_output_hdl(struct audio_afq_output *p)
     int vol_list_num = sizeof(aeq_volume_grade_list);
     for (u8 i = 0; i < vol_list_num; i++) {
         /* maxgain_dB = 0 - audio_adaptive_eq_vol_gain_get(aeq_volume_grade_list[i]); */
+        os_time_dly(2); //避免系统跑不过来
         maxgain_dB = aeq_volume_grade_maxdB_table[dot_lvl][i];
         r_printf("max_dB %d/10, lvl %d\n", (int)(maxgain_dB * 10), aeq_volume_grade_list[i]);
         audio_adaptive_eq_start();
@@ -781,6 +783,21 @@ static float audio_adaptive_eq_vol_gain_get(s16 volume)
         }
     } else {
         printf("[AEQ]user vol cfg parm read err ret %d\n", ret);
+    }
+    return 0;
+}
+
+// 自适应EQ强制退出
+int audio_adaptive_eq_force_exit(void)
+{
+    aeq_printf("func:%s, aeq_hdl->state:%d", __FUNCTION__, aeq_hdl->state);
+    switch (aeq_hdl->state) {
+    case ADAPTIVE_EQ_STATE_RUN:
+        icsd_aeq_force_exit();  // RUN才跑算法流程
+        break;
+    case ADAPTIVE_EQ_STATE_OPEN:
+        audio_adaptive_eq_close();
+        break;
     }
     return 0;
 }

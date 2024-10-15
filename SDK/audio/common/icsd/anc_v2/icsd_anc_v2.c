@@ -513,7 +513,6 @@ static void icsd_anc_v2_open(void *_param, struct anc_ext_ear_adaptive_param *ex
 
 void icsd_anc_v2_end(void *_param)
 {
-    clock_free("ANC_ADAP");
     audio_anc_t *param = _param;
     mem_stats();
     if (ICSD_REG) {

@@ -30,6 +30,7 @@
 enum {
     ADAPTIVE_EQ_STATE_CLOSE = 0,
     ADAPTIVE_EQ_STATE_OPEN,
+    ADAPTIVE_EQ_STATE_RUN,
 };
 
 //ICSD AEQ 滤波器模式
@@ -65,6 +66,9 @@ int audio_adaptive_eq_eff_set(enum ADAPTIVE_EFF_MODE mode);
 int audio_adaptive_eq_vol_update(s16 volume);
 
 int audio_adaptive_eq_process(void);
+
+// 自适应EQ强制退出
+int audio_adaptive_eq_force_exit(void);
 
 #endif/*__ICSD_AEQ_APP_H_*/
 

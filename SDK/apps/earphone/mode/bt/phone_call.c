@@ -43,6 +43,9 @@
 #if TCFG_AUDIO_SOMATOSENSORY_ENABLE
 #include "somatosensory/audio_somatosensory.h"
 #endif
+#if TCFG_AUDIO_ANC_ENABLE
+#include "audio_anc.h"
+#endif
 
 
 #if (TCFG_USER_TWS_ENABLE == 0)
@@ -222,6 +225,12 @@ static int bt_phone_out(u8 *bt_addr)
 
 static int esco_audio_open(u8 *bt_addr)
 {
+#if TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN && TCFG_AUDIO_ANC_ENABLE
+    //自适应与通话互斥，等待自适应结束之后再打开音频流程
+    if (anc_ear_adaptive_busy_get()) {
+        anc_ear_adaptive_forced_exit(1, 1);
+    }
+#endif
     esco_player_open(bt_addr);
 #if TCFG_TWS_POWER_BALANCE_ENABLE && TCFG_USER_TWS_ENABLE
     /* #if 0	//功能未完善，暂时关闭 */
