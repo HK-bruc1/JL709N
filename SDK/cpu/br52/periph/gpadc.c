@@ -123,6 +123,7 @@ static void adc_pmu_ch_select(u32 ch)
 
 static void adc_audio_ch_select(u32 ch_sel) //Audio通道切换
 {
+    SFR(JL_ADDA->ADDA_CON0,  0, 13,  0);
     SFR(JL_ADDA->ADDA_CON0,  0,  1,  1);					// AUDIO到SARADC的总测试通道使能
 
     switch (ch_sel) {
@@ -222,7 +223,7 @@ void adc_sample(enum AD_CH ch, u32 ie) //启动一次cpu模式的adc采样
         adc_pmu_ch_select(ch);
         break;
     case ADC_CH_TYPE_AUDIO:
-        adc_audio_ch_select(adc_ch_sel);
+        adc_audio_ch_select(ch);
         break;
     case ADC_CH_TYPE_LPCTMU:
         break;

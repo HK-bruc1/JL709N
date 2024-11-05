@@ -205,6 +205,8 @@ void cis_audio_recorder_reset(u16 cis_hdl);
  */
 /* ----------------------------------------------------------------------------*/
 void cis_audio_recorder_close(u16 cis_hdl);
+void connected_perip_connect_recoder(u8 en, u16 acl_hdl);
+int cig_event_to_user(int event, void *value, u32 len);
 
 #ifdef __cplusplus
 };

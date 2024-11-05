@@ -107,6 +107,11 @@
 u16 disturb_scan_timer = 0xff;
 extern void dut_idle_run_slot(u16 slot);
 extern void clr_device_in_page_list();
+#define BT_RF_CURRENT_BALANCE_EN  0//回连电流平衡使能
+
+#define RF_RXTX_STATE_PROT IO_PORTB_08//rf rx pa口  br36:PC2  br28:PB8
+#define EDGE_SLECT_PORART    PORTB
+#define EDGE_SLECT_POART_IO  PORT_PIN_5//PB边沿检测 br36:PC3  br28:PB5
 
 void bredr_link_disturb_scan_timeout(void *priv)
 {
@@ -230,7 +235,7 @@ void bredr_handle_register()
 #if TCFG_USER_TWS_ENABLE
 static void rx_dual_conn_info(u8 *data, int len)
 {
-    r_printf("tws_sync_dual_conn_info_func: %d\n", data[0]);
+    log_info("tws_sync_dual_conn_info_func: %d\n", data[0]);
     g_bt_hdl.bt_dual_conn_config = data[0];
     syscfg_write(CFG_TWS_DUAL_CONFIG, &(g_bt_hdl.bt_dual_conn_config), 1);
 
@@ -266,7 +271,7 @@ void set_dual_conn_config(u8 *addr, u8 dual_conn_en)
 #if TCFG_BT_DUAL_CONN_ENABLE
     if (dual_conn_en) {
         g_bt_hdl.bt_dual_conn_config = DUAL_CONN_SET_TWO;
-        g_printf(">>>>%s: dual_conn_en\n", __FUNCTION__);
+        log_info(">>>>%s: dual_conn_en\n", __FUNCTION__);
         // 如果是双连接，重新判断是否需要开启可发现可连接
 #if TCFG_USER_TWS_ENABLE
         tws_dual_conn_state_handler();
@@ -290,7 +295,7 @@ void set_dual_conn_config(u8 *addr, u8 dual_conn_en)
     bt_set_user_ctrl_conn_num((get_bt_dual_config() == DUAL_CONN_CLOSE) ? 1 : 2);
     bt_set_auto_conn_device_num((get_bt_dual_config() == DUAL_CONN_SET_TWO) ? 2 : 1);
     syscfg_write(CFG_TWS_DUAL_CONFIG, &(g_bt_hdl.bt_dual_conn_config), 1);
-    r_printf("set_dual_conn_config=%d\n", g_bt_hdl.bt_dual_conn_config);
+    log_info("set_dual_conn_config=%d\n", g_bt_hdl.bt_dual_conn_config);
 #endif
 
 }
@@ -302,9 +307,9 @@ void test_set_dual_config()
 
 void user_read_remote_name_handle(u8 status, u8 *addr, u8 *name)
 {
-    r_printf("\nuser_read_remote_name_handle:\n");
+    log_info("\nuser_read_remote_name_handle:\n");
     put_buf(addr, 6);
-    printf("name=%s\n", name);
+    log_info("name=%s\n", name);
 #if RCSP_MODE && TCFG_RCSP_DUAL_CONN_ENABLE
     rcsp_1t2_set_edr_info(addr, name);
 #endif
@@ -322,13 +327,13 @@ void bt_function_select_init()
 #else
     g_bt_hdl.bt_dual_conn_config = DUAL_CONN_CLOSE;
 #endif
-    g_printf("<<<<<<<<<<<<<<bt_dual_conn_config=%d>>>>>>>>>>\n", g_bt_hdl.bt_dual_conn_config);
+    log_info("<<<<<<<<<<<<<<bt_dual_conn_config=%d>>>>>>>>>>\n", g_bt_hdl.bt_dual_conn_config);
     if (g_bt_hdl.bt_dual_conn_config != DUAL_CONN_SET_TWO) {
         set_tws_task_interval(120);
     }
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
     if (get_bt_le_audio_config_for_vm()) {
-        g_printf("le_audio en");
+        log_info("le_audio en");
         g_bt_hdl.bt_dual_conn_config = DUAL_CONN_SET_ONE;
     }
 #endif
@@ -398,8 +403,8 @@ void bt_function_select_init()
 #endif
     le_controller_set_mac((void *)tmp_ble_addr);
     puts("-----edr + ble 's address-----\n");
-    printf_buf((void *)bt_get_mac_addr(), 6);
-    printf_buf((void *)tmp_ble_addr, 6);
+    log_info_hexdump((void *)bt_get_mac_addr(), 6);
+    log_info_hexdump((void *)tmp_ble_addr, 6);
 #endif
 
     set_bt_enhanced_power_control(1);
@@ -820,7 +825,7 @@ u8 bt_app_exit_check(void)
     }
     if (app_var.siri_stu && app_var.siri_stu != 3) {
         // siri不退出
-        printf("%s, siri_stu:%d\n", __FUNCTION__, app_var.siri_stu);
+        log_info("%s, siri_stu:%d\n", __FUNCTION__, app_var.siri_stu);
         return 0;
     }
     int esco_state = bt_get_call_status();
@@ -829,7 +834,7 @@ u8 bt_app_exit_check(void)
         esco_state == BT_CALL_INCOMING  ||
         esco_state == BT_CALL_ACTIVE) {
         // 通话不退出
-        printf("%s, esco_state:%d\n", __FUNCTION__, esco_state);
+        log_info("%s, esco_state:%d\n", __FUNCTION__, esco_state);
         return 0;
     }
 
@@ -916,7 +921,7 @@ static u8 bt_nobackground_exit()
 
     if (g_bt_hdl.exit_check_timer == 0) {
         g_bt_hdl.exit_check_timer = sys_timer_add(NULL, bt_no_background_exit_check, 10);
-        printf("set exit timer\n");
+        log_info("set exit timer\n");
     }
 
     return 0;
@@ -929,7 +934,7 @@ bool bt_check_already_initializes(void)
 
 int bt_mode_init()
 {
-    printf("bt mode\n");
+    log_info("bt mode\n");
 
 #if (TCFG_BT_BACKGROUND_ENABLE)      //后台返回到蓝牙模式如果是通过模式切换返回的还是要播放提示音
     if (g_bt_hdl.background.backmode == BACKGROUND_GOBACK_WITH_MODE_SWITCH && !bt_background_switch_mode_check())
@@ -938,6 +943,11 @@ int bt_mode_init()
         tone_player_stop();
         play_tone_file_callback(get_tone_files()->bt_mode, NULL, tone_bt_mode_callback);
     }
+
+#if BT_RF_CURRENT_BALANCE_EN
+    extern void bt_set_rxtx_status_io(u32 tx_pin, u32 rx_pin);
+    bt_set_rxtx_status_io(RF_RXTX_STATE_PROT, RF_RXTX_STATE_PROT);
+#endif
 
     g_bt_hdl.init_start = 1;//蓝牙协议栈已经开始初始化标志位
     g_bt_hdl.init_ok = 0;
@@ -1021,19 +1031,30 @@ int bt_mode_exit()
 
 int bt_app_msg_handler(int *msg)
 {
+    u8 data[1];
     if (!app_in_mode(APP_MODE_BT)) {
         return 0;
     }
     switch (msg[0]) {
     case APP_MSG_VOL_UP:
-        puts("APP_MSG_VOL_UP\n");
+        data[0] = CIG_EVENT_OPID_VOLUME_UP;
+        log_info("APP_MSG_VOL_UP\n");
         bt_volume_up(1);
         bt_tws_sync_volume();
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+        extern void le_audio_media_control_cmd(u8 * data, u8 len);
+        le_audio_media_control_cmd(data, 1);
+#endif
         return 0;
     case APP_MSG_VOL_DOWN:
-        puts("APP_MSG_VOL_DOWN\n");
+        data[0] = CIG_EVENT_OPID_VOLUME_DOWN;
+        log_info("APP_MSG_VOL_DOWN\n");
         bt_volume_down(1);
         bt_tws_sync_volume();
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+        extern void le_audio_media_control_cmd(u8 * data, u8 len);
+        le_audio_media_control_cmd(data, 1);
+#endif
         return 0;
     }
 
@@ -1048,19 +1069,22 @@ int bt_app_msg_handler(int *msg)
     case APP_MSG_MUSIC_NEXT:
     case APP_MSG_MUSIC_PREV:
         bt_send_a2dp_cmd(msg[0]);
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+        bt_send_jl_cis_cmd(msg[0]);
+#endif
         break;
     case APP_MSG_CALL_ANSWER:
         u8 temp_call_btaddr[6];
         if (esco_player_get_btaddr(temp_call_btaddr)) {
             if (bt_get_call_status() == BT_CALL_INCOMING) {
-                printf("APP_MSG_CALL_ANSWER: esco playing, device_addr:\n");
+                log_info("APP_MSG_CALL_ANSWER: esco playing, device_addr:\n");
                 put_buf(temp_call_btaddr, 6);
                 bt_cmd_prepare_for_addr(temp_call_btaddr, USER_CTRL_HFP_CALL_ANSWER, 0, NULL);		// 根据哪个设备使用esco接听哪个
                 break;
             }
         } else {
             if (bt_get_call_status() == BT_CALL_INCOMING) {
-                printf("APP_MSG_CALL_ANSWER: esco no playing\n");
+                log_info("APP_MSG_CALL_ANSWER: esco no playing\n");
                 bt_cmd_prepare(USER_CTRL_HFP_CALL_ANSWER, 0, NULL);
                 break;
             }
@@ -1069,7 +1093,7 @@ int bt_app_msg_handler(int *msg)
     case APP_MSG_CALL_HANGUP:
         u8 temp_btaddr[6];
         if (esco_player_get_btaddr(temp_btaddr)) {
-            printf("APP_MSG_CALL_HANGUP: current esco playing\n");		// 根据哪个设备使用esco挂断哪个
+            log_info("APP_MSG_CALL_HANGUP: current esco playing\n");		// 根据哪个设备使用esco挂断哪个
             put_buf(temp_btaddr, 6);
             bt_cmd_prepare_for_addr(temp_btaddr, USER_CTRL_HFP_CALL_HANGUP, 0, NULL);
             break;
@@ -1079,7 +1103,7 @@ int bt_app_msg_handler(int *msg)
                 memcpy(temp_btaddr, addr, 6);
                 u8 call_status = bt_get_call_status_for_addr(temp_btaddr);
                 if ((call_status >= BT_CALL_INCOMING) && (call_status <= BT_CALL_ACTIVE)) {
-                    printf("APP_MSG_CALL_HANGUP: current addr\n");
+                    log_info("APP_MSG_CALL_HANGUP: current addr\n");
                     put_buf(temp_btaddr, 6);
                     bt_cmd_prepare_for_addr(temp_btaddr, USER_CTRL_HFP_CALL_HANGUP, 0, NULL);
                     break;
@@ -1087,7 +1111,7 @@ int bt_app_msg_handler(int *msg)
                 u8 *other_conn_addr;
                 other_conn_addr = btstack_get_other_dev_addr(addr);
                 if (other_conn_addr) {
-                    printf("APP_MSG_CALL_HANGUP: other addr\n");
+                    log_info("APP_MSG_CALL_HANGUP: other addr\n");
                     memcpy(temp_btaddr, other_conn_addr, 6);
                     put_buf(temp_btaddr, 6);
                     call_status = bt_get_call_status_for_addr(temp_btaddr);
@@ -1107,7 +1131,7 @@ int bt_app_msg_handler(int *msg)
         // 拍照
         puts("APP_MSG_HID_CONTROL\n");
         if (bt_get_curr_channel_state() & HID_CH) {
-            printf("send USER_CTRL_HID_IOS\n");
+            log_info("send USER_CTRL_HID_IOS\n");
             bt_cmd_prepare(USER_CTRL_HID_IOS, 0, NULL);
         }
         break;
@@ -1184,6 +1208,63 @@ struct app_mode *app_enter_bt_mode(int arg)
 
     return next_mode;
 }
+#if BT_RF_CURRENT_BALANCE_EN
+
+extern void hw_ctl_open(void);
+extern void hw_ctl_close(void);
+
+extern void rfc_off(void);
+extern void rfc_on(void);
+
+extern void tx_pwr_sel(u8 sel);
+
+extern void rx_st_ctl(void);
+extern void tx_st_ctl(void);
+
+void gpio_irq_callback_rxen_pa_ctl(enum gpio_port port, u32 pin, enum gpio_irq_edge edge)
+{
+    if (edge == PORT_IRQ_EDGE_RISE) {
+        //raise edge
+        gpio_irq_set_edge(port, BIT(pin), PORT_IRQ_EDGE_FALL);
+        //log_info("rx raise\n");
+        rx_st_ctl();
+    } else {
+        //fall edge
+        gpio_irq_set_edge(port, BIT(pin), PORT_IRQ_EDGE_RISE);
+        //log_info("rx fall\n");
+        tx_st_ctl();
+    }
+}
+
+struct gpio_irq_config_st gpio_irq_config_rx = {
+    .pin = EDGE_SLECT_POART_IO,
+    .irq_edge = PORT_IRQ_EDGE_FALL,
+    .callback = gpio_irq_callback_rxen_pa_ctl
+};
+
+struct gpio_irq_config_st gpio_irq_config_rx_off = {
+    .pin = EDGE_SLECT_POART_IO,
+    .irq_edge = PORT_IRQ_DISABLE,
+    .callback = gpio_irq_callback_rxen_pa_ctl
+};
+
+void bt_user_page_enable(u8 enable, u8 type)
+{
+    /* log_info("bt_user_page_enable=%d,type=%d", enable, type); */
+    /* if(type==1){ *///tws quick page no doning
+    /* return;	 */
+    /* } */
+    if (enable) {
+        hw_ctl_close();
+        gpio_irq_config(EDGE_SLECT_PORART, &gpio_irq_config_rx);
+        /* log_info("gpio_irq_config open-----+++++"); */
+    } else {
+        gpio_irq_config(EDGE_SLECT_PORART, &gpio_irq_config_rx_off);
+        hw_ctl_open();
+        /* log_info("gpio_irq_config close-----+++++"); */
+    }
+}
+#endif
 static const struct app_mode_ops bt_mode_ops = {
     .try_exit       = bt_mode_try_exit,
 };

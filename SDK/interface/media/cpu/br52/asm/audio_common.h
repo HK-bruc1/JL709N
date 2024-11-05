@@ -34,8 +34,8 @@ typedef struct {
 
 typedef struct {
     u8 clock_mode;
-    u8 vbg_v_trim_value0;
-    u8 vbg_v_trim_value1;
+    u8 pmu_vbg_value;
+    u8 audio_vbg_value;
     u8 vbg_i_trim_value;
     u8 vcm_cap_en;
     u8 vcm_level;
@@ -83,5 +83,6 @@ int audio_dac_analog_status_add_check(int add);
 u16 audio_hpvdd_hw_sel_check(void);
 u8 audio_common_vbg_trim(u8 vcm_level, u8 vbg_i_value);
 
+void audio_adc_dmic_clock_open(u8 dmic_cken, u8 dmic_div);
 #endif // _AUDIO_COMMON_H_
 

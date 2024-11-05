@@ -32,6 +32,9 @@
 
 #if TCFG_USER_TWS_ENABLE
 #include "bt_tws.h"
+#include "tws_dual_conn.h"
+#else
+#include "dual_conn.h"
 #endif
 
 #if TCFG_UI_ENABLE

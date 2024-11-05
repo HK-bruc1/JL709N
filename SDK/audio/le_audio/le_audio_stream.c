@@ -436,6 +436,9 @@ int le_audio_stream_rx_frame(void *stream, void *data, int len, u32 timestamp)
     if (rx_stream->frames_len + len > rx_stream->frames_max_size) {
         /*printf("frame no buffer.\n");*/
         putchar('H');
+        if (ctx->rx_tick_handler) {
+            ctx->rx_tick_handler(ctx->rx_tick_priv);
+        }
         return 0;
     }
     frame = malloc(sizeof(struct le_audio_frame) + len);

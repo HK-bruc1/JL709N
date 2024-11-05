@@ -372,7 +372,26 @@ const  int  silk_fsW_enable = 1;  //支持16-24k采样率
 //***********************
 //* 	LC3 Codec      *
 //***********************
+//LC3帧长使能配置
+#if ((TCFG_LE_AUDIO_APP_CONFIG & ( LE_AUDIO_JL_UNICAST_SINK_EN)))
+const char  LC3_FRAME_LEN_SUPPORT_25_DMS = 1;	//2.5ms的帧长使能
+const char  LC3_FRAME_LEN_SUPPORT_50_DMS = 1; 	//5ms的帧长使能
+#else
+const char  LC3_FRAME_LEN_SUPPORT_25_DMS = 0;	//2.5ms的帧长使能
+const char  LC3_FRAME_LEN_SUPPORT_50_DMS = 0; 	//5ms的帧长使能
+#endif
+const char  LC3_FRAME_LEN_SUPPORT_75_DMS = 1; 	//7.5ms的帧长使能
+const char  LC3_FRAME_LEN_SUPPORT_100_DMS = 1; 	//10ms的帧长使能
+//LC3采样率使能配置
+const char  LC3_SAMPLE_RATE_SUPPORT_8K = 0;   	//8K采样率使能
+const char  LC3_SAMPLE_RATE_SUPPORT_16K = 0;  	//16K采样率使能
+const char  LC3_SAMPLE_RATE_SUPPORT_24K = 0;  	//24K采样率使能
+const char  LC3_SAMPLE_RATE_SUPPORT_32K = 1;  	//32K采样率使能
+const char  LC3_SAMPLE_RATE_SUPPORT_48K = 1;  	//48K/44.1K采样率使能
 const int LC3_PLC_EN = 0;  				//LC3丢包修复效果配置: 0:淡入淡出; 1:时域PLC;  2:频域PLC;  3:无任何效果，仅补静音包;
+const int  LC3_PLC_FADE_OUT_START_POINT = 120;
+const int  LC3_PLC_FADE_OUT_POINTS = 120;
+const int  LC3_PLC_FADE_IN_POINTS = 120;
 const int LC3_PLC_FADE_IN_MS = 30;   	//LC3_PLC_EN = 0时有效, 淡入时间设置ms;
 #if(HW_FFT_VERSION == FFT_EXT) 			//支持非2的指数次幂点数的fft 时 置1
 const int LC3_HW_FFT = 1;

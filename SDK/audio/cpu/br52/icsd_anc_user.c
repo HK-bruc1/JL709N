@@ -51,60 +51,40 @@ int audio_mic_en(u8 en, audio_mic_param_t *mic_param,
 
         u16 mic_ch = mic_param->mic_ch_sel;
         u16 sr = mic_param->sample_rate;
-        u8 gain0 = mic_param->mic0_gain;
-        u8 gain1 = mic_param->mic1_gain;
-        u8 gain2 = mic_param->mic2_gain;
-        u8 gain3 = mic_param->mic3_gain;
 
         u8 mic_num = 0;
         /*打开mic电压*/
         audio_mic_pwr_ctl(MIC_PWR_ON);
         audio_adc_file_init();
-        /*打开mic0*/
-        if (mic_ch & AUDIO_ADC_MIC_0) {
-            printf("adc_mic0 open, sr:%d, gain:%d\n", sr, gain0);
-            adc_file_mic_open(&audio_mic->mic_ch, AUDIO_ADC_MIC_0);
-            audio_adc_mic_set_gain(&audio_mic->mic_ch, AUDIO_ADC_MIC_0, gain0);
-            mic_num ++;
-        }
-        /*打开mic1*/
-        if (mic_ch & AUDIO_ADC_MIC_1) {
-            printf("adc_mic1 open, sr:%d, gain:%d\n", sr, gain1);
-            adc_file_mic_open(&audio_mic->mic_ch, AUDIO_ADC_MIC_1);
-            audio_adc_mic_set_gain(&audio_mic->mic_ch, AUDIO_ADC_MIC_1, gain1);
-            mic_num ++;
-        }
-        /*打开mic2*/
-        if (mic_ch & AUDIO_ADC_MIC_2) {
-            printf("adc_mic2 open, sr:%d, gain:%d\n", sr, gain2);
-            adc_file_mic_open(&audio_mic->mic_ch, AUDIO_ADC_MIC_2);
-            audio_adc_mic_set_gain(&audio_mic->mic_ch, AUDIO_ADC_MIC_2, gain2);
-            mic_num ++;
-        }
-        /*打开mic3*/
-        if (mic_ch & AUDIO_ADC_MIC_3) {
-            printf("adc_mic3 open, sr:%d, gain:%d\n", sr, gain3);
-            adc_file_mic_open(&audio_mic->mic_ch, AUDIO_ADC_MIC_3);
-            audio_adc_mic_set_gain(&audio_mic->mic_ch, AUDIO_ADC_MIC_3, gain3);
-            mic_num ++;
+        for (int i = 0; i < AUDIO_ADC_MAX_NUM; i++) {
+            if (mic_ch & BIT(i)) {
+                printf("adc_mic%d open, sr:%d, gain:%d\n", i, sr, mic_param->mic_gain[i]);
+                adc_file_mic_open(&audio_mic->mic_ch, AUDIO_ADC_MIC(i));
+                audio_adc_mic_set_gain(&audio_mic->mic_ch, AUDIO_ADC_MIC(i), mic_param->mic_gain[i]);
+                mic_num ++;
+            }
         }
 
         int adc_buf_size = mic_param->adc_irq_points * 2 * mic_param->adc_buf_num * mic_num;
         printf("adc irq points %d, adc_buf_size : %d", mic_param->adc_irq_points, adc_buf_size);
         /* audio_mic->adc_buf = esco_adc_buf; */
-        /* audio_mic->adc_buf = zalloc(adc_buf_size); */
-        /* if (audio_mic->adc_buf == NULL) { */
-        /*     printf("audio->adc_buf mic zalloc failed\n"); */
-        /*     audio_mic_pwr_ctl(MIC_PWR_OFF); */
-        /*     free(audio_mic); */
-        /*     audio_mic = NULL; */
-        /*     return -1; */
-        /* } */
+        audio_mic->adc_buf = zalloc(adc_buf_size);
+        if (audio_mic->adc_buf == NULL) {
+            printf("audio->adc_buf mic zalloc failed\n");
+            audio_mic_pwr_ctl(MIC_PWR_OFF);
+            free(audio_mic);
+            audio_mic = NULL;
+            return -1;
+        }
 
         audio_adc_mic_set_sample_rate(&audio_mic->mic_ch, sr);
-        audio_adc_fixed_digital_set_buffs();
-        /* audio_adc_mic_set_buffs(&audio_mic->mic_ch, audio_mic->adc_buf, */
-        /*                         mic_param->adc_irq_points * 2, mic_param->adc_buf_num); */
+        /* audio_adc_fixed_digital_set_buffs(); */
+        int err = audio_adc_mic_set_buffs(&audio_mic->mic_ch, audio_mic->adc_buf,
+                                          mic_param->adc_irq_points * 2, mic_param->adc_buf_num);
+        if (err) {
+            free(audio_mic->adc_buf);
+            audio_mic->adc_buf = NULL;
+        }
         audio_mic->adc_output.handler = data_handler;
         audio_adc_add_output_handler(&adc_hdl, &audio_mic->adc_output);
         audio_adc_mic_start(&audio_mic->mic_ch);
@@ -121,6 +101,7 @@ int audio_mic_en(u8 en, audio_mic_param_t *mic_param,
             audio_adc_del_output_handler(&adc_hdl, &audio_mic->adc_output);
             if (audio_mic->adc_buf) {
                 /* free(audio_mic->adc_buf);  */
+                audio_mic->adc_buf = NULL;
             }
 #if TCFG_AUDIO_ANC_ENABLE
             if (!mult_flag) {

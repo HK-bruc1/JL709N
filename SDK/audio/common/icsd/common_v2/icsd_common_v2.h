@@ -11,6 +11,12 @@
 unsigned long jiffies_usec(void);
 
 enum {
+    DEBUG_FUNCTION_PRINTF = 0,
+    DEBUG_FUNCTION_ADT,
+    DEBUG_FUNCTION_WIND,
+};
+
+enum {
     ADT_ANC_ON = 0,
     ADT_ANC_OFF,
 };
@@ -57,6 +63,8 @@ enum {
     ICSD_BR28,
 };
 
+
+
 typedef struct {
     int len;	//float points
     float *out;
@@ -69,6 +77,9 @@ typedef struct {
     __afq_data *sz_l;
     __afq_data *sz_r;
 } __afq_output;
+
+
+
 typedef struct {
     float spl_db;
     float spl_db_err;

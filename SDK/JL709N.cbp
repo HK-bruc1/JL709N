@@ -181,6 +181,7 @@
 <Add directory="apps/common/third_party_profile/tuya_protocol/sdk/include" />
 <Add directory="apps/common/third_party_profile/tuya_protocol/sdk/lib" />
 <Add directory="apps/earphone/third_part/tuya" />
+<Add directory="apps/common/third_party_profile/bt_fmy" />
 <Add directory="apps/common/device/usb" />
 <Add directory="apps/common/device/usb/device" />
 <Add directory="apps/common/device/usb/host" />
@@ -202,6 +203,10 @@
 <Add directory="audio/common/icsd/afq" />
 <Add directory="audio/common/icsd/cmp" />
 <Add directory="audio/common/icsd/demo" />
+<Add directory="audio/common/icsd/wind" />
+<Add directory="audio/common/icsd/vdt" />
+<Add directory="audio/common/icsd/wat" />
+<Add directory="audio/common/icsd/ein" />
 <Add directory="audio/common/power" />
 <Add directory="audio/anc" />
 <Add directory="audio/cpu/br52/audio_dai" />
@@ -308,6 +313,11 @@
 <Add option="cpu/br52/liba/lib_icsd_aeq.a" />
 <Add option="cpu/br52/liba/lib_icsd_afq.a" />
 <Add option="cpu/br52/liba/lib_icsd_cmp.a" />
+<Add option="cpu/br52/liba/lib_icsd_adt.a" />
+<Add option="cpu/br52/liba/lib_icsd_wind.a" />
+<Add option="cpu/br52/liba/lib_icsd_wat.a" />
+<Add option="cpu/br52/liba/lib_icsd_vdt.a" />
+<Add option="cpu/br52/liba/lib_icsd_ein.a" />
 <Add option="cpu/br52/liba/lib_limiter.a" />
 <Add option="cpu/br52/liba/le_audio_profile.a" />
 <Add option="cpu/br52/liba/jla_codec_lib.a" />
@@ -545,6 +555,13 @@
 <Unit filename="apps/common/third_party_profile/Tencent_LL/tencent_protocol/ble_qiot_utils_sha1.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/third_party_profile/ancs_client_demo/le_ancs_client.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/third_party_profile/ancs_client_demo/le_ancs_client.h" />
+<Unit filename="apps/common/third_party_profile/bt_fmy/ble_fmy.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/third_party_profile/bt_fmy/ble_fmy.h" />
+<Unit filename="apps/common/third_party_profile/bt_fmy/ble_fmy_cfg.h" />
+<Unit filename="apps/common/third_party_profile/bt_fmy/ble_fmy_fmna.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/third_party_profile/bt_fmy/ble_fmy_ota.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/third_party_profile/bt_fmy/ble_fmy_ota.h" />
+<Unit filename="apps/common/third_party_profile/bt_fmy/ble_fmy_profile.h" />
 <Unit filename="apps/common/third_party_profile/common/3th_profile_api.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/third_party_profile/common/3th_profile_api.h" />
 <Unit filename="apps/common/third_party_profile/common/custom_cfg.c"><Option compilerVer="CC"/></Unit>
@@ -568,6 +585,7 @@
 <Unit filename="apps/common/third_party_profile/interface/app_protocol_ota.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/third_party_profile/interface/app_protocol_ota.h" />
 <Unit filename="apps/common/third_party_profile/interface/app_protocol_tme.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/third_party_profile/jieli/gatt_common/le_gatt_common.h" />
 <Unit filename="apps/common/third_party_profile/jieli/le_client_demo.h" />
 <Unit filename="apps/common/third_party_profile/jieli/le_common.h" />
 <Unit filename="apps/common/third_party_profile/jieli/online_db/online_db_deal.c"><Option compilerVer="CC"/></Unit>
@@ -1052,6 +1070,7 @@
 <Unit filename="audio/common/frame_length_adaptive.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/frame_length_adaptive.h" />
 <Unit filename="audio/common/icsd/adt/icsd_adt.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="audio/common/icsd/adt/icsd_adt_alg.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/adt/icsd_adt_app.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/adt/icsd_adt_config.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/aeq/icsd_aeq.c"><Option compilerVer="CC"/></Unit>
@@ -1085,11 +1104,15 @@
 <Unit filename="audio/common/icsd/dot/icsd_dot.h" />
 <Unit filename="audio/common/icsd/dot/icsd_dot_app.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/dot/icsd_dot_app.h" />
+<Unit filename="audio/common/icsd/ein/icsd_ein_config.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/rt_anc/rt_anc.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/rt_anc/rt_anc_config.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/tool/anc_ext_tool.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/tool/anc_ext_tool.h" />
 <Unit filename="audio/common/icsd/tool/anc_ext_tool_file.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="audio/common/icsd/vdt/icsd_vdt_config.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="audio/common/icsd/wat/icsd_wat_config.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="audio/common/icsd/wind/icsd_wind_config.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/online_debug/aud_data_export.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/online_debug/aud_data_export.h" />
 <Unit filename="audio/common/online_debug/aud_mic_dut.c"><Option compilerVer="CC"/></Unit>
@@ -1365,6 +1388,7 @@
 <Unit filename="interface/btstack/third_party/common/spp_config.h" />
 <Unit filename="interface/btstack/third_party/common/spp_user.h" />
 <Unit filename="interface/btstack/third_party/dma/dma_api.h" />
+<Unit filename="interface/btstack/third_party/fmna/fmna_api.h" />
 <Unit filename="interface/btstack/third_party/le_audio/big.h" />
 <Unit filename="interface/btstack/third_party/le_audio/cig.h" />
 <Unit filename="interface/btstack/third_party/rcsp/JL_rcsp_api.h" />

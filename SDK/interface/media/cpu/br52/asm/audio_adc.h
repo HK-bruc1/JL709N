@@ -195,6 +195,7 @@ struct audio_adc_hdl {
     u8 lpadc_en;
     u8 plnk_en;
     u8 analog_common_inited;
+    u8 micbias_en_port[AUDIO_ADC_MAX_NUM]; //记录各个MIC使用的供电来源
 };
 
 struct adc_mic_ch {

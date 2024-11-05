@@ -27,6 +27,8 @@ extern const int config_audio_dac_channel_left_enable;
 extern const int config_audio_dac_channel_right_enable;
 extern const int config_audio_dac_power_on_mode;
 extern const int config_audio_dac_power_off_lite;
+extern const int config_audio_dac_mix_enable;
+extern const int config_audio_dac_noisefloor_optimize_enable;
 
 /*
  *******************************************************************

@@ -524,6 +524,18 @@ static void anc_task(void *p)
 #if ANC_MULT_ORDER_ENABLE
                 audio_anc_mult_scene_coeff_free();
 #endif/*ANC_MULT_ORDER_ENABLE*/
+
+                /*anc on自动打开免摘，anc off自动关闭免摘*/
+#if TCFG_AUDIO_SPEAK_TO_CHAT_ENABLE && SPEAK_TO_CHAT_AUTO_OPEN_IN_ANC
+                /*anc on打开adt*/
+                if (anc_hdl->param.mode == ANC_ON && !get_adt_switch_trans_state()) {
+                    audio_speak_to_chat_open();
+                } else if (!get_adt_switch_trans_state()) {
+                    /*anc off关闭adt || 如果不是免摘切的trans关闭adt*/
+                    audio_speak_to_chat_close();
+                }
+                set_adt_switch_trans_state(0);
+#endif
                 break;
             case ANC_MSG_MODE_SYNC:
                 user_anc_log("anc_mode_sync:%d", msg[2]);
@@ -579,11 +591,6 @@ static void anc_task(void *p)
                 icsd_afq_anctask_handler(&anc_hdl->param, msg);
                 break;
 #endif/*TCFG_AUDIO_FREQUENCY_GET_ENABLE*/
-#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
-            case ANC_MSG_ADT:
-                icsd_adt_anctask_handle((u8)msg[2]);
-                break;
-#endif /*TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN*/
 #if ANC_EAR_ADAPTIVE_EN
             case ANC_MSG_ICSD_ANC_V2_CMD:
             case ANC_MSG_ICSD_ANC_V2_INIT:
@@ -1182,6 +1189,10 @@ void anc_init(void)
     task_create(anc_task, NULL, "anc");
     anc_hdl->state = ANC_STA_INIT;
 
+#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
+    anc_adt_init();
+#endif /*TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN*/
+
     user_anc_log("anc_init ok");
 }
 
@@ -1383,6 +1394,9 @@ static void anc_tone_play_and_mode_switch(u8 mode, u8 preemption, u8 cb_sel)
     /* if (!esco_player_runing() && !a2dp_player_runing()) {	//后台没有音频，提示音默认打断播放
         preemption = 1;
     } */
+#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
+    audio_anc_mode_switch_in_adt(anc_hdl->param.mode);
+#endif
     if (cb_sel) {
         /*ANC打开情况下，播提示音的同时，anc效果淡出*/
         if (anc_hdl->state == ANC_STA_OPEN) {
@@ -1747,7 +1761,20 @@ void anc_resume(void)
         user_anc_log("anc_resume\n");
         anc_hdl->suspend = 0;
         anc_hdl->param.tool_enablebit = anc_hdl->param.enablebit;	//使能恢复
+        /*处理anc off开adt后出仓调用这里把anc关闭导致dac没有声音的问题*/
+#if (defined TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN) && TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
+        u8 adt_flag = 0;
+        if (get_icsd_adt_mode() && anc_hdl->param.mode == ANC_OFF) {
+            adt_flag = 1;
+            anc_hdl->param.mode = ANC_ON;
+        }
+#endif /*TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN*/
         audio_anc_en_set(1);
+#if (defined TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN) && TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
+        if (adt_flag) {
+            anc_hdl->param.mode = ANC_OFF;
+        }
+#endif /*TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN*/
         if (anc_hdl->param.anc_fade_en) {	  //恢复ANC增益淡入
             //避免param.anc_fade_gain 被修改，这里使用固定值
             audio_anc_fade_ctr_set(ANC_FADE_MODE_SUSPEND, AUDIO_ANC_FDAE_CH_ALL, AUDIO_ANC_FADE_GAIN_DEFAULT);
@@ -2617,13 +2644,6 @@ void audio_anc_adc_ch_set(void)
         anc_hdl->param.adc_ch = 1;
     }
 
-#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
-    /* 开免摘功能后，如果通话配置的MIC个数小于两个，
-     * 则在ANC开MIC时，需要打开两个ADC的数字通道，保证免摘ADC取数正常 */
-    if (anc_hdl->param.adc_ch < (BIT(1) | BIT(0))) {
-        anc_hdl->param.adc_ch = BIT(1) | BIT(0);
-    }
-#endif
 #endif
     for (int i = 0; i < AUDIO_ADC_MAX_NUM; i++) {
         anc_hdl->param.mic_param[i].mic_p.mic_mode      = platform_cfg[i].mic_mode;

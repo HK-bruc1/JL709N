@@ -46,6 +46,7 @@ u8 efuse_get_btvbg_syspll_trim();
 u8 efuse_get_btvbg_xoscldo_level();
 u8 efuse_get_btvbg_sysldo11d_level();
 u8 efuse_get_btvbg_sysldo11a_level();
+u32 efuse_get_vbat_3700();
 
 void efuse_init();
 

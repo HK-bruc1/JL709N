@@ -16,9 +16,23 @@
 //**************************************
 // 			ASS通用配置
 //**************************************
-#define MEDIA_24BIT_ENABLE		TCFG_AUDIO_BIT_WIDTH
-#define AUD_DAC_TRIM_ENABLE		1
+#define MEDIA_24BIT_ENABLE					TCFG_AUDIO_BIT_WIDTH
+#define AUD_DAC_TRIM_ENABLE					1
+#define TCFG_AUDIO_DAC_NOISEGATE_ENABLE     1
+#define AUDIO_DAC_MAX_SAMPLE_RATE           48000
 
+/*
+ * Hi-Res Audio使能LHDC/LDAC要求：
+ * <1>DAC最高采样率调整到96K
+ * <2>同时全局采样率至少要96kHz，或者Disable（即自适应）
+ */
+#ifdef TCFG_HI_RES_AUDIO_ENEBALE
+#undef AUDIO_DAC_MAX_SAMPLE_RATE
+#define AUDIO_DAC_MAX_SAMPLE_RATE           96000
+#if (TCFG_AUDIO_GLOBAL_SAMPLE_RATE && (TCFG_AUDIO_GLOBAL_SAMPLE_RATE < 96000))
+#error "Hi-Res Audio：请将全局采样率TCFG_AUDIO_GLOBAL_SAMPLE_RATE设置到至少96000，或Disable！"
+#endif
+#endif
 
 //**************************************
 // 			音频模块链接配置
@@ -45,7 +59,11 @@
 #define AUDIO_MSBC_CODEC_AT_RAM		     	1	//MSBC 编解码
 #define AUDIO_CVSD_CODEC_AT_RAM		     	1	//CVSD 编解码
 #define AUDIO_JLA_CODEC_AT_RAM		     	1	//JLA 编解码
-#define AUDIO_LC3_CODEC_AT_RAM		     	0	//LC3 编解码
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+#define AUDIO_LC3_CODEC_AT_RAM			    1	//LC3 编解码
+#else
+#define AUDIO_LC3_CODEC_AT_RAM			    0	//LC3 编解码
+#endif
 
 /*语音识别算法编译链接配置*/
 #define AUDIO_KWS_COMMON_AT_RAM             0   //kws公共部分 ，0:放flash，1:放ram
@@ -74,13 +92,6 @@
 #else
 #define TCFG_MAX_VOL_PROMPT						 1
 #endif
-/*
- *br36 支持24bit位宽输出
- * */
-#define TCFG_AUDIO_DAC_24BIT_MODE           0
-#define AUDIO_DAC_MAX_SAMPLE_RATE           48000
-
-#define TCFG_AUDIO_DAC_NOISEGATE_ENABLE     1
 
 /*
  *该配置适用于没有音量按键的产品，防止打开音量同步之后

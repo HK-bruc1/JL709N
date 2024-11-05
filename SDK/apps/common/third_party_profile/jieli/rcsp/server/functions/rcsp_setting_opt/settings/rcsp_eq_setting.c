@@ -222,13 +222,12 @@ static int eq_opt_init(void)
     u8 eq_setting_info[10] = {0};
     u8 eq_setting_mode = 0;
     u8 i;
-    if (rcsp_read_data_from_vm(CFG_RCSP_ADV_EQ_DATA_SETTING, eq_setting_info, sizeof(eq_setting_info))) {
-        if (rcsp_read_data_from_vm(CFG_RCSP_ADV_EQ_MODE_SETTING, &eq_setting_mode, sizeof(eq_setting_mode))) {
-            eq_setting_vm_info[0] = eq_setting_mode;
-            memcpy(&eq_setting_vm_info[1], eq_setting_info, 10);
-            set_eq_setting(eq_setting_vm_info);
-            deal_eq_setting(NULL, 0, 0);
-        }
+    rcsp_read_data_from_vm(CFG_RCSP_ADV_EQ_DATA_SETTING, eq_setting_info, sizeof(eq_setting_info));
+    if (rcsp_read_data_from_vm(CFG_RCSP_ADV_EQ_MODE_SETTING, &eq_setting_mode, sizeof(eq_setting_mode))) {
+        eq_setting_vm_info[0] = eq_setting_mode;
+        memcpy(&eq_setting_vm_info[1], eq_setting_info, 10);
+        set_eq_setting(eq_setting_vm_info);
+        deal_eq_setting(NULL, 0, 0);
     }
     return 0;
 }

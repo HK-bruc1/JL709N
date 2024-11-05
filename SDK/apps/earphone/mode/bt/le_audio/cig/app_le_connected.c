@@ -48,7 +48,10 @@ struct le_audio_var {
     u8 le_audio_tws_role;
     u8 le_audio_adv_connected;
 };
+extern void dual_conn_state_handler();
 static struct le_audio_var g_le_audio_hdl;
+extern void ble_vendor_priv_cmd_handle_register(u16(*handle)(u16 hdl, u8 *cmd, u8 *rsp));
+extern int ll_hci_vendor_send_priv_cmd(u16 conn_handle, u8 *data, u16 size); //通过hci命令发
 
 /**************************************************************************************************
   Macros
@@ -167,6 +170,8 @@ static int app_connected_conn_status_event_handler(int *msg)
                         app_cig_conn_info[i].cis_conn_info[j].Max_PDU_C_To_P = hdl->Max_PDU_C_To_P;
                         app_cig_conn_info[i].cis_conn_info[j].Max_PDU_P_To_C = hdl->Max_PDU_P_To_C;
                         find = 1;
+
+                        log_info("Record acl hangle:0x%x", app_cig_conn_info[i].cis_conn_info[j].acl_hdl);
                         break;
                     }
                 }
@@ -314,6 +319,13 @@ static int app_connected_conn_status_event_handler(int *msg)
 #endif
         g_le_audio_hdl.cig_phone_conn_status = 0;
         acl_info = (cis_acl_info_t *)&event[1];
+#if ((TCFG_LE_AUDIO_APP_CONFIG & ( LE_AUDIO_JL_UNICAST_SINK_EN)))
+        if (get_le_audio_jl_dongle_device_type()) {
+            cig_event_to_user(CIG_EVENT_JL_DONGLE_DISCONNECT, (void *)&acl_info->acl_hdl, 2);
+
+        }
+#endif
+        set_le_audio_jl_dongle_device_type(0);
         if (acl_info->conn_type) {
             log_info("disconnect test box ble");
             return -EPERM;
@@ -329,8 +341,16 @@ static int app_connected_conn_status_event_handler(int *msg)
         app_connected_mutex_post(&mutex, __LINE__);
 #if TCFG_USER_TWS_ENABLE
         tws_dual_conn_state_handler();
+#else
+        dual_conn_state_handler();
 #endif
         break;
+#if ((TCFG_LE_AUDIO_APP_CONFIG & ( LE_AUDIO_JL_UNICAST_SINK_EN)))
+    case CIG_EVENT_JL_DONGLE_CONNECT:
+        bt_cmd_prepare(USER_CTRL_WRITE_SCAN_DISABLE, 0, NULL);
+        bt_cmd_prepare(USER_CTRL_WRITE_CONN_DISABLE, 0, NULL);
+        clr_device_in_page_list();
+#endif
     case CIG_EVENT_PHONE_CONNECT:
         g_printf("CIG_EVENT_PHONE_CONNECT");
         clr_device_in_page_list();
@@ -371,6 +391,7 @@ static int app_connected_conn_status_event_handler(int *msg)
 #endif
 
         break;
+    case CIG_EVENT_JL_DONGLE_DISCONNECT:
     case CIG_EVENT_PHONE_DISCONNECT:
         g_printf("CIG_EVENT_PHONE_DISCONNECT");
         /* if (bt_get_total_connect_dev() == 0) */
@@ -413,6 +434,7 @@ APP_MSG_PROB_HANDLER(app_le_connected_msg_entry) = {
 /* ----------------------------------------------------------------------------*/
 u8 is_cig_music_play()
 {
+    r_printf("is_cig_music_play=%x\n", g_le_audio_hdl.cig_phone_conn_status);
     if (g_le_audio_hdl.cig_phone_conn_status & APP_CONNECTED_STATUS_MUSIC) {
         return 1;
     }
@@ -427,6 +449,7 @@ u8 is_cig_music_play()
 /* ----------------------------------------------------------------------------*/
 u8 is_cig_other_music_play()
 {
+    r_printf("is_cig_other_music_play=%x\n", g_le_audio_hdl.cig_phone_other_conn_status);
     if (g_le_audio_hdl.cig_phone_other_conn_status & APP_CONNECTED_STATUS_MUSIC) {
         return 1;
     }
@@ -441,6 +464,7 @@ u8 is_cig_other_music_play()
 /* ----------------------------------------------------------------------------*/
 u8 is_cig_phone_call_play()
 {
+    r_printf("is_cig_phone_call_play=%x\n", g_le_audio_hdl.cig_phone_conn_status);
     if (g_le_audio_hdl.cig_phone_conn_status & APP_CONNECTED_STATUS_PHONE_CALL) {
         return 1;
     }
@@ -455,6 +479,7 @@ u8 is_cig_phone_call_play()
 /* ----------------------------------------------------------------------------*/
 u8 is_cig_other_phone_call_play()
 {
+    r_printf("is_cig_other_phone_call_play=%x\n", g_le_audio_hdl.cig_phone_other_conn_status);
     if (g_le_audio_hdl.cig_phone_other_conn_status & APP_CONNECTED_STATUS_PHONE_CALL) {
         return 1;
     }
@@ -834,6 +859,8 @@ u8 le_audio_get_tws_ear_side()
  * le audio profile lib check tws role to do something different
 */
 static void tws_sync_le_audio_sirk();
+static void tws_sync_le_audio_adv_mac();
+/*le audio profile lib check tws role to do something different*/
 u8 le_audio_get_tws_role()
 {
 #if TCFG_USER_TWS_ENABLE
@@ -850,6 +877,8 @@ u8 le_audio_get_tws_role()
  *tws配对之后，主机要发送这个值给从机
  * */
 static u8 default_sirk[16] = {0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99};
+u8 le_audio_adv_local_mac[6] = {0xff};
+u8 le_audio_adv_slave_mac[6] = {0xff};
 /*
  * 实现le_audio_profile.a里面的weak函数，给库获取当前耳机的sirk配置值
  * */
@@ -857,6 +886,114 @@ u8 le_audio_get_user_sirk(u8 *sirk)
 {
     memcpy(sirk, default_sirk, 16);
     return 0;
+}
+void le_audio_adv_open_success(void *le_audio_ble_hdl, u8 *addr)
+{
+    memcpy(le_audio_adv_local_mac, addr, 6);
+}
+#define VENDOR_PRIV_DEVICE_TYPE_REQ     0x01
+#define VENDOR_PRIV_DEVICE_TYPE_RSP     0x02
+#define VENDOR_PRIV_LC3_INFO            0x03
+#define VENDOR_PRIV_OPEN_MIC            0x04
+#define VENDOR_PRIV_CLOSE_MIC           0x05
+//for earphone control
+#define VENDOR_PRIV_ACL_OPID_CONTORL    0x06
+#define VENDOR_PRIV_ACL_MUSIC_VOLUME    0x07
+#define VENDOR_PRIV_ACL_MIC_VOLUME      0x08
+
+enum {
+    UNICAST_INDXT = 1,
+    UNICAST_FOR_JL_HEADSET_INDXT,
+    UNICAST_FOR_JL_TWS_INDXT,
+
+};
+
+u8 pri_data[30];
+void le_audio_send_priv_cmd(u16 conn_handle, u8 cmd, u8 *data, u8 len)
+{
+    int send_len = 1;
+    pri_data[0] = cmd;
+
+    memcpy(&pri_data[1], data, len);
+    send_len += len;
+    log_info_hexdump(pri_data, send_len);
+    /* if (cmd == VENDOR_PRIV_LC3_INFO) { */
+    /*     send_len += get_unicast_lc3_info(&pri_data[1]); */
+    /* } */
+
+    ll_hci_vendor_send_priv_cmd(conn_handle, pri_data, send_len);
+}
+
+/* --------------------------------------------------------------------------*/
+/**
+ * @brief   le audio媒体控制接口
+ *
+ * @return
+ */
+/* ----------------------------------------------------------------------------*/
+void le_audio_media_control_cmd(u8 *data, u8 len)
+{
+    int i, j;
+    u16 con_handle = 0;
+    //TODO 暂时没有添加获取实时有音频流的链路进行控制,选择刚连上的链路控制媒体行为
+
+    for (i = 0; i < CIG_MAX_NUMS; i++) {
+        if (app_cig_conn_info[i].used) {
+            for (j = 0; j < CIG_MAX_CIS_NUMS; j++) {
+                if (app_cig_conn_info[i].cis_conn_info[j].cis_hdl &&
+                    (app_cig_conn_info[i].cis_conn_info[j].acl_hdl)) {
+                    con_handle = app_cig_conn_info[i].cis_conn_info[j].acl_hdl;
+                }
+            }
+        }
+    }
+
+    if (con_handle) {
+        log_info("Send media control... hangle:0x%x\n", con_handle);
+        le_audio_send_priv_cmd(con_handle, VENDOR_PRIV_ACL_OPID_CONTORL, data, len);
+    } else {
+        log_info("No handle...,send fail");
+    }
+}
+
+static u16 ble_user_priv_cmd_handle(u16 handle, u8 *cmd, u8 *rsp)
+{
+    u8 cmd_opcode = cmd[0];
+    u16 rsp_len = 0;
+    g_printf("ble_user_priv_cmd_handle:%x\n", cmd[0]);
+    switch (cmd_opcode) {
+    case VENDOR_PRIV_DEVICE_TYPE_REQ:
+        rsp[0] = VENDOR_PRIV_DEVICE_TYPE_RSP;
+
+#if (TCFG_USER_TWS_ENABLE)
+        rsp[1] = UNICAST_FOR_JL_TWS_INDXT;
+#else
+        rsp[1] = UNICAST_FOR_JL_HEADSET_INDXT;
+#endif
+#if (TCFG_USER_TWS_ENABLE)
+        if (tws_api_get_tws_state() & TWS_STA_SIBLING_CONNECTED && tws_api_get_role() == TWS_ROLE_MASTER) {
+            memcpy(rsp + 2, le_audio_adv_slave_mac, 6);
+        } else
+#endif
+        {
+            memset(rsp + 2, 0xff, 6);
+        }
+        rsp_len = 2 + 6;
+        set_le_audio_jl_dongle_device_type(1);
+        cig_event_to_user(CIG_EVENT_JL_DONGLE_CONNECT, (void *)&handle, 2);
+
+        break;
+    case VENDOR_PRIV_LC3_INFO:
+        set_unicast_lc3_info(&cmd[1]);
+        break;
+    case VENDOR_PRIV_OPEN_MIC:
+        app_send_message(APP_MSG_LE_AUDIO_CALL_OPEN, handle);
+        break;
+    case VENDOR_PRIV_CLOSE_MIC:
+        app_send_message(APP_MSG_LE_AUDIO_CALL_CLOSE, handle);
+        break;
+    }
+    return rsp_len;
 }
 /*
  * le audio功能总初始化函数
@@ -875,6 +1012,9 @@ void le_audio_profile_init()
         le_audio_name_reset((u8 *)le_audio_name, strlen(le_audio_name));
         le_audio_init(1);
         app_connected_init();
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
+        ble_vendor_priv_cmd_handle_register(ble_user_priv_cmd_handle);
+#endif
         app_connected_open();
         le_audio_ops_register(0);
 
@@ -961,6 +1101,14 @@ static int le_audio_app_msg_handler(int *msg)
 #endif
         le_audio_surport_config(msg[1]);
         break;
+#if ((TCFG_LE_AUDIO_APP_CONFIG & ( LE_AUDIO_JL_UNICAST_SINK_EN)))
+    case APP_MSG_LE_AUDIO_CALL_OPEN:
+        connected_perip_connect_recoder(1, msg[1]);
+        break;
+    case APP_MSG_LE_AUDIO_CALL_CLOSE:
+        connected_perip_connect_recoder(0, msg[1]);
+        break;
+#endif
     default:
         break;
     }
@@ -1023,6 +1171,7 @@ int le_audio_tws_connction_status_event_handler(int *msg)
         break;
     case TWS_EVENT_CONNECTION_DETACH:
         g_le_audio_hdl.cig_phone_other_conn_status = 0;
+        memset(le_audio_adv_slave_mac, 0xff, 6);
         break;
     }
     return 0;
@@ -1073,6 +1222,7 @@ enum {
     LE_AUDIO_CONN_STATUES,
     LE_AUDIO_CONFIG_SIRK,
     LE_AUDIO_GET_SLAVE_VOL,  //when tws connect,if slave playing cis then it will send vol to master
+    LE_AUDIO_ADV_MAC_INFO,
 };
 /**
  * 有些手机连接过同一个地址之后会记忆耳机的服务，所以动态配置le audio的功能的时候，
@@ -1178,6 +1328,7 @@ static void tws_sync_le_audio_config_func(u8 *data, int len)
         put_buf(default_sirk, 16);
         le_audio_adv_api_enable(0);
         le_audio_adv_api_enable(1);
+        tws_sync_le_audio_adv_mac();
         break;
     case LE_AUDIO_GET_SLAVE_VOL:
         if (is_cig_music_play() || is_cig_phone_call_play()) {
@@ -1186,6 +1337,11 @@ static void tws_sync_le_audio_config_func(u8 *data, int len)
         printf("master get slave vol while slave playing cis");
         app_audio_set_volume(APP_AUDIO_STATE_MUSIC, data[1], 1);
         app_audio_set_volume(APP_AUDIO_STATE_CALL, data[2], 1);
+        break;
+    case LE_AUDIO_ADV_MAC_INFO:
+        puts("LE_AUDIO_ADV_MAC_INFO\n");
+        memcpy(le_audio_adv_slave_mac, &data[1], 6);
+        put_buf(le_audio_adv_slave_mac, 6);
         break;
     }
     free(data);
@@ -1258,6 +1414,16 @@ void bt_tws_slave_sync_volume_to_master()
     data[2] = app_audio_get_volume(APP_AUDIO_STATE_CALL);
 
     tws_api_send_data_to_sibling(data, 3, 0x23782C5B);
+}
+static void tws_sync_le_audio_adv_mac()
+{
+    u8 data[7];
+    data[0] = LE_AUDIO_ADV_MAC_INFO;
+    memcpy(&data[1], le_audio_adv_local_mac, 6);
+    printf("le_audio_adv_mac");
+    put_buf(le_audio_adv_local_mac, 6);
+    tws_api_send_data_to_slave(data, 7, 0x23782C5B);
+
 }
 #endif
 /* ----------------------------------------------------------------------------*/

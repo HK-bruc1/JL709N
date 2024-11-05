@@ -255,6 +255,7 @@ INCLUDES := \
 	-Iapps/common/third_party_profile/tuya_protocol/sdk/include \
 	-Iapps/common/third_party_profile/tuya_protocol/sdk/lib \
 	-Iapps/earphone/third_part/tuya \
+	-Iapps/common/third_party_profile/bt_fmy \
 	-Iapps/common/device/usb \
 	-Iapps/common/device/usb/device \
 	-Iapps/common/device/usb/host \
@@ -276,6 +277,10 @@ INCLUDES := \
 	-Iaudio/common/icsd/afq \
 	-Iaudio/common/icsd/cmp \
 	-Iaudio/common/icsd/demo \
+	-Iaudio/common/icsd/wind \
+	-Iaudio/common/icsd/vdt \
+	-Iaudio/common/icsd/wat \
+	-Iaudio/common/icsd/ein \
 	-Iaudio/common/power \
 	-Iaudio/anc \
 	-Iaudio/cpu/br52/audio_dai \
@@ -393,6 +398,9 @@ c_SRC_FILES := \
 	apps/common/third_party_profile/Tencent_LL/tencent_protocol/ble_qiot_utils_md5.c \
 	apps/common/third_party_profile/Tencent_LL/tencent_protocol/ble_qiot_utils_sha1.c \
 	apps/common/third_party_profile/ancs_client_demo/le_ancs_client.c \
+	apps/common/third_party_profile/bt_fmy/ble_fmy.c \
+	apps/common/third_party_profile/bt_fmy/ble_fmy_fmna.c \
+	apps/common/third_party_profile/bt_fmy/ble_fmy_ota.c \
 	apps/common/third_party_profile/common/3th_profile_api.c \
 	apps/common/third_party_profile/common/custom_cfg.c \
 	apps/common/third_party_profile/common/mic_rec.c \
@@ -680,6 +688,7 @@ c_SRC_FILES := \
 	audio/common/demo/codec_demo/audio_frame_codec_demo.c \
 	audio/common/frame_length_adaptive.c \
 	audio/common/icsd/adt/icsd_adt.c \
+	audio/common/icsd/adt/icsd_adt_alg.c \
 	audio/common/icsd/adt/icsd_adt_app.c \
 	audio/common/icsd/adt/icsd_adt_config.c \
 	audio/common/icsd/aeq/icsd_aeq.c \
@@ -704,10 +713,14 @@ c_SRC_FILES := \
 	audio/common/icsd/demo/icsd_demo.c \
 	audio/common/icsd/dot/icsd_dot.c \
 	audio/common/icsd/dot/icsd_dot_app.c \
+	audio/common/icsd/ein/icsd_ein_config.c \
 	audio/common/icsd/rt_anc/rt_anc.c \
 	audio/common/icsd/rt_anc/rt_anc_config.c \
 	audio/common/icsd/tool/anc_ext_tool.c \
 	audio/common/icsd/tool/anc_ext_tool_file.c \
+	audio/common/icsd/vdt/icsd_vdt_config.c \
+	audio/common/icsd/wat/icsd_wat_config.c \
+	audio/common/icsd/wind/icsd_wind_config.c \
 	audio/common/online_debug/aud_data_export.c \
 	audio/common/online_debug/aud_mic_dut.c \
 	audio/common/online_debug/aud_spatial_effect_dut.c \
@@ -995,6 +1008,11 @@ LFLAGS := \
 	cpu/br52/liba/lib_icsd_aeq.a \
 	cpu/br52/liba/lib_icsd_afq.a \
 	cpu/br52/liba/lib_icsd_cmp.a \
+	cpu/br52/liba/lib_icsd_adt.a \
+	cpu/br52/liba/lib_icsd_wind.a \
+	cpu/br52/liba/lib_icsd_wat.a \
+	cpu/br52/liba/lib_icsd_vdt.a \
+	cpu/br52/liba/lib_icsd_ein.a \
 	cpu/br52/liba/lib_limiter.a \
 	cpu/br52/liba/le_audio_profile.a \
 	cpu/br52/liba/jla_codec_lib.a \

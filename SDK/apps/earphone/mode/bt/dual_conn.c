@@ -66,7 +66,7 @@ static void auto_close_page_scan(void *p)
     lmp_hci_write_scan_enable((0 << 1) | 0);
 }
 
-static void write_scan_conn_enable(bool scan_enable, bool conn_enable)
+void write_scan_conn_enable(bool scan_enable, bool conn_enable)
 {
     u32 rets_addr = 0;
     __asm__ volatile("%0 = rets ;" : "=r"(rets_addr));

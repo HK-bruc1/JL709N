@@ -265,6 +265,8 @@ const int CONFIG_LMP_MASTER_ESCO_ENABLE  =  0;
     const int CONFIG_AES_CCM_FOR_EDR_ENABLE     = 0;
 #endif
 
+    const int CONFIG_MPR_CLOSE_WHEN_ESCO = 0;
+
 #ifdef CONFIG_SUPPORT_WIFI_DETECT
 	#if TCFG_USER_TWS_ENABLE
 		const int CONFIG_WIFI_DETECT_ENABLE = 1;
@@ -275,18 +277,20 @@ const int CONFIG_LMP_MASTER_ESCO_ENABLE  =  0;
 	#endif
 
 #else
-#if defined CONFIG_CPU_BR50 || defined CONFIG_CPU_BR52 || defined CONFIG_CPU_BR56
-	const int CONFIG_WIFI_DETECT_ENABLE = 3;
+
+#if defined CONFIG_CPU_BR27 || defined CONFIG_CPU_BR28 || defined CONFIG_CPU_BR36 || defined CONFIG_CPU_BR42
+
+        const int CONFIG_WIFI_DETECT_ENABLE = 0;
+        const int CONFIG_TWS_AFH_ENABLE     = 0;
+#else
+        const int CONFIG_WIFI_DETECT_ENABLE = 3;
 
 #if TCFG_USER_TWS_ENABLE
-    const int CONFIG_TWS_AFH_ENABLE     = 1;
+        const int CONFIG_TWS_AFH_ENABLE     = 1;
 #else
-    const int CONFIG_TWS_AFH_ENABLE     = 0;
+        const int CONFIG_TWS_AFH_ENABLE     = 0;
 #endif
 
-#else
-	const int CONFIG_WIFI_DETECT_ENABLE = 0;
-    const int CONFIG_TWS_AFH_ENABLE     = 0;
 #endif
 #endif//end CONFIG_SUPPORT_WIFI_DETECT
 

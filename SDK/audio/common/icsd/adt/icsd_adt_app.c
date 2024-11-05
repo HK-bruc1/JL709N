@@ -419,16 +419,16 @@ void icsd_mic_ch_sel(struct icsd_acoustic_detector_infmt *infmt)
     if (hdl->libfmt.mic_num == 3) {
         /*判断talk mic*/
         switch (talk_mic_ch) {
-        case AUDIO_ADC_MIC_0:
+        case AUDIO_ADC_MIC(0):
             infmt->mic0_type = ICSD_ANC_TALK_MIC;
             break;
-        case AUDIO_ADC_MIC_1:
+        case AUDIO_ADC_MIC(1):
             infmt->mic1_type = ICSD_ANC_TALK_MIC;
             break;
-        case AUDIO_ADC_MIC_2:
+        case AUDIO_ADC_MIC(2):
             infmt->mic2_type = ICSD_ANC_TALK_MIC;
             break;
-        case AUDIO_ADC_MIC_3:
+        case AUDIO_ADC_MIC(3):
             infmt->mic3_type = ICSD_ANC_TALK_MIC;
             break;
         }
@@ -437,32 +437,32 @@ void icsd_mic_ch_sel(struct icsd_acoustic_detector_infmt *infmt)
     /*无论tws还是头戴式立体声都是用左通道*/
     /*判断ff mic*/
     switch (ff_mic_ch) {
-    case AUDIO_ADC_MIC_0:
+    case AUDIO_ADC_MIC(0):
         infmt->mic0_type = ICSD_ANC_LFF_MIC;
         break;
-    case AUDIO_ADC_MIC_1:
+    case AUDIO_ADC_MIC(1):
         infmt->mic1_type = ICSD_ANC_LFF_MIC;
         break;
-    case AUDIO_ADC_MIC_2:
+    case AUDIO_ADC_MIC(2):
         infmt->mic2_type = ICSD_ANC_LFF_MIC;
         break;
-    case AUDIO_ADC_MIC_3:
+    case AUDIO_ADC_MIC(3):
         infmt->mic3_type = ICSD_ANC_LFF_MIC;
         break;
     }
 
     /*判断fb mic*/
     switch (fb_mic_ch) {
-    case AUDIO_ADC_MIC_0:
+    case AUDIO_ADC_MIC(0):
         infmt->mic0_type = ICSD_ANC_LFB_MIC;
         break;
-    case AUDIO_ADC_MIC_1:
+    case AUDIO_ADC_MIC(1):
         infmt->mic1_type = ICSD_ANC_LFB_MIC;
         break;
-    case AUDIO_ADC_MIC_2:
+    case AUDIO_ADC_MIC(2):
         infmt->mic2_type = ICSD_ANC_LFB_MIC;
         break;
-    case AUDIO_ADC_MIC_3:
+    case AUDIO_ADC_MIC(3):
         infmt->mic3_type = ICSD_ANC_LFB_MIC;
         break;
     }
@@ -548,19 +548,12 @@ void audio_icsd_adt_set_talk_mic_gain(audio_mic_param_t *mic_param)
     u8 talk_mic_ch = icsd_get_talk_mic_ch();
     u16 talk_mic_gain = audio_anc_ffmic_gain_get();
     printf("talk_mic_ch %d, gain %d", talk_mic_ch, talk_mic_gain);
-    switch (talk_mic_ch) {
-    case AUDIO_ADC_MIC_0:
-        mic_param->mic0_gain = talk_mic_gain;
-        break;
-    case AUDIO_ADC_MIC_1:
-        mic_param->mic1_gain = talk_mic_gain;
-        break;
-    case AUDIO_ADC_MIC_2:
-        mic_param->mic2_gain = talk_mic_gain;
-        break;
-    case AUDIO_ADC_MIC_3:
-        mic_param->mic3_gain = talk_mic_gain;
-        break;
+
+    for (int i = 0; i < AUDIO_ADC_MAX_NUM; i++) {
+        if (talk_mic_ch == AUDIO_ADC_MIC(i)) {
+            mic_param->mic_gain[i] = talk_mic_gain;
+            break;
+        }
     }
 }
 
@@ -598,7 +591,6 @@ int audio_acoustic_detector_open()
 
     /*修改了sniff的唤醒间隔*/
     icsd_set_tws_t_sniff(160);
-    icsd_adt_version();
     u8 adt_function = 0;
     if (adt_info.adt_mode == ADT_WIDE_AREA_TAP_MODE) {
         /*只开广域点击*/
@@ -616,9 +608,7 @@ int audio_acoustic_detector_open()
         adt_function |=	ADT_VDT_EN;
         adt_function |=	ADT_WDT_EN;
     }
-    if (ADT_EAR_IN_EN) {
-        adt_function |= ADT_EIN_EN;
-    }
+
 
     audio_dac_set_samplerate_callback_add(&dac_hdl, audio_icsd_adt_set_sample);
 
@@ -706,7 +696,9 @@ int audio_acoustic_detector_open()
     hdl->infmt.sample_rate = 44100;//Raymond debug
     printf("ff_gain %d, fb_gain %d", hdl->infmt.ff_gain, hdl->infmt.fb_gain);
     icsd_acoustic_detector_set_infmt(&hdl->infmt);
-    set_icsd_adt_dma_done_flag(1);
+    //set_icsd_adt_dma_done_flag(1);
+
+    extern void icsd_task_create();
     icsd_task_create();
     icsd_acoustic_detector_open();
 
@@ -737,11 +729,11 @@ int audio_acoustic_detector_open()
         .sample_rate       = hdl->libfmt.adc_sr,//采样率
         .adc_irq_points    = hdl->libfmt.adc_isr_len,//一次处理数据的数据单元， 单位点 4对齐(要配合mic起中断点数修改)
         .adc_buf_num       = 3,
-        .mic0_gain          = audio_anc_mic_gain_get(0),
-        .mic1_gain          = audio_anc_mic_gain_get(1),
-        .mic2_gain          = audio_anc_mic_gain_get(2),
-        .mic3_gain          = audio_anc_mic_gain_get(3),
     };
+    for (int i = 0; i < AUDIO_ADC_MAX_NUM; i++) {
+        mic_param.mic_gain[i] = audio_anc_mic_gain_get(i);
+    }
+
     if (hdl->libfmt.mic_num == 3) {
         /*免摘使用3mic时，设置talk mic gain和ff mic gain一样*/
         audio_icsd_adt_set_talk_mic_gain(&mic_param);
@@ -776,11 +768,12 @@ int audio_acoustic_detector_close()
     if (hdl) {
         audio_dac_set_samplerate_callback_del(&dac_hdl, audio_icsd_adt_set_sample);
         audio_mic_en(0, NULL, NULL);
-        set_icsd_adt_dma_done_flag(0);
+        //set_icsd_adt_dma_done_flag(0);
         if (hdl->lib_alloc_ptr) {
             /*需要先挂起再关闭*/
             icsd_acoustic_detector_suspend();
             icsd_acoustic_detector_close();
+            extern void icsd_task_kill();
             icsd_task_kill();
 
             if (hdl->infmt.lfb_coeff) {

@@ -349,6 +349,8 @@ struct stream_thread {
     u8 debug;
     u8 start;
     u32 start_usec;
+    u32 run_usec;
+    u32 begin_msec;
     char name[16];
     OS_SEM sem;
     OS_MUTEX mutex;
@@ -486,7 +488,6 @@ struct jlstream {
     u8 ref;
     u8 run_cnt;
     u8 delay;
-    u8 usage;
     u8 incr_sys_clk;
     u8 thread_run;
     u8 thread_num;

@@ -73,6 +73,7 @@ int get_dac_channel_num(void)
 
 static u8 audio_dac_hpvdd_check()
 {
+#ifndef CONFIG_CPU_BR52
     u8 res;
     u16 hpvdd = adc_get_voltage_blocking(AD_CH_AUDIO_HPVDD);
     /* printf("HPVDD: %d\n", hpvdd); */
@@ -87,6 +88,9 @@ static u8 audio_dac_hpvdd_check()
     SFR(JL_ADDA->ADDA_CON0,  3,  1,  0);					// DAC测试通道总使能
     SFR(JL_ADDA->ADDA_CON0,  4,  3,  0);					// DAC待测试信号选择位
     return res;
+#else
+    return 0;
+#endif
 }
 
 /*
@@ -160,16 +164,16 @@ void audio_dac_initcall(void)
 
     common_param.vbg_i_trim_value = (JL_ADDA->ADDA_CON0 >> 20) & 0xf;  //默认VBG电流档位(没有trim过才会使用)
     if (!common_param.vbg_i_trim_value) {
-        common_param.vbg_i_trim_value = 7;
+        common_param.vbg_i_trim_value = 8;
     }
-    common_param.vbg_v_trim_value0 = efuse_get_audio_vbg_trim();
-    if (common_param.vbg_v_trim_value0 == 0x1F) {
-        common_param.vbg_v_trim_value0 = 11;
-        printf("[Warning]audio vbg trim value invalid,default=%d\n", common_param.vbg_v_trim_value0);
+    common_param.pmu_vbg_value = efuse_get_audio_vbg_trim();
+    if (common_param.pmu_vbg_value == 0x1F) {
+        common_param.pmu_vbg_value = 11;
+        printf("[Warning]audio vbg trim value invalid,default=%d\n", common_param.pmu_vbg_value);
     }
-    int len = audio_event_notify(AUDIO_LIB_EVENT_VBG_TRIM_READ, (void *)&common_param.vbg_v_trim_value1, sizeof(unsigned char));
+    int len = audio_event_notify(AUDIO_LIB_EVENT_VBG_TRIM_READ, (void *)&common_param.audio_vbg_value, sizeof(unsigned char));
     if (len != sizeof(unsigned char)) {
-        common_param.vbg_v_trim_value1 = audio_common_vbg_trim(common_param.vcm_level, common_param.vbg_i_trim_value);
+        common_param.audio_vbg_value = audio_common_vbg_trim(common_param.vcm_level, common_param.vbg_i_trim_value);
     }
     /* common_param.clock_mode = AUDIO_COMMON_CLK_DIG_SINGLE; */
     common_param.clock_mode = AUDIO_COMMON_CLK_DIF_XOSC;
@@ -183,7 +187,7 @@ void audio_dac_initcall(void)
 #endif
     dac_data.epa_clk_sel = clk_get("bt_pll") / 1000000;
     dac_data.max_sample_rate    = AUDIO_DAC_MAX_SAMPLE_RATE;
-    dac_data.hpvdd_sel = 0;//audio_dac_hpvdd_check();
+    dac_data.hpvdd_sel = audio_dac_hpvdd_check();
     dac_data.bit_width = audio_general_out_dev_bit_width();
     audio_dac_init(&dac_hdl, &dac_data);
     /* dac_hdl.ng_threshold = 4; //dac底噪优化阈值 */
@@ -197,17 +201,6 @@ void audio_dac_initcall(void)
     audio_anc_common_param_init();
 #endif/*TCFG_AUDIO_ANC_ENABLE*/
 
-    /* u8 mode = TCFG_AUDIO_DAC_DEFAULT_VOL_MODE; */
-    /* if (1 != syscfg_read(CFG_VOLUME_ENHANCEMENT_MODE, &mode, 1)) { */
-    /* printf("vm no CFG_VOLUME_ENHANCEMENT_MODE !\n"); */
-    /* } */
-    /* printf("enter audio_init.c %d,%d\n",mode,__LINE__); */
-    //app_audio_dac_vol_mode_set(mode);
-
-#if defined(TCFG_AUDIO_DAC_24BIT_MODE) && TCFG_AUDIO_DAC_24BIT_MODE
-    audio_dac_set_bit_mode(&dac_hdl, 1);
-#endif
-
 #if TCFG_SUPPORT_MIC_CAPLESS
     u32 dacr32 = read_capless_DTB();
     audio_dac_set_capless_DTB(&dac_hdl, dacr32);
@@ -217,21 +210,23 @@ void audio_dac_initcall(void)
     audio_dac_set_analog_vol(&dac_hdl, 0);
 
 #if AUD_DAC_TRIM_ENABLE
-    struct audio_dac_trim dac_trim = {0};
-    int dac_trim_len = syscfg_read(CFG_DAC_TRIM_INFO, (void *)&dac_trim, sizeof(dac_trim));
-    if (dac_trim_len != sizeof(dac_trim)) {
-        struct trim_init_param_t trim_init = {0};
-        trim_init.precision = 1; //DAC trim的收敛精度(-precision, +precision)
-        int ret = audio_dac_do_trim(&dac_hdl, &dac_trim, &trim_init);
-        if ((ret == 0) && (__builtin_abs(dac_trim.left) < 50) && (__builtin_abs(dac_trim.right) < 50)) {
-            /* puts("dac_trim_succ"); */
-            syscfg_write(CFG_DAC_TRIM_INFO, (void *)&dac_trim, sizeof(struct audio_dac_trim));
-        } else {
-            dac_trim.left = 0;
-            dac_trim.right = 0;
+    if (dac_data.pa_sel == 0) {
+        struct audio_dac_trim dac_trim = {0};
+        int dac_trim_len = syscfg_read(CFG_DAC_TRIM_INFO, (void *)&dac_trim, sizeof(dac_trim));
+        if (dac_trim_len != sizeof(dac_trim)) {
+            struct trim_init_param_t trim_init = {0};
+            trim_init.precision = 1; //DAC trim的收敛精度(-precision, +precision)
+            int ret = audio_dac_do_trim(&dac_hdl, &dac_trim, &trim_init);
+            if ((ret == 0) && (__builtin_abs(dac_trim.left) < 50) && (__builtin_abs(dac_trim.right) < 50)) {
+                /* puts("dac_trim_succ"); */
+                syscfg_write(CFG_DAC_TRIM_INFO, (void *)&dac_trim, sizeof(struct audio_dac_trim));
+            } else {
+                dac_trim.left = 0;
+                dac_trim.right = 0;
+            }
         }
+        audio_dac_set_trim_value(&dac_hdl, &dac_trim);
     }
-    audio_dac_set_trim_value(&dac_hdl, &dac_trim);
 #endif
 
     audio_dac_set_fade_handler(&dac_hdl, NULL, audio_fade_in_fade_out);

@@ -56,6 +56,8 @@ enum {
 typedef struct {
     u16 cis_hdl;
     u16 acl_hdl;
+    u8 flush_timeout;
+    u32 isoIntervalUs;
     void *recorder;
     struct connected_rx_audio_hdl rx_player;
 } cis_hdl_info_t;
@@ -128,7 +130,7 @@ static inline void connected_mutex_post(OS_MUTEX *mutex, u32 line)
     }
 }
 
-static int cig_event_to_user(int event, void *value, u32 len)
+int cig_event_to_user(int event, void *value, u32 len)
 {
     int *evt = zalloc(sizeof(int) + len);
     ASSERT(evt);
@@ -283,7 +285,7 @@ int connected_perip_connect_deal(void *priv)
     u8 find = 0;
     struct connected_hdl *connected_hdl = 0;
     cig_hdl_t *hdl = (cig_hdl_t *)priv;
-    struct le_audio_stream_params params;
+    struct le_audio_stream_params params = {0};
 
 
     r_printf("connected_perip_connect_deal");
@@ -320,13 +322,16 @@ int connected_perip_connect_deal(void *priv)
         le_audio_switch_ops->local_audio_close();
     }
 
-    //cis_update_iso_interval(hdl->cis_iso_interval);
-    params.fmt.nch = get_cig_audio_coding_nch();
-    params.fmt.bit_rate = get_cig_audio_coding_bit_rate();
+    if (get_le_audio_jl_dongle_device_type()) {
+        get_decoder_params_fmt(&(params.fmt));
+    } else {
+        params.fmt.nch = get_cig_audio_coding_nch();
+        params.fmt.bit_rate = get_cig_audio_coding_bit_rate();
+        params.fmt.frame_dms = get_cig_audio_coding_frame_duration();
+        params.fmt.sdu_period = get_cig_sdu_period_us();
+        params.fmt.sample_rate = get_cig_audio_coding_sample_rate();
+    }
     params.fmt.coding_type = LE_AUDIO_CODEC_TYPE;
-    params.fmt.frame_dms = get_cig_audio_coding_frame_duration();
-    params.fmt.sdu_period = get_cig_sdu_period_us();
-    params.fmt.sample_rate = get_cig_audio_coding_sample_rate();
     params.fmt.dec_ch_mode = LEA_DEC_OUTPUT_CHANNEL;
     params.fmt.flush_timeout = hdl->flush_timeout_C_to_P;
     params.fmt.isoIntervalUs = hdl->isoIntervalUs;
@@ -336,12 +341,18 @@ int connected_perip_connect_deal(void *priv)
     params.reference_time = connected_audio_reference_time;
     params.latency = 50 * 1000;//tx延时暂时先设置 50ms
     params.conn = connected_hdl;
-    params.service_type = (hdl->Max_PDU_P_To_C) ? LEA_SERVICE_CALL : LEA_SERVICE_MEDIA;
+    if (get_le_audio_jl_dongle_device_type()) {
+        params.service_type = LEA_SERVICE_MEDIA;
+    } else {
+        params.service_type = (hdl->Max_PDU_P_To_C) ? LEA_SERVICE_CALL : LEA_SERVICE_MEDIA;
+    }
 
     connected_hdl->role_name = "cig_perip";
     connected_hdl->cig_hdl = hdl->cig_hdl;
     connected_hdl->cis_hdl_info[index].acl_hdl = hdl->acl_hdl;
     connected_hdl->cis_hdl_info[index].cis_hdl = hdl->cis_hdl;
+    connected_hdl->cis_hdl_info[index].flush_timeout = hdl->flush_timeout_C_to_P;
+    connected_hdl->cis_hdl_info[index].isoIntervalUs = hdl->isoIntervalUs;
 
     printf("le_audio  fmt: %d %d %d %d %d %d\n", params.fmt.coding_type, params.fmt.frame_dms, params.fmt.bit_rate,
            params.fmt.sample_rate, params.fmt.sdu_period, params.fmt.nch);
@@ -352,12 +363,13 @@ int connected_perip_connect_deal(void *priv)
     }
 
 //phone call
-    if (hdl->Max_PDU_P_To_C) {
+    if (!get_le_audio_jl_dongle_device_type() && hdl->Max_PDU_P_To_C) {
         //发数中间临时缓存buffer
         if (transmit_buf == NULL) {
             transmit_buf = zalloc(get_cig_transmit_data_len());
             ASSERT(transmit_buf, "transmit_buf is NULL");
         }
+        params.service_type = LEA_SERVICE_CALL;
         if (!connected_hdl->cis_hdl_info[index].recorder) {
             //TODO:打开recorder
 #if TCFG_AUDIO_BIT_WIDTH
@@ -386,6 +398,48 @@ int connected_perip_connect_deal(void *priv)
     connected_mutex_post(&connected_mutex, __LINE__);
 
     return 0;
+}
+void connected_perip_connect_recoder(u8 en, u16 acl_hdl)
+{
+    int i;
+    struct connected_hdl *p, *connected_hdl;
+    struct le_audio_stream_params params = {0};
+    le_audio_switch_ops = get_connected_audio_sw_ops();
+    get_encoder_params_fmt(&params.fmt);
+    params.latency = 50 * 1000;//tx延时暂时先设置 50ms
+    params.fmt.coding_type = LE_AUDIO_CODEC_TYPE;
+    params.fmt.dec_ch_mode = LEA_DEC_OUTPUT_CHANNEL;
+    list_for_each_entry(p, &connected_list_head, entry) {
+        for (i = 0; i < CIG_MAX_CIS_NUMS; i++) {
+            if (p->cis_hdl_info[i].acl_hdl == acl_hdl) {
+                if (en) {
+                    if (transmit_buf == NULL) {
+                        transmit_buf = zalloc(get_cig_transmit_data_len());
+                        ASSERT(transmit_buf, "transmit_buf is NULL");
+                    }
+                    params.fmt.flush_timeout = p->cis_hdl_info[i].flush_timeout;
+                    params.fmt.isoIntervalUs = p->cis_hdl_info[i].isoIntervalUs;
+                    params.service_type = LEA_SERVICE_CALL;
+                    if (!p->cis_hdl_info[i].recorder) {
+                        //TODO:打开recorder
+                        if (le_audio_switch_ops && le_audio_switch_ops->tx_le_audio_open) {
+                            p->cis_hdl_info[i].recorder = le_audio_switch_ops->tx_le_audio_open(&params);
+                        }
+                    }
+
+                } else {
+                    if (le_audio_switch_ops && le_audio_switch_ops->tx_le_audio_close) {
+                        if (p->cis_hdl_info[i].recorder) {
+                            le_audio_switch_ops->tx_le_audio_close(p->cis_hdl_info[i].recorder);
+                            p->cis_hdl_info[i].recorder = NULL;
+
+                        }
+                    }
+
+                }
+            }
+        }
+    }
 }
 
 /* --------------------------------------------------------------------------*/
