@@ -124,7 +124,7 @@ DEFINES := \
 	-D__GCC_PI32V2__ \
 	-DCONFIG_NEW_ECC_ENABLE \
 	-DCONFIG_EFFECT_CORE_V2_ENABLE \
-	-DCONFIG_OS_AFFINITY_ENABLE=1 \
+	-DCONFIG_OS_AFFINITY_ENABLE=0 \
 	-DEVENT_HANDLER_NUM_CONFIG=2 \
 	-DEVENT_TOUCH_ENABLE_CONFIG=0 \
 	-DEVENT_POOL_SIZE_CONFIG=256 \
@@ -852,6 +852,7 @@ c_SRC_FILES := \
 	audio/test_tools/cvp_tool.c \
 	audio/test_tools/mic_dut_process.c \
 	cpu/br52/charge/charge.c \
+	cpu/br52/charge/charge_calibration.c \
 	cpu/br52/charge/charge_config.c \
 	cpu/br52/charge/chargestore.c \
 	cpu/br52/charge/chargestore_config.c \
@@ -942,6 +943,7 @@ LFLAGS := \
 	cpu/br52/liba/bt_hash_enc.a \
 	cpu/br52/liba/rcsp_stack.a \
 	cpu/br52/liba/google_fps.a \
+	cpu/br52/liba/dueros_stack.a \
 	cpu/br52/liba/btctrler.a \
 	cpu/br52/liba/aec.a \
 	cpu/br52/liba/media.a \
@@ -965,6 +967,7 @@ LFLAGS := \
 	cpu/br52/liba/lib_resample_fast_cal.a \
 	cpu/br52/liba/sbc_eng_lib.a \
 	cpu/br52/liba/lib_mp3_dec.a \
+	cpu/br52/liba/lib_speex_codec.a \
 	cpu/br52/liba/lib_f2a_dec.a \
 	cpu/br52/liba/libLHDCv4DecodeLib.a \
 	cpu/br52/liba/libLHDCv5DecodeLib.a \
@@ -1026,6 +1029,7 @@ LFLAGS := \
 	cpu/br52/liba/libFFT_pi32v2_OnChip.a \
 	cpu/br52/liba/lib_wtg_dec.a \
 	cpu/br52/liba/bfilterfun_lib.a \
+	cpu/br52/liba/lib_opusdec_rom_dec.a \
 	cpu/br52/liba/crypto_toolbox_Osize.a \
 	cpu/br52/liba/lib_dns.a \
 	cpu/br52/liba/update.a \

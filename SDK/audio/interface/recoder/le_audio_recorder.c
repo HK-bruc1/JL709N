@@ -17,11 +17,18 @@
 #include "media/sync/audio_syncts.h"
 #include "asm/dac.h"
 #include "audio_cvp.h"
+#include "app_config.h"
+#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
+#include "icsd_adt_app.h"
+#endif /*TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN*/
 
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 
 struct le_audio_mic_recorder {
     void *stream;
+#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
+    u8 icsd_adt_state;
+#endif
 };
 
 static struct le_audio_mic_recorder *g_mic_recorder = NULL;
@@ -58,6 +65,14 @@ int le_audio_mic_recorder_open(void *params, void *le_audio, int latency)
         err = -ENOMEM;
         goto __exit0;
     }
+
+#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
+    /*通话前关闭adt*/
+    g_mic_recorder->icsd_adt_state = audio_icsd_adt_is_running();
+    if (g_mic_recorder->icsd_adt_state) {
+        audio_icsd_adt_close(0, 1);
+    }
+#endif /*TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN*/
 
     jlstream_set_callback(g_mic_recorder->stream, NULL, mic_recorder_callback);
     if (lea_params->service_type == LEA_SERVICE_CALL) {
@@ -118,12 +133,20 @@ void le_audio_mic_recorder_close(void)
     if (!mic_recorder) {
         return;
     }
+#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
+    u8 icsd_adt_state = mic_recorder->icsd_adt_state;
+#endif /*TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN*/
     if (mic_recorder->stream) {
         jlstream_stop(mic_recorder->stream, 0);
         jlstream_release(mic_recorder->stream);
     }
     free(mic_recorder);
     g_mic_recorder = NULL;
+#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
+    if (icsd_adt_state) {
+        audio_icsd_adt_open(0);
+    }
+#endif /*TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN*/
     jlstream_event_notify(STREAM_EVENT_CLOSE_PLAYER, (int)"mic_le_audio_call");
 }
 

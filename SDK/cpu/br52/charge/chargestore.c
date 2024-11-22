@@ -16,7 +16,7 @@
 #include "clock.h"
 #include "uart.h"
 
-#if (TCFG_CHARGESTORE_ENABLE || TCFG_TEST_BOX_ENABLE || TCFG_ANC_BOX_ENABLE)
+#if (TCFG_CHARGESTORE_ENABLE || TCFG_TEST_BOX_ENABLE || TCFG_ANC_BOX_ENABLE || TCFG_CHARGE_CALIBRATION_ENABLE)
 struct chargestore_handle {
     const struct chargestore_platform_data *data;
     s32 udev;

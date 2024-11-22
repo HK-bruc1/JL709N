@@ -37,6 +37,7 @@
 #include "bt_key_func.h"
 #include "low_latency.h"
 #include "tws_dual_share.h"
+#include "poweroff.h"
 
 #if TCFG_USER_TWS_ENABLE
 #include "tws_dual_conn.h"
@@ -320,7 +321,13 @@ void user_read_remote_name_handle(u8 status, u8 *addr, u8 *name)
 }
 void bt_function_select_init()
 {
-    /* set_bt_data_rate_acl_3mbs_mode(1); */
+    /* set_edr_wait_conn_run_slot(1500,8,16,10); */
+
+#if 0//3mb set
+    set_bt_data_rate_acl_3mbs_mode(1);
+    extern void bt_set_support_3M_size(u8 en);
+    bt_set_support_3M_size(1);
+#endif
 #if TCFG_BT_DUAL_CONN_ENABLE
     g_bt_hdl.bt_dual_conn_config = DUAL_CONN_SET_TWO;//DUAL_CONN_SET_TWO:默认可以连接1t2  DUAL_CONN_SET_ONE:默认只支持一个连接
     syscfg_read(CFG_TWS_DUAL_CONFIG, &(g_bt_hdl.bt_dual_conn_config), 1);
@@ -1037,22 +1044,20 @@ int bt_app_msg_handler(int *msg)
     }
     switch (msg[0]) {
     case APP_MSG_VOL_UP:
-        data[0] = CIG_EVENT_OPID_VOLUME_UP;
         log_info("APP_MSG_VOL_UP\n");
         bt_volume_up(1);
         bt_tws_sync_volume();
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
-        extern void le_audio_media_control_cmd(u8 * data, u8 len);
+        data[0] = CIG_EVENT_OPID_VOLUME_UP;
         le_audio_media_control_cmd(data, 1);
 #endif
         return 0;
     case APP_MSG_VOL_DOWN:
-        data[0] = CIG_EVENT_OPID_VOLUME_DOWN;
         log_info("APP_MSG_VOL_DOWN\n");
         bt_volume_down(1);
         bt_tws_sync_volume();
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
-        extern void le_audio_media_control_cmd(u8 * data, u8 len);
+        data[0] = CIG_EVENT_OPID_VOLUME_DOWN;
         le_audio_media_control_cmd(data, 1);
 #endif
         return 0;
@@ -1154,6 +1159,17 @@ int bt_app_msg_handler(int *msg)
         puts("APP_MSG_BT_OPEN_DUT\n");
         bt_bredr_enter_dut_mode(0, 0);
         break;
+#if TCFG_USER_TWS_ENABLE
+    case APP_MSG_TWS_POWER_OFF:
+        puts("APP_MSG_TWS_POWER_OFF\n");
+        tws_sync_poweroff();
+        break;
+#else
+    case APP_MSG_KEY_POWER_OFF:
+        puts("APP_MSG_KEY_POWER_OFF\n");
+        sys_enter_soft_poweroff(POWEROFF_NORMAL);
+        break;
+#endif
     default:
         break;
     }

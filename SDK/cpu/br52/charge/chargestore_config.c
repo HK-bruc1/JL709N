@@ -6,7 +6,7 @@
 #include "asm/power_interface.h"
 #include "gpio.h"
 
-#if TCFG_CHARGESTORE_ENABLE || TCFG_TEST_BOX_ENABLE || TCFG_ANC_BOX_ENABLE
+#if (TCFG_CHARGESTORE_ENABLE || TCFG_TEST_BOX_ENABLE || TCFG_ANC_BOX_ENABLE || TCFG_CHARGE_CALIBRATION_ENABLE)
 static void chargestore_wakeup_callback(P33_IO_WKUP_EDGE edge)
 {
     chargestore_ldo5v_fall_deal();

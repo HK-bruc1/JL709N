@@ -255,6 +255,7 @@ static void audio_mic_output_handle(void *priv, s16 *data, int len)
     struct speak_to_chat_t *hdl = speak_to_chat_hdl;
     int err = 0;
     if (hdl && hdl->state) {
+#ifdef TCFG_AUDIO_ADC_ENABLE_ALL_DIGITAL_CH
         u8 mic_ch_num = audio_max_adc_ch_num_get();
         /*adt使用3mic模式 或者 通话使用3mic时(adc固定开3个)，如果免摘使用2mic，需要重新排列数据顺序*/
         if (mic_ch_num > hdl->libfmt.mic_num) {
@@ -264,6 +265,7 @@ static void audio_mic_output_handle(void *priv, s16 *data, int len)
                 }
             }
         }
+#endif
         icsd_acoustic_detector_mic_input_hdl(priv, data, len);
 
 #if ICSD_ADT_MIC_DATA_EXPORT_EN
@@ -1362,7 +1364,8 @@ static void audio_icsd_adt_task(void *p)
 static int audio_icsd_adt_open_permit()
 {
     /*通话的时候不允许打开*/
-    if (esco_player_runing()) {
+    if (adc_file_is_runing()) {
+        /* if (esco_player_runing()) { */
         printf("esco open !!!");
         return 0;
     }
@@ -1616,7 +1619,8 @@ int audio_icsd_adt_res_close(u8 adt_mode, u8 suspend)
     }
     /*如果adt没有全部关闭，需要重新打开
      *如果是通话时关闭的，直接关闭adt*/
-    if (adt_info.adt_mode && !esco_player_runing() && !suspend) {
+    if (adt_info.adt_mode && !adc_file_is_runing() && !suspend) {
+        /* if (adt_info.adt_mode && !esco_player_runing() && !suspend) { */
         audio_icsd_adt_open(0);
     }
     return 0;

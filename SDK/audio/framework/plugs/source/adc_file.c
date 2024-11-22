@@ -78,6 +78,13 @@ struct adc_file_global {
 
 static struct adc_file_common esco_adc_f;
 static struct adc_file_global esco_adc_file_g;
+static u8 adc_file_global_open_cnt = 0;
+
+/*判断adc 节点是否再跑*/
+u8 adc_file_is_runing(void)
+{
+    return adc_file_global_open_cnt;
+}
 
 /*根据mic通道值获取使用的第几个mic*/
 u8 audio_get_mic_index(u8 mic_ch)
@@ -679,6 +686,7 @@ static int adc_file_ioc_start(struct adc_file_hdl *hdl)
 #else
         audio_adc_mic_start(&hdl->mic_ch);
 #endif
+        adc_file_global_open_cnt++;
     }
     hdl->value = 0;
     return ret;
@@ -716,7 +724,9 @@ static int adc_file_ioc_stop(struct adc_file_hdl *hdl)
                 }
             }
         }
-
+        if (adc_file_global_open_cnt) {
+            adc_file_global_open_cnt--;
+        }
     }
     return 0;
 }

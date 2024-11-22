@@ -24,6 +24,12 @@ extern void put_float(double fv);
 #define AEC_ONLINE_FLOG(...)
 #endif
 
+#if (TCFG_CFG_TOOL_ENABLE || TCFG_AEC_TOOL_ONLINE_ENABLE)
+const int const_audio_cvp_debug_online_enable = 1;
+#else
+const int const_audio_cvp_debug_online_enable = 0;
+#endif
+
 #if TCFG_AEC_TOOL_ONLINE_ENABLE
 
 extern int esco_dec_dac_gain_set(u8 gain);

@@ -48,6 +48,14 @@ extern const int config_audio_dac_noisefloor_optimize_enable;
  *******************************************************************
  */
 
+/*
+ *******************************************************************
+ *						Effect Configs
+ *******************************************************************
+ */
+extern const int config_audio_gain_enable;
+extern const int config_audio_split_gain_enable;
+extern const int config_audio_stereomix_enable;
 
 
 /*

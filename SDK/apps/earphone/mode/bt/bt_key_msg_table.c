@@ -211,8 +211,12 @@ int bt_key_power_msg_remap(int *msg)
         //长按切换ANC模式
         app_msg = APP_MSG_ANC_SWITCH;
         break;
-    case KEY_ACTION_TWS_HOLD_5SEC:
-        //app_msg = APP_MSG_TWS_POWER_OFF;
+    case KEY_ACTION_HOLD_5SEC:
+#if TCFG_USER_TWS_ENABLE
+        app_msg = APP_MSG_TWS_POWER_OFF;
+#else
+        app_msg = APP_MSG_KEY_POWER_OFF;
+#endif
         break;
 #if (TCFG_USER_TWS_ENABLE && (CONFIG_TWS_PAIR_MODE == CONFIG_TWS_PAIR_BY_CLICK))
     case KEY_ACTION_FOURTH_CLICK:

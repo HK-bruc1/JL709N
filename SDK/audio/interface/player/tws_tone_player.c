@@ -376,14 +376,24 @@ static void tws_play_tone_try_timeout(void *arg)
 
 int tws_play_tone_file(const char *file_name, int delay_msec)
 {
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))  //le_audio工程不支持tws同步叠加播放提示音
+    return __tws_play_tone_file(&file_name, 1, delay_msec, STREAM_SCENE_TONE,
+                                STREAM_COEXIST_DISABLE, 0);
+#else
     return __tws_play_tone_file(&file_name, 1, delay_msec, STREAM_SCENE_TONE,
                                 STREAM_COEXIST_AUTO, 0);
+#endif
 }
 
 int tws_play_tone_file_callback(const char *file_name, int delay_msec, u32 func_uuid)
 {
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))  //le_audio工程不支持tws同步叠加播放提示音
+    return __tws_play_tone_file(&file_name, 1, delay_msec, STREAM_SCENE_TONE,
+                                STREAM_COEXIST_DISABLE, func_uuid);
+#else
     return __tws_play_tone_file(&file_name, 1, delay_msec, STREAM_SCENE_TONE,
                                 STREAM_COEXIST_AUTO, func_uuid);
+#endif
 }
 
 int tws_play_ring_file(const char *file_name, int delay_msec)

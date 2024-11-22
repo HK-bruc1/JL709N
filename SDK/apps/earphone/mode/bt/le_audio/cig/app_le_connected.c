@@ -30,6 +30,7 @@
 #include "btstack/le/le_user.h"
 #include "multi_protocol_main.h"
 #include "earphone.h"
+#include "vol_sync.h"
 #if TCFG_USER_TWS_ENABLE
 #include "classic/tws_api.h"
 extern void tws_dual_conn_state_handler();
@@ -224,7 +225,7 @@ static int app_connected_conn_status_event_handler(int *msg)
                     if (app_cig_conn_info[i].cis_conn_info[j].cis_hdl == hdl->cis_hdl) {
                         app_cig_conn_info[i].cis_conn_info[j].cis_hdl = 0;
                         acl_handle_for_disconnect_cis = app_cig_conn_info[i].cis_conn_info[j].acl_hdl;
-                        app_cig_conn_info[i].cis_conn_info[j].acl_hdl = 0;
+                        /* app_cig_conn_info[i].cis_conn_info[j].acl_hdl = 0; */
                         app_cig_conn_info[i].cis_conn_info[j].cis_status = APP_CONNECTED_STATUS_DISCONNECT;
                         app_cig_conn_info[i].cig_hdl = 0xFF;
                         break;
@@ -319,6 +320,16 @@ static int app_connected_conn_status_event_handler(int *msg)
 #endif
         g_le_audio_hdl.cig_phone_conn_status = 0;
         acl_info = (cis_acl_info_t *)&event[1];
+
+        for (i = 0; i < CIG_MAX_NUMS; i++) {
+            for (j = 0; j < CIG_MAX_CIS_NUMS; j++) {
+                if (app_cig_conn_info[i].cis_conn_info[j].acl_hdl == acl_info->acl_hdl) {
+                    log_info("Clear acl handle...\n");
+                    app_cig_conn_info[i].cis_conn_info[j].acl_hdl = 0;
+                }
+            }
+        }
+
 #if ((TCFG_LE_AUDIO_APP_CONFIG & ( LE_AUDIO_JL_UNICAST_SINK_EN)))
         if (get_le_audio_jl_dongle_device_type()) {
             cig_event_to_user(CIG_EVENT_JL_DONGLE_DISCONNECT, (void *)&acl_info->acl_hdl, 2);
@@ -940,8 +951,7 @@ void le_audio_media_control_cmd(u8 *data, u8 len)
     for (i = 0; i < CIG_MAX_NUMS; i++) {
         if (app_cig_conn_info[i].used) {
             for (j = 0; j < CIG_MAX_CIS_NUMS; j++) {
-                if (app_cig_conn_info[i].cis_conn_info[j].cis_hdl &&
-                    (app_cig_conn_info[i].cis_conn_info[j].acl_hdl)) {
+                if (app_cig_conn_info[i].cis_conn_info[j].acl_hdl) {
                     con_handle = app_cig_conn_info[i].cis_conn_info[j].acl_hdl;
                 }
             }
@@ -950,7 +960,20 @@ void le_audio_media_control_cmd(u8 *data, u8 len)
 
     if (con_handle) {
         log_info("Send media control... hangle:0x%x\n", con_handle);
+#if TCFG_BT_VOL_SYNC_ENABLE
+        switch (data[0]) {
+        case CIG_EVENT_OPID_VOLUME_UP:
+        case CIG_EVENT_OPID_VOLUME_DOWN:
+            log_info("sync vol to master");
+            le_audio_send_priv_cmd(con_handle, VENDOR_PRIV_ACL_MUSIC_VOLUME, &(app_var.opid_play_vol_sync), sizeof(app_var.opid_play_vol_sync));
+            break;
+        default:
+            le_audio_send_priv_cmd(con_handle, VENDOR_PRIV_ACL_OPID_CONTORL, data, len);
+            break;
+        }
+#else
         le_audio_send_priv_cmd(con_handle, VENDOR_PRIV_ACL_OPID_CONTORL, data, len);
+#endif
     } else {
         log_info("No handle...,send fail");
     }
@@ -991,6 +1014,14 @@ static u16 ble_user_priv_cmd_handle(u16 handle, u8 *cmd, u8 *rsp)
         break;
     case VENDOR_PRIV_CLOSE_MIC:
         app_send_message(APP_MSG_LE_AUDIO_CALL_CLOSE, handle);
+        break;
+    case VENDOR_PRIV_ACL_MUSIC_VOLUME:
+        log_info("Get master music vol:%d", cmd[1]);
+        set_music_device_volume(cmd[1]);
+        break;
+    case VENDOR_PRIV_ACL_MIC_VOLUME:
+        log_info("Get master mic vol:%d", cmd[1]);
+        set_music_device_volume(cmd[1]);
         break;
     }
     return rsp_len;

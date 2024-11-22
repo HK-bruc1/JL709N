@@ -190,6 +190,7 @@ static void tws_a2dp_play_in_task(u8 *data)
         app_send_message_from(MSG_FROM_APP, 12, msg);
         break;
     case CMD_A2DP_CLOSE:
+        puts("CMD_A2DP_CLOSE\n");
         tws_a2dp_player_close(bt_addr);
         /*
          * 如果后台有A2DP数据,关闭检测和MEDIA_START状态,

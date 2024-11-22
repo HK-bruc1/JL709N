@@ -353,6 +353,12 @@ const int const_audio_wma_dec16_fifo_precision = 16;  //  24 或者 16
 const int OPUS_SRINDEX = 0; //选择opus解码文件的帧大小，0代表一帧40字节，1代表一帧80字节，2代表一帧160字节
 
 //***********************
+//*		SPEEX Codec      *
+//***********************
+const int SPEEX_QUALITY = 5; //选择speex的码率,范围0到9,值越大,质量越好,编解码越慢
+const int speex_max_framelen = 70; //设置speex编码库最大读数大小
+
+//***********************
 //*		APE Codec      *
 //***********************
 const u32 APE_DEC_SUPPORT_LEVEL = 1;    //最高支持的层数  0:Fast   1:Normal    2:High

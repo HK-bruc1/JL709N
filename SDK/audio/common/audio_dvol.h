@@ -11,7 +11,7 @@
 #define DVOL_MAX			16384
 #define DVOL_MAX_FLOAT		16384.0f
 
-#define BG_DVOL_FADE_ENABLE		1	/*多路声音叠加，背景声音自动淡出小声*/
+#define BG_DVOL_FADE_ENABLE		0	/*多路声音叠加，背景声音自动淡出小声*/
 
 #define DIGITAL_VOLUME_LEVEL_MAX  200  //默认的音量等级限制设成200
 

@@ -148,7 +148,7 @@ int bt_phone_income(u8 after_conn, u8 *bt_addr)
     }
 #endif
 
-    printf("inband_ringtone=0x%x %d\n", g_bt_hdl.inband_ringtone, after_conn);
+    printf("inband_ringtone = 0x%x,after_conn = %d\n", g_bt_hdl.inband_ringtone, after_conn);
     g_bt_hdl.phone_ring_flag = 1;
     g_bt_hdl.phone_income_flag = 1;
 
@@ -167,8 +167,6 @@ int bt_phone_income(u8 after_conn, u8 *bt_addr)
 #if TCFG_BT_PHONE_NUMBER_ENABLE
     if (after_conn) {
         phone_ring_play_start();
-    } else {
-        phone_income_num_check(NULL);
     }
 #else
     phone_ring_play_start();
@@ -358,7 +356,10 @@ int bt_phone_esco_play(u8 *bt_addr)
         log_info("dec_begin,dump_packet clear\n");
         esco_dump_packet = ESCO_DUMP_PACKET_DEFAULT;
     }
-
+#if TCFG_BT_PHONE_NUMBER_ENABLE
+    y_printf("play the calling number\n");
+    phone_income_num_check(NULL);
+#endif
     pbg_user_mic_fixed_deal(1);
     return 0;
 
@@ -530,6 +531,7 @@ static int bt_phone_status_event_handler(int *msg)
 #endif
 #if TCFG_BT_PHONE_NUMBER_ENABLE
         phone_number = (u8 *)bt->value;
+        printf("phone_number = %s\n", phone_number);
         if (g_bt_hdl.phone_num_flag == 1) {
             break;
         }
@@ -546,7 +548,7 @@ static int bt_phone_status_event_handler(int *msg)
             }
         }
         if (g_bt_hdl.income_phone_len > 0) {
-            g_bt_hdl.phone_num_flag = 1;
+            g_bt_hdl.phone_num_flag = 1;  //等esco建立后才开始来电号码的播报
         } else {
             log_info("PHONE_NUMBER len err\n");
         }

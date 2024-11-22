@@ -94,7 +94,11 @@ static u8 *transmit_buf;    /*!< 用于发送端发数 */
 static u8 cur_audio_mode = 0;
 static struct list_head connected_list_head = LIST_HEAD_INIT(connected_list_head);
 static struct le_audio_mode_ops *le_audio_switch_ops = NULL; /*!< 广播音频和本地音频切换回调接口指针 */
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
+u8 cig_peripheral_support_lea_profile  = 0;
+#else
 u8 cig_peripheral_support_lea_profile  = 1;
+#endif
 const cig_callback_t cig_perip_cb = {
     .receive_packet_cb      = connected_iso_callback,
     .event_cb               = connected_perip_event_callback,

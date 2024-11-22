@@ -250,6 +250,16 @@ void cfg_tool_combine_rx_data(u8 *buf, u32 rlen)
     /* put_buf(buf, rlen); */
 
     if ((buf[0] == 0x5A) && (buf[1] == 0xAA) && (buf[2] == 0xA5)) {
+
+        if (rlen <= 255) {
+            u8 rx_data_len = buf[5] + 6;
+            if (rx_data_len == rlen) {
+                // 不支持旧协议数据
+                printf("cfg_tool rx data is not right!!!\n");
+                return;
+            }
+        }
+
         reset_rx_resource();
         tool_buf_total_len = CFG_TOOL_READ_LIT_U16(buf + 5);
         buf_rx = zalloc(CFG_TOOL_PROTOCOL_HEAD_SIZE + tool_buf_total_len);

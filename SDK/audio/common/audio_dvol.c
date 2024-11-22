@@ -40,8 +40,10 @@ typedef struct {
     u8 start;
     u16 digital_vol_max;
     u16 *dig_vol_table;
+#if BG_DVOL_FADE_ENABLE
     struct list_head dvol_head;
     spinlock_t lock;
+#endif
 } dvol_t;
 static dvol_t dvol_attr;
 /*
@@ -97,8 +99,11 @@ const u16 default_dig_vol_table[DEFAULT_DIGITAL_VOL_MAX + 1] = {
 int audio_digital_vol_init(u16 *vol_table, u16 vol_max)
 {
     memset(&dvol_attr, 0, sizeof(dvol_attr));
+
+#if BG_DVOL_FADE_ENABLE
     INIT_LIST_HEAD(&dvol_attr.dvol_head);
     spin_lock_init(&dvol_attr.lock);
+#endif
 
     if (vol_table != NULL) {
         dvol_attr.dig_vol_table = vol_table;
@@ -162,9 +167,9 @@ dvol_handle *audio_digital_vol_open(struct audio_vol_params params)
         dvol->vol_fade 	= dvol->vol_target;
         dvol->fade_step 	= fade_step;
         dvol->toggle 	= 1;
+#if BG_DVOL_FADE_ENABLE
         spin_lock(&dvol_attr.lock);
         list_add(&dvol->entry, &dvol_attr.dvol_head);
-#if BG_DVOL_FADE_ENABLE
         dvol->vol_bk = -1;
         if (dvol_attr.bg_dvol_fade_out) {
             dvol_handle *hdl;
@@ -204,8 +209,8 @@ dvol_handle *audio_digital_vol_open(struct audio_vol_params params)
                 }
             }
         }
-#endif/*BG_DVOL_FADE_ENABLE*/
         spin_unlock(&dvol_attr.lock);
+#endif/*BG_DVOL_FADE_ENABLE*/
         /*dvol_log("dvol_open:%x-%d-%d-%d\n",  dvol, dvol->vol, dvol->vol_max, fade_step);*/
     }
     return dvol;

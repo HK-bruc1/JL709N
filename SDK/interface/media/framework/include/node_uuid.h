@@ -179,5 +179,6 @@
 #define NODE_UUID_REPLACE                  0xb5e1
 #define NODE_UUID_SIGNAL_GENERATOR         0x225d
 #define NODE_UUID_REVERB                   0x24AB//混响V2
+#define NODE_UUID_SPLIT_GAIN               0x2A10
 
 #endif

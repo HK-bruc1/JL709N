@@ -88,7 +88,7 @@ static void le_audio_rx_tick_handler(void *priv)
 {
     struct le_audio_file_handle *hdl = (struct le_audio_file_handle *)priv;
 
-    if (hdl->start && (hdl->node->state & NODE_STA_SOURCE_NO_DATA)) {
+    if (hdl->start) {
         jlstream_wakeup_thread(NULL, hdl->node, NULL);
     }
 }

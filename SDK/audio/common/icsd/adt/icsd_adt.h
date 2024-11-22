@@ -19,7 +19,7 @@
 #include "icsd_wind.h"
 #endif
 
-#if 1
+#if 0
 #define _adt_printf printf                  //打开智能免摘库打印信息
 #else
 #define _adt_printf icsd_printf_off
@@ -31,7 +31,7 @@
 //#define _wat_printf icsd_printf_off
 #endif
 
-#if 1
+#if 0
 #define _wind_printf printf                 //打开风噪检测库打印信息
 #else
 #define _wind_printf icsd_printf_off

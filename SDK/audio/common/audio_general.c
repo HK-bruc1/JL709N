@@ -14,6 +14,9 @@
 #include "debug/audio_debug.h"
 #include "audio_config_def.h"
 
+/*音频配置在线调试配置*/
+const int config_audio_cfg_debug_online = TCFG_CFG_TOOL_ENABLE;
+
 #if TCFG_USER_TWS_ENABLE
 const int config_media_tws_en = 1;
 #else
@@ -48,6 +51,9 @@ const int config_audio_cfg_online_enable = 0;
 
 const int config_audio_dac_dma_buf_realloc_enable = 1;
 
+const int config_audio_gain_enable = TCFG_GAIN_NODE_ENABLE;
+const int config_audio_split_gain_enable = TCFG_SPLIT_GAIN_NODE_ENABLE;
+const int config_audio_stereomix_enable = TCFG_STEROMIX_NODE_ENABLE;
 /*
  *******************************************************************
  *						Audio Codec Config

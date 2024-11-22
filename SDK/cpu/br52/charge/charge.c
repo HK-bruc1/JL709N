@@ -16,6 +16,9 @@
 #include "clock.h"
 #include "app_config.h"
 #include "spinlock.h"
+#if TCFG_CHARGE_CALIBRATION_ENABLE
+#include "asm/charge_calibration.h"
+#endif
 
 #define LOG_TAG_CONST   CHARGE
 #define LOG_TAG         "[CHARGE]"
@@ -257,6 +260,9 @@ static void charge_cc_check(void *priv)
 {
     if ((adc_get_voltage(AD_CH_PMU_VBAT) * 4 / 10) > CHARGE_CCVOL_V) {
         set_charge_mA(__this->data->charge_mA);
+#if TCFG_CHARGE_CALIBRATION_ENABLE
+        charge_enter_calibration_mode();
+#endif
         usr_timer_del(__this->cc_timer);
 #if (!CHARGE_VILOOP2_ENABLE)
         if (!__this->charge_follow_timer) {
@@ -294,6 +300,10 @@ void charge_start(void)
         }
 #endif
         check_full = 1;
+#if TCFG_CHARGE_CALIBRATION_ENABLE
+        charge_enter_calibration_mode();
+#endif
+
     } else {
         //涓流阶段系统不进入低功耗,防止电池电量更新过慢导致涓流切恒流时间过长
         set_charge_mA(__this->data->charge_trickle_mA);
@@ -526,6 +536,17 @@ u16 get_charge_mA_config(void)
     return __this->data->charge_mA;
 }
 
+u16 get_charge_current_value(void)
+{
+    u16 charge_curr;
+    if (IS_TRICKLE_EN()) {
+        charge_curr = ((float)(1.16f + 0.01f * CHGV_VREF_GET()) * 0.0146484f * (CHARGE_mA_GET() + 1));
+    } else {
+        charge_curr = ((float)(1.16f + 0.01f * CHGV_VREF_GET()) * 0.146484f * (CHARGE_mA_GET() + 1));
+    }
+    return charge_curr;
+}
+
 void set_charge_mA(u16 charge_mA)
 {
     u8 vref, type;
@@ -534,6 +555,13 @@ void set_charge_mA(u16 charge_mA)
     type = (charge_mA & TRICKLE_EN_FLAG) ? 1 : 0;
     charge_mA &= ~TRICKLE_EN_FLAG;
     log_info("charge_mA: %d, type: %d", charge_mA, type);
+    if (((charge_mA < 15) && (type == 0)) || ((charge_mA < 2) && (type == 1))) {
+        if (type) {
+            ASSERT(0, "Trickle_charge_mA cann't < 2mA");
+        } else {
+            ASSERT(0, "Constant_charge_mA cann't < 15mA");
+        }
+    }
 
     for (vref = 0; vref < 8; vref++) {
         for (chgi = 0; chgi < 1024; chgi++) {

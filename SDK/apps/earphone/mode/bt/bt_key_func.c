@@ -13,6 +13,9 @@
 
 #include "bt_event_func.h"
 #include "app_tone.h"
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+#include "app_le_connected.h"
+#endif
 
 void bt_volume_up(u8 inc)
 {
@@ -481,7 +484,6 @@ void bt_send_a2dp_cmd(int msg)
 }
 
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
-void le_audio_media_control_cmd(u8 *data, u8 len);
 void bt_send_jl_cis_cmd(int msg)
 {
     u8 data[1];

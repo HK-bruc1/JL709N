@@ -111,6 +111,7 @@
 #define TCFG_STEROMIX_NODE_ENABLE 0 // SteroMix
 #define TCFG_SURROUND_DEMO_NODE_ENABLE 0 // Surround Demo、环绕音demo
 #define TCFG_SURROUND_NODE_ENABLE 0 // Surround Effect
+#define TCFG_SPLIT_GAIN_NODE_ENABLE 0 // Split Gain
 #define TCFG_THREE_D_EFFECT_NODE_ENABLE 0 // ThreeD
 #define TCFG_TONE_NODE_ENABLE 1 // 提示音
 #define TCFG_UART_NODE_ENABLE 0 // 串口打印

@@ -14,13 +14,7 @@
 //==============================================//
 //    功能使能
 //==============================================//
-#if TCFG_AUDIO_ANC_WIND_NOISE_DET_ENABLE && \
-TCFG_AUDIO_SPEAK_TO_CHAT_ENABLE == 0 && \
-TCFG_AUDIO_WIDE_AREA_TAP_ENABLE == 0
-const u8 ICSD_WIND_MODE = 1;//打开独立风噪模式, 资源占用小，不支持广域和免摘共存
-#else
 const u8 ICSD_WIND_MODE = 0;//关闭独立风噪模式
-#endif
 const u8 ICSD_WIND_EN  =  TCFG_AUDIO_ANC_WIND_NOISE_DET_ENABLE;//风噪检测使能
 const u8 ICSD_ENVNL_EN =  0;//环境声检测使能
 const u8 ICSD_RTANC_EN =  0;//实时自适应

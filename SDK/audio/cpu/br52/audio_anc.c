@@ -482,7 +482,6 @@ static void anc_task(void *p)
                     }
                 }
 #endif/*TCFG_AUDIO_DYNAMIC_ADC_GAIN*/
-                anc_hdl->mode_switch_lock = 0;
 
 #if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
                 if (speak_to_chat_flag) {
@@ -536,6 +535,7 @@ static void anc_task(void *p)
                 }
                 set_adt_switch_trans_state(0);
 #endif
+                anc_hdl->mode_switch_lock = 0;
                 break;
             case ANC_MSG_MODE_SYNC:
                 user_anc_log("anc_mode_sync:%d", msg[2]);

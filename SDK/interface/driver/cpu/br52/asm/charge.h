@@ -47,6 +47,7 @@
 #define CHARGE_FC_IS_CC_DIV_15      2
 #define CHARGE_FC_IS_CC_DIV_20		3
 
+#define CHARGE_mA_MAX  180
 /* 充电口下拉电阻 50k ~ 200k */
 #define CHARGE_PULLDOWN_50K     0
 #define CHARGE_PULLDOWN_100K    1
@@ -101,6 +102,7 @@ void set_charge_poweron_en(u32 onOff);
 void charge_start(void);
 void charge_close(void);
 u16 get_charge_mA_config(void);
+u16 get_charge_current_value(void);
 void set_charge_mA(u16 charge_mA);
 u8 get_ldo5v_pulldown_en(void);
 u8 get_ldo5v_pulldown_res(void);

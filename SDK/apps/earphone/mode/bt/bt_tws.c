@@ -33,6 +33,7 @@
 #include "update.h"
 #include "in_ear_detect/in_ear_manage.h"
 #include "multi_protocol_main.h"
+#include "phone_call.h"
 
 #include "multi_protocol_main.h"
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
@@ -1017,6 +1018,10 @@ int bt_tws_connction_status_event_handler(int *msg)
         break;
     case TWS_EVENT_ROLE_SWITCH:
         r_printf("TWS_EVENT_ROLE_SWITCH=%d\n", role);
+        u8 *esco_addr = lmp_get_esco_link_addr();
+        if (esco_addr) {
+            bt_phone_esco_play(esco_addr);
+        }
 #if TCFG_TWS_POWER_BALANCE_ENABLE
         if (role == TWS_ROLE_SLAVE) {
             esco_recoder_switch(0);

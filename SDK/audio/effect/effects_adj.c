@@ -489,9 +489,11 @@ static int form_node_get_parm(struct eff_online_packet *ep, u8 sq)
 {
     int res = ERR_COMM;
     switch (ep->par.uuid) {
+#if TCFG_BASS_TREBLE_NODE_ENABLE
     case NODE_UUID_BASS_TREBLE:
         res = bass_treble_get_node_param(ep, sq);
         break;
+#endif
     case NODE_UUID_VOLUME_CTRLER:
         res = volume_get_node_param(ep, sq);
         break;
@@ -625,9 +627,11 @@ static s32 eff_online_update_base(void *packet, u32 size, u8 sq)
             res = EFF_ERR_CRC;
         }
         break;
+#if TCFG_INDICATOR_NODE_ENABLE
     case EFF_INDICATOR_CMD:
         res = indicator_get_param(ep, sq);
         break;
+#endif
     case EFF_FORM_CMD:
         res = form_node_get_parm(ep, sq);
         break;
