@@ -565,9 +565,9 @@ static int bt_connction_status_event_handler(struct bt_event *bt)
     case BT_STATUS_AVRCP_INCOME_OPID:
         log_info("BT_STATUS_AVRCP_INCOME_OPID:%d\n", bt->value);
         if (bt->value == AVC_VOLUME_UP) {
-
+            app_audio_volume_up(1);
         } else if (bt->value == AVC_VOLUME_DOWN) {
-
+            app_audio_volume_down(1);
         }
         break;
     case BT_STATUS_RECONN_OR_CONN:

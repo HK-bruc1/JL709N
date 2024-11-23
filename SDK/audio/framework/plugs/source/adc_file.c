@@ -355,6 +355,62 @@ static void adc_file_fade_in(struct adc_file_hdl *hdl, void *buf, int len)
 
 
 
+/*
+*********************************************************************
+*                  audio_mic_data_align
+* Description: 将使用的mic数据按照序号顺序，相邻的排在一起*
+* Arguments  : in_data      输入数据起始地址
+*              out_data     输出数据起始地址
+*			   len      	1个mic通道的数据大小，byte
+*			   mic_ch		使用的mic通道
+*              max_mic_num  打开的mic通道数
+* Return	 : null
+* Note(s)    : 输入输出地址可以一样
+*********************************************************************
+*/
+void audio_mic_data_align(s16 *in_data, s16 *out_data, int len, u32 mic_ch, u8 max_mic_num)
+{
+    u8 mic_num = audio_get_mic_num(mic_ch);//使用的mic个数
+    /* u8 max_mic_num = AUDIO_ADC_MAX_NUM; //打开的mic个数 */
+    int i, j, tmp_len;
+    u8 adc_seq = 0;
+    /* u8 *adc_seq_buf = zalloc(mic_num); */
+    u8 adc_seq_buf[AUDIO_ADC_MAX_NUM];
+    /*获取使用的mic数据的相对位置*/
+    for (j = 0; j < max_mic_num; j++) {
+        if (mic_ch & BIT(j)) {
+            adc_seq_buf[adc_seq] = get_adc_seq(&adc_hdl, BIT(j)); //查询模拟mic对应的ADC通道
+            adc_seq++;
+        }
+    }
+    /*将使用的mic数据按照序号顺序，相邻的排在一起*/
+    if (adc_hdl.bit_width != ADC_BIT_WIDTH_16) {
+        tmp_len = mic_num * sizeof(int);
+        s32 *s32_src = (s32 *)in_data;
+        s32 *s32_dst = (s32 *)out_data;
+        s32 s32_tmp_dst[AUDIO_ADC_MAX_NUM];
+        for (i = 0; i < len / 4; i++) {
+            for (j = 0; j < mic_num; j++) {
+                s32_tmp_dst[j] = s32_src[max_mic_num * i + adc_seq_buf[j]];
+            }
+            memcpy(&s32_dst[mic_num * i], s32_tmp_dst, tmp_len);
+        }
+
+    } else {
+        tmp_len = mic_num * sizeof(short);
+        s16 *s16_src = (s16 *)in_data;
+        s16 *s16_dst = (s16 *)out_data;
+        s16 s16_tmp_dst[AUDIO_ADC_MAX_NUM];
+        for (i = 0; i < len / 2; i++) {
+            for (j = 0; j < mic_num; j++) {
+                s16_tmp_dst[j] = s16_src[max_mic_num * i + adc_seq_buf[j]];
+            }
+            memcpy(&s16_dst[mic_num * i], s16_tmp_dst, tmp_len);
+        }
+    }
+    /* free(adc_seq_buf); */
+}
+
 /**
  * @brief       MIC 的中断回调函数
  *
@@ -410,24 +466,7 @@ static void adc_mic_output_handler(void *_hdl, s16 *data, int len)
 #else
         if (0) {
 #endif
-            /* printf("l:%d,%d,%d\n",hdl->adc_seq,hdl->ch_num,adc_hdl.max_adc_num); */
-            if (adc_hdl.bit_width != ADC_BIT_WIDTH_16) {
-                s32 *s32_src = (s32 *)data;
-                s32 *s32_dst = (s32 *)frame->data;
-                for (int i = 0; i < len / 4; i++) {
-                    for (int j = 0; j < hdl->ch_num; j++) {
-                        s32_dst[hdl->ch_num * i + j] = s32_src[adc_hdl.max_adc_num * i + hdl->adc_seq + j];
-                    }
-                }
-            } else {
-                s16 *s16_src = data;
-                s16 *s16_dst = (s16 *)frame->data;
-                for (int i = 0; i < len / 2; i++) {
-                    for (int j = 0; j < hdl->ch_num; j++) {
-                        s16_dst[hdl->ch_num * i + j] = s16_src[adc_hdl.max_adc_num * i + hdl->adc_seq + j];
-                    }
-                }
-            }
+            audio_mic_data_align(data, (s16 *)frame->data, len, hdl->adc_f->cfg.mic_en_map, adc_hdl.max_adc_num);
         } else {
             memcpy(frame->data, data, (len * hdl->ch_num));
         }

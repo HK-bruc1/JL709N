@@ -892,6 +892,12 @@ const char log_tag_const_i_JLSTREAM = CONFIG_DEBUG_LIB(1);
 const char log_tag_const_d_JLSTREAM = CONFIG_DEBUG_LIB(1);
 const char log_tag_const_e_JLSTREAM = CONFIG_DEBUG_LIB(TRUE);
 
+const char log_tag_const_v_CVP = CONFIG_DEBUG_LIB(0);
+const char log_tag_const_c_CVP = CONFIG_DEBUG_LIB(0);
+const char log_tag_const_i_CVP = CONFIG_DEBUG_LIB(TRUE);
+const char log_tag_const_d_CVP = CONFIG_DEBUG_LIB(0);
+const char log_tag_const_e_CVP = CONFIG_DEBUG_LIB(TRUE);
+
 /*
  *******************************************************************
  *						Audio Others Config

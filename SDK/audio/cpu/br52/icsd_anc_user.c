@@ -33,6 +33,7 @@ struct audio_mic_hdl {
 static struct audio_mic_hdl *audio_mic = NULL;
 extern struct audio_dac_hdl dac_hdl;
 extern struct audio_adc_hdl adc_hdl;
+extern const u8 const_adc_async_en;
 
 int audio_mic_en(u8 en, audio_mic_param_t *mic_param,
                  void (*data_handler)(void *priv, s16 *data, int len))
@@ -64,8 +65,12 @@ int audio_mic_en(u8 en, audio_mic_param_t *mic_param,
                 mic_num ++;
             }
         }
-
-        int adc_buf_size = mic_param->adc_irq_points * 2 * mic_param->adc_buf_num * mic_num;
+        int adc_buf_size;
+        if (const_adc_async_en) {
+            adc_buf_size = mic_param->adc_irq_points * ((adc_hdl.bit_width == ADC_BIT_WIDTH_16) ? 2 : 4) * mic_param->adc_buf_num * adc_hdl.max_adc_num;
+        } else {
+            adc_buf_size = mic_param->adc_irq_points * ((adc_hdl.bit_width == ADC_BIT_WIDTH_16) ? 2 : 4) * mic_param->adc_buf_num * mic_num;
+        }
         printf("adc irq points %d, adc_buf_size : %d", mic_param->adc_irq_points, adc_buf_size);
         /* audio_mic->adc_buf = esco_adc_buf; */
         audio_mic->adc_buf = zalloc(adc_buf_size);
