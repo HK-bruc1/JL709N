@@ -13,6 +13,7 @@ ${OBJCOPY} -O binary -j .data_code_z $1.elf data_code_z.bin
 ${OBJCOPY} -O binary -j .overlay_init $1.elf init.bin
 ${OBJCOPY} -O binary -j .overlay_aec $1.elf aec.bin
 ${OBJCOPY} -O binary -j .overlay_aac $1.elf aac.bin
+${OBJCOPY} -O binary -j .dlog_data $1.elf dlog.bin
 
 ${OBJDUMP} -section-headers -address-mask=0x7ffffff $1.elf > segment_list.txt
 ${OBJSIZEDUMP} -lite -skip-zero -enable-dbg-info $1.elf | sort -k 1 >  symbol_tbl.txt
@@ -38,7 +39,7 @@ cat segment_list.txt
 
 /opt/utils/strip-ini -i isd_config.ini -o isd_config.ini
 
-files="app.bin br52loader.bin uboot.boot uboot.boot_debug ota*.bin p11_code.bin isd_config.ini "
+files="app.bin br52loader.bin uboot.boot uboot.boot_debug ota*.bin p11_code.bin isd_config.ini dlog.bin"
 //files="app.bin isd_config.ini"
 
 
@@ -69,7 +70,7 @@ REM %OBJDUMP% -D -address-mask=0x1ffffff -print-dbg $1.elf > $1.lst
 %OBJCOPY% -O binary -j .overlay_init %ELFFILE% init.bin
 %OBJCOPY% -O binary -j .overlay_aec %ELFFILE% aec.bin
 %OBJCOPY% -O binary -j .overlay_aac %ELFFILE% aac.bin
-
+%OBJCOPY% -O binary -j .dlog_data %ELFFILE% dlog.bin
 
 %LZ4_PACKET% -dict text.bin -input data_code_z.bin 0 init.bin 0 aec.bin 0 aac.bin 0 -o compress.bin
 

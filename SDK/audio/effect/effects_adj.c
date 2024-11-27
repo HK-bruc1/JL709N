@@ -16,6 +16,8 @@
 #include "effects/eq_config.h"
 #include "effects/audio_eq.h"
 #include "effects/audio_bass_treble_eq.h"
+#include "audio_cvp.h"
+#include "audio_cvp_online.h"
 
 #define LOG_TAG_CONST EFFECTS
 #define LOG_TAG     "[EFFECTS_ADJ]"
@@ -580,6 +582,13 @@ static s32 eff_online_update_base(void *packet, u32 size, u8 sq)
     struct eff_online_packet *ep = (struct eff_online_packet *)packet;
     log_debug("cmd %x\n", ep->cmd);
     switch (ep->cmd) {
+    case EFF_DNSFB_COEFF_CMD:
+        if (!dns_coeff_param_updata(CFG_DNSFB_COEFF_FILE, &ep->par, size - 4)) {
+            res = ERR_NONE;
+        } else {
+            res = ERR_COMM;
+        }
+        break;
     case EFF_ADJ_CMD:
         memcpy(name, ep->par.data, sizeof(name));
         log_debug("uuid:0x%x name %s\n", ep->par.uuid, name);

@@ -321,7 +321,7 @@ void audio_input_initcall(void)
 #endif
 
     audio_adc_init(&adc_hdl, &adc_private_param);
-    adc_hdl.bit_width = audio_general_in_dev_bit_width();
+    /* adc_hdl.bit_width = audio_general_in_dev_bit_width(); */
     audio_adc_file_init();
 
 #if TCFG_AUDIO_DUT_ENABLE

@@ -258,7 +258,7 @@ u8 get_ldo5v_pulldown_res(void)
 
 static void charge_cc_check(void *priv)
 {
-    if ((adc_get_voltage(AD_CH_PMU_VBAT) * 4 / 10) > CHARGE_CCVOL_V) {
+    if ((gpadc_battery_get_voltage() / 10) > CHARGE_CCVOL_V) {
         set_charge_mA(__this->data->charge_mA);
 #if TCFG_CHARGE_CALIBRATION_ENABLE
         charge_enter_calibration_mode();
@@ -291,7 +291,7 @@ void charge_start(void)
     }
 #endif
     //进入恒流充电之后,才开启充满检测
-    if ((adc_get_voltage(AD_CH_PMU_VBAT) * 4 / 10) > CHARGE_CCVOL_V) {
+    if ((gpadc_battery_get_voltage() / 10) > CHARGE_CCVOL_V) {
         set_charge_mA(__this->data->charge_mA);
         p33_io_wakeup_enable(IO_CHGFL_DET, 1);
 #if (!CHARGE_VILOOP2_ENABLE)
@@ -367,7 +367,7 @@ static void charge_full_detect(void *priv)
         if (CHARGE_FULL_FLAG_GET() && LVCMP_DET_GET()) {
             log_char('1');
 
-            vbat_vol = adc_get_voltage(AD_CH_PMU_VBAT) * 4;
+            vbat_vol = gpadc_battery_get_voltage();
             //判断电池电压不小于满电电压-100mV
             if (vbat_vol < CHARGE_FULL_VBAT_MIN_VOLTAGE) {
                 charge_full_cnt = 0;
@@ -605,10 +605,6 @@ static void charge_config(void)
     if (__this->data->charge_full_V < CHARGE_FULL_V_4237) {
         CHG_HV_MODE(0);
         charge_trim_val = efuse_get_vbat_trim();//4.20V对应的trim出来的实际档位
-        if (charge_trim_val == 0xf) {
-            log_info("vbat low not trim, use default config!!!!!!");
-            charge_trim_val = CHARGE_FULL_V_4199;
-        }
         log_info("low charge_trim_val = %d\n", charge_trim_val);
         if (__this->data->charge_full_V >= CHARGE_FULL_V_4199) {
             offset = __this->data->charge_full_V - CHARGE_FULL_V_4199;
@@ -629,10 +625,6 @@ static void charge_config(void)
     } else {
         CHG_HV_MODE(1);
         charge_trim_val = efuse_get_vbat_trim_4p35();//4.35V对应的trim出来的实际档位
-        if (charge_trim_val == 0xf) {
-            log_info("vbat high not trim, use default config!!!!!!");
-            charge_trim_val = CHARGE_FULL_V_4354 - 16;
-        }
         log_info("high charge_trim_val = %d\n", charge_trim_val);
         if (__this->data->charge_full_V >= CHARGE_FULL_V_4354) {
             offset = __this->data->charge_full_V - CHARGE_FULL_V_4354;

@@ -398,7 +398,7 @@ void pwm_led_dump(void)
     printf("l_pwm_duty = %d\n", __this->l_pwm_duty);
     printf("mode = %d\n", __this->out_mode);
     printf("ctl_cycle_num = %d\n", __this->ctl_cycle_num);
-    printf("cbfunc = %p\n", __this->cbfunc);
+    printf("cbfunc = %p\n", (void *)__this->cbfunc);
     switch (__this->out_mode) {
     case 0:
         printf("out_once.pwm_out_time = %u\n", __this->out_once.pwm_out_time);

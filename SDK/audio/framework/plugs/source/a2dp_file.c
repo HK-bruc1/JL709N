@@ -298,10 +298,12 @@ static int a2dp_ioc_get_fmt(struct a2dp_file_hdl *hdl, struct stream_fmt *fmt)
         fmt->coding_type = AUDIO_CODING_SBC;
         code_type = "SBC";
         break;
+#if (defined(TCFG_BT_SUPPORT_AAC) && TCFG_BT_SUPPORT_AAC)
     case A2DP_CODEC_MPEG24:
         fmt->coding_type = AUDIO_CODING_AAC;
         code_type = "AAC";
         break;
+#endif
 #if (defined(TCFG_BT_SUPPORT_LDAC) && TCFG_BT_SUPPORT_LDAC)
     case A2DP_CODEC_LDAC:
         fmt->coding_type = AUDIO_CODING_LDAC;
@@ -368,6 +370,7 @@ __again:
     /*put_buf(packet, head_len + 8);*/
     u8 *frame = packet + head_len;
     if (frame[0] == 0x47) {    				//常见mux aac格式
+#if (defined(TCFG_BT_SUPPORT_AAC) && TCFG_BT_SUPPORT_AAC)
         u8 sr = (frame[5] & 0x3C) >> 2;
         /* u8 ch = ((frame[5] & 0x3) << 2) | ((frame[6] & 0xC0) >> 6); */
         fmt->channel_mode = AUDIO_CH_LR;
@@ -377,6 +380,7 @@ __again:
         /* u8 ch = ((frame[3] & 0x78) >> 3) ; */
         fmt->channel_mode = AUDIO_CH_LR;
         fmt->sample_rate = aac_sample_rates[sr];
+#endif
     } else if (frame[0] == 0x9C) {          //sbc 格式
         /*
          * 检查数据是否为AAC格式,

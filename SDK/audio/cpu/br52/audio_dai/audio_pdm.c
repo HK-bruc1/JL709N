@@ -4,6 +4,7 @@
 #include "asm/dac.h"
 #include "asm/audio_adc.h"
 #include "media/includes.h"
+#include "asm/audio_common.h"
 
 /* #define PLNK_DEBUG_ENABLE */
 
@@ -133,6 +134,8 @@ static void plnk_sclk_io_init(u8 port)
     gpio_set_mode(IO_PORT_SPILT(port), PORT_OUTPUT_HIGH);
 #ifndef CONFIG_CPU_BR52
     gpio_set_fun_output_port(port, FO_PLNK_SCLK, 0, 1);
+#else
+    gpio_set_function(IO_PORT_SPILT(port), PORT_FUNC_PLNK_SCLK);
 #endif
 }
 
@@ -145,6 +148,12 @@ static void plnk_data_io_init(u8 ch_index, u8 port)
     } else {
         gpio_set_fun_input_port(port, PFI_PLNK_DAT0);
     }
+#else
+    if (ch_index) {
+        gpio_set_function(IO_PORT_SPILT(port), PORT_FUNC_PLNK_DAT1);
+    } else {
+        gpio_set_function(IO_PORT_SPILT(port), PORT_FUNC_PLNK_DAT0);
+    }
 #endif
 }
 
@@ -156,6 +165,7 @@ void *plnk_init(void *hw_plink)
 
     __this = (PLNK_PARM *)hw_plink;
 
+    audio_adc_dmic_clock_open(1, 23);
     u8 ch_num = 0;
     /* adc_core_digital_open_t param = {0}; */
     plnk_sclk_io_init(__this->sclk_io);
@@ -163,7 +173,7 @@ void *plnk_init(void *hw_plink)
     audio_adc_mic_set_sample_rate(&pdm_hdl->mic_ch, __this->sr);
     struct mic_open_param mic_param[4] = {0};
     if (__this->ch_cfg[0].en) {
-        puts("MIC0");
+        plnk_printf("MIC0");
         mic_param[0].mic_dcc_en    = 1;
         mic_param[0].mic_dcc       = 1;
         audio_adc_mic_open(&pdm_hdl->mic_ch, AUDIO_ADC_DMIC_0, &adc_hdl, &mic_param[0]);
@@ -171,38 +181,34 @@ void *plnk_init(void *hw_plink)
         ch_num++;
     }
     if (__this->ch_cfg[1].en) {
-        puts("MIC1");
+        plnk_printf("MIC1");
         mic_param[1].mic_dcc_en    = 1;
         mic_param[1].mic_dcc       = 1;
         audio_adc_mic_open(&pdm_hdl->mic_ch, AUDIO_ADC_DMIC_1, &adc_hdl, &mic_param[1]);
-        plnk_data_io_init(0, __this->data_cfg[0].io);
+        plnk_data_io_init(0, __this->data_cfg[1].io);
         ch_num++;
     }
     if (__this->ch_cfg[2].en) {
-        puts("MIC2");
+        plnk_printf("MIC2");
         mic_param[2].mic_dcc_en    = 1;
         mic_param[2].mic_dcc       = 1;
         audio_adc_mic_open(&pdm_hdl->mic_ch, AUDIO_ADC_DMIC_2, &adc_hdl, &mic_param[2]);
-        plnk_data_io_init(1, __this->data_cfg[0].io);
+        plnk_data_io_init(1, __this->data_cfg[2].io);
         ch_num++;
     }
     if (__this->ch_cfg[3].en) {
-        puts("MIC3");
+        plnk_printf("MIC3");
         mic_param[3].mic_dcc_en    = 1;
         mic_param[3].mic_dcc       = 1;
         audio_adc_mic_open(&pdm_hdl->mic_ch, AUDIO_ADC_DMIC_3, &adc_hdl, &mic_param[3]);
-        plnk_data_io_init(1, __this->data_cfg[0].io);
+        plnk_data_io_init(1, __this->data_cfg[3].io);
         ch_num++;
     }
-
-    puts("SET_BUF");
     __this->ch_num = ch_num;
-    printf("CH: %d %d\n", __this->dma_len, __this->ch_num);
-    __this->buf = dma_malloc(__this->dma_len  * 2 * __this->ch_num);
-    memset(__this->buf, 0x00, __this->dma_len  * 2 * __this->ch_num);
+    plnk_printf("CH: %d %d\n", __this->dma_len, __this->ch_num);
+    __this->buf = malloc(__this->dma_len  * 2 * __this->ch_num);
     ASSERT(__this->buf);
-
-    puts("SET_BUF");
+    memset(__this->buf, 0x00, __this->dma_len  * 2 * __this->ch_num);
     audio_adc_mic_set_buffs(&pdm_hdl->mic_ch, __this->buf, __this->dma_len, 2);
     //step3:设置mic采样输出回调函数
     pdm_hdl->adc_output.handler = (void(*)(void *, s16 *, int))__this->isr_cb;

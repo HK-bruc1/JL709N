@@ -59,6 +59,16 @@
 #define EPA_PWM_MODE2                      (2)
 /*
  *******************************************************************
+ *						PDM Definitions
+ *******************************************************************
+ */
+#define AUDIO_PDM_MIC_0                      (1UL << 0)
+#define AUDIO_PDM_MIC_1                      (1UL << 1)
+#define AUDIO_PDM_MIC_2                      (1UL << 2)
+#define AUDIO_PDM_MIC_3                      (1UL << 3)
+
+/*
+ *******************************************************************
  *						Analog Aux Definitions
  *******************************************************************
  */
@@ -218,6 +228,21 @@
 #define  DATA_BIT_WIDE_32BIT  			2
 #define  DATA_BIT_WIDE_32BIT_FLOAT  	3
 
-
+/*
+ *******************************************************************
+ *						Effect Definitions
+ *******************************************************************
+ */
+//算法输入输出位宽使能位定义
+#define  EFx_BW_UNUSED 	                    (0)
+#define  EFx_BW_16t16 	                    (1UL << (0))
+#define  EFx_BW_16t32		                (1UL << (1))
+#define  EFx_BW_32t16		                (1UL << (2))
+#define  EFx_BW_32t32		                (1UL << (3))
+#define  EFx_PRECISION_NOR                  (1UL << (4)) //precision(精度为高 普通 最低使能)
+#define  EFx_PRECISION_PRO                  (1UL << (5)) //precision+(精度为最高使能)
+//Limiter精度使能位定义
+#define  LIMITER_PRECISION_HIGH_NORMAL_LOW  EFx_PRECISION_NOR//高、普通、最低
+#define  LIMITER_PRECISION_MAX              EFx_PRECISION_PRO //最高
 
 #endif/*_AUDIO_DEF_H_*/

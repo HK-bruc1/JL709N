@@ -120,6 +120,13 @@
 #define CONFIG_DEBUG_OPT                                               0 //0: 擦除, 1:不操作
 #endif
 
+#if (defined(TCFG_DEBUG_DLOG_ENABLE) && TCFG_DEBUG_DLOG_ENABLE)
+// 配置 dlog 区域
+#define CONFIG_DLOG_ADDR				AUTO
+#define CONFIG_DLOG_SIZE	    		12K
+#define CONFIG_DLOG_OPT		    		0
+#endif
+
 /* Above Macros Only For Post Bulid Configuaration */
 #endif /* #ifdef CONFIG_BOARD_JL709N_DEMO */
 

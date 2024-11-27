@@ -35,17 +35,17 @@ const int CONFIG_LOG_OUTPUT_ENABLE = 0;
 //================================================//
 //注意: 当config_asser变量为0时才有效.
 #if	(defined TCFG_CONFIG_DEBUG_RECORD_ENABLE && TCFG_CONFIG_DEBUG_RECORD_ENABLE)
-const int config_debug_exception_record = (!config_asser) && 1; 	//异常记录功能总开关
-const int config_debug_exception_record_dump_info = (!config_asser) && 1; 		//小机上电输出异常信息使能
-const int config_debug_exception_record_p11 = (!config_asser) && 1; 			//P11异常信息使能
-const int config_debug_exception_record_stack = (!config_asser) && 1; 			//堆栈异常信息使能
-const int config_debug_exception_record_ret_instrcion = (!config_asser) && 1; 	//指令数据异常信息使能
+const int config_debug_exception_record               = 1; 	 //异常记录功能总开关
+const int config_debug_exception_record_dump_info     = 1; 	 //小机上电输出异常信息使能
+const int config_debug_exception_record_p11           = 1; 	 //P11异常信息使能
+const int config_debug_exception_record_stack         = 1; 	 //堆栈异常信息使能
+const int config_debug_exception_record_ret_instrcion = 1; 	 //指令数据异常信息使能
 #else /* #if	(define CONFIG_DEBUG_RECORD_ENABLE && CONFIG_DEBUG_RECORD_ENABLE) */
-const int config_debug_exception_record = 0; 				//异常记录功能总开关
-const int config_debug_exception_record_dump_info = 0; 		//小机上电输出异常信息使能
-const int config_debug_exception_record_p11 = 0; 			//P11异常信息使能
-const int config_debug_exception_record_stack = 0; 			//堆栈异常信息使能
-const int config_debug_exception_record_ret_instrcion = 0; 	//指令数据异常信息使能
+const int config_debug_exception_record               = 0;   //异常记录功能总开关
+const int config_debug_exception_record_dump_info     = 0;   //小机上电输出异常信息使能
+const int config_debug_exception_record_p11           = 0;   //P11异常信息使能
+const int config_debug_exception_record_stack         = 0;   //堆栈异常信息使能
+const int config_debug_exception_record_ret_instrcion = 0;   //指令数据异常信息使能
 #endif /* #if (define CONFIG_DEBUG_RECORD_ENABLE && CONFIG_DEBUG_RECORD_ENABLE) */
 
 //================================================//
@@ -128,6 +128,15 @@ const int MALLOC_MEMORY_DEFRAG_ENABLE = 1;
 // 空闲RAM进入SD模式使能    			  //
 const int IDLE_RAM_ENTER_SD_MODE_ENABLE = 0;
 
+// 是否使能 dlog 功能
+#ifdef TCFG_DEBUG_DLOG_ENABLE
+const int config_dlog_enable = TCFG_DEBUG_DLOG_ENABLE;
+const int config_dlog_reset_erase_enable = TCFG_DEBUG_DLOG_RESET_ERASE;
+#else
+const int config_dlog_enable = 0;
+const int config_dlog_reset_erase_enable = 0;
+#endif
+
 /**
  * @brief Log (Verbose/Info/Debug/Warn/Error)
  */
@@ -192,3 +201,10 @@ const char log_tag_const_i_DEBUG_RECORD = CONFIG_DEBUG_LIB(TRUE);
 const char log_tag_const_d_DEBUG_RECORD = CONFIG_DEBUG_LIB(FALSE);
 const char log_tag_const_w_DEBUG_RECORD = CONFIG_DEBUG_LIB(TRUE);
 const char log_tag_const_e_DEBUG_RECORD = CONFIG_DEBUG_LIB(TRUE);
+
+const char log_tag_const_v_DLOG  = CONFIG_DEBUG_LIB(0);
+const char log_tag_const_i_DLOG  = CONFIG_DEBUG_LIB(0);
+const char log_tag_const_d_DLOG  = CONFIG_DEBUG_LIB(0);
+const char log_tag_const_w_DLOG  = CONFIG_DEBUG_LIB(0);
+const char log_tag_const_e_DLOG  = CONFIG_DEBUG_LIB(0);
+

@@ -63,6 +63,8 @@ MEMORY
 {
 	code0(rx)    	  : ORIGIN = CODE_BEG,  LENGTH = CONFIG_FLASH_SIZE
 	ram0(rwx)         : ORIGIN = RAM0_BEG,  LENGTH = RAM0_SIZE
+
+    dlog0(r)     	  : ORIGIN = 0x20000000, LENGTH = 0x100000
 }
 
 
@@ -75,9 +77,6 @@ SECTIONS
 	{
 		*(.boot_info)
         . = ALIGN(128);
-        // 需要避免与uboot和maskrom冲突
-        *(.debug_record)
-        . = ALIGN(4);
 	} > ram0
 
 	.irq_stack ALIGN(32):
@@ -192,6 +191,17 @@ SECTIONS
 
 	data_code_pc_limit_end = .;
 	__report_overlay_end = .;
+
+#if TCFG_CONFIG_DEBUG_RECORD_ENABLE
+    // 需要避免与uboot和maskrom冲突
+    .debug_record_ram ALIGN(4):
+    {
+        /* . = . + 0x1000; */
+        . = ALIGN(4);
+        *(.debug_record)
+        . = ALIGN(4);
+    } > ram0
+#endif
 
 	_HEAP_BEGIN = . ;
 	_HEAP_END = RAM0_END;
@@ -325,6 +335,23 @@ SECTIONS
 
 		. = ALIGN(32);
 	  } > code0
+
+    . = ORIGIN(dlog0);
+    .dlog_data ALIGN(4):SUBALIGN(4)
+    {
+        // 头部的0x100空间
+        KEEP(*(.dlog.rodata.head))
+        /* . = 0x100 + ORIGIN(dlog0); */
+		. = ALIGN(0x100);
+
+        dlog_str_tab_seg_begin = .;
+        *(.dlog.rodata.str_tab*)
+        dlog_str_tab_seg_end = .;
+		. = ALIGN(32);
+        dlog_str_seg_begin = .;
+        *(.dlog.rodata.string*)
+        dlog_str_seg_end = .;
+    } > dlog0
 }
 
 #include "app.ld"
@@ -398,8 +425,13 @@ _MALLOC_SIZE = _HEAP_END - _HEAP_BEGIN;
 PROVIDE(MALLOC_SIZE = _HEAP_END - _HEAP_BEGIN);
 
 ASSERT(MALLOC_SIZE  >= 0x8000, "heap space too small !")
-ASSERT(MMU_TBL_BEG_CHECK == 0x102000, "MMU table begin MUST at 0x102000") //by Gw
+ASSERT(ADDR(.mmu_tlb) - (ADDR(.irq_stack) + SIZEOF(.irq_stack)) <= 0x200, "MMU table memory gap is too large, Suggest <= 512 byte") //by Gw
 
+//===================== dlog check =====================//
+// 宏DLOG_STR_TAB_STRUCT_SIZE = 16 (即 dlog_str_tab_s 结构体的大小), 0xFFFF是支持的最大log index数
+STR_TAB_SIZE = 16;
+ASSERT((dlog_str_tab_seg_end - dlog_str_tab_seg_begin) <= (STR_TAB_SIZE * 0xFFFF), "err: log index out of range, only 0x0000 ~ 0xFFFF !!!");
+ASSERT((dlog_str_tab_seg_begin - ADDR(.dlog_data)) <= 0x100, "err: .dlog.rodata.head out of range, only less than 0x100 !!!");
 
 //============================================================//
 //=== report section info begin:

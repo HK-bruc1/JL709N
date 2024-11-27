@@ -142,6 +142,7 @@ enum {
     CMD_PRODUCTION_MODE_SET = 0X5D,	//产测模式设置
 
     CMD_ANC_EXT_TOOL = 0XB0,
+    CMD_DEBUG_USER_CMD = 0XB1,		//用户自定义命令
 
     CMD_PASSTHROUGH     = 0xFD, //透传命令
     CMD_FAIL            = 0xFE, //执行失败
@@ -814,6 +815,9 @@ static void app_anctool_passthrough_deal(u8 *data, u16 len)
         //ANC_EXT内部回复
         break;
 #endif
+    case CMD_DEBUG_USER_CMD:
+        audio_anc_debug_user_cmd_process(data + 1, len - 1);
+        break;
     case CMD_DEVELOP_MODE_SET:
         //ANC_DESIGNER 独有命令
         anctool_printf("CMD_DEVELOP_MODE_SET\n");

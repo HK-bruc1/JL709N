@@ -140,6 +140,7 @@ int audio_general_init()
     audio_config_trace_setup(TCFG_AUDIO_CONFIG_TRACE_INTERVAL);
 #endif/*TCFG_AUDIO_CONFIG_TRACE*/
 
+#if MEDIA_24BIT_ENABLE
     struct stream_bit_width stream_par = {0};
     if (get_system_stream_bit_width(&stream_par)) {
         audio_general_param.system_bit_width = stream_par.bit_width;
@@ -160,6 +161,7 @@ int audio_general_init()
     if (get_usb_audio_stream_bit_width(&stream_par)) {
         audio_general_param.usb_audio_bit_width = stream_par.bit_width;
     }
+#endif
 
 #if defined(TCFG_AUDIO_GLOBAL_SAMPLE_RATE) &&TCFG_AUDIO_GLOBAL_SAMPLE_RATE
     audio_general_param.sample_rate = TCFG_AUDIO_GLOBAL_SAMPLE_RATE;

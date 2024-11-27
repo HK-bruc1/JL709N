@@ -58,7 +58,14 @@
 #define TCFG_DEBUG_UART_BAUDRATE 2000000 // 波特率
 #define TCFG_EXCEPTION_LOG_ENABLE 1 // 打印异常信息
 #define TCFG_EXCEPTION_RESET_ENABLE 1 // 异常自动复位
+#define TCFG_CONFIG_DEBUG_RECORD_ENABLE 1
 #endif // TCFG_DEBUG_UART_ENABLE
+
+#if !TCFG_DEBUG_UART_ENABLE
+#define TCFG_DEBUG_DLOG_ENABLE 0       // 离线log功能
+#define TCFG_DEBUG_DLOG_FLASH_SEL   0  // 选择log保存到内置flash还是外置flash; 0:内置flash; 1:外置flash
+#define TCFG_DEBUG_DLOG_RESET_ERASE 0  // 开机擦除flash的log数据
+#endif
 
 #define TCFG_CFG_TOOL_ENABLE 0 // FW编辑、在线调音
 #if TCFG_CFG_TOOL_ENABLE
@@ -306,6 +313,9 @@
 #define TCFG_AUDIO_WIDE_AREA_TAP_ENABLE 0x0 // 广域点击
 #define TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN 0 // 耳道自适应
 #define TCFG_AUDIO_FIT_DET_ENABLE 0 // 贴合度检测
+#define TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE 0 // 耳道自适应类型
+#define TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN 0 // ANC耳道自适应
+#define TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN 0 // ANC自适应CMP
 #define TCFG_AUDIO_ADAPTIVE_EQ_ENABLE 0 // 自适应EQ
 #define TCFG_ANC_MUSIC_ANTI_CLIPPING_MODE 0 // 防破音模式
 #define TCFG_ANC_MUSIC_DYNAMIC_GAIN_THR -12 // ANC动态增益-触发阈值

@@ -208,7 +208,7 @@ APP_MSG_HANDLER(bat_level_msg_entry) = {
 
 static u16 get_vbat_voltage(void)
 {
-    return (adc_get_voltage(AD_CH_PMU_VBAT) * 4);
+    return gpadc_battery_get_voltage();
 }
 
 static u16 battery_calc_percent(u16 bat_val)

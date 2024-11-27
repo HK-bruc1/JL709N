@@ -61,6 +61,10 @@
 #include "icsd_aeq_app.h"
 #endif/*TCFG_AUDIO_ADAPTIVE_EQ_ENABLE*/
 
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+#include "rt_anc_app.h"
+#endif
+
 #if TCFG_USER_TWS_ENABLE
 #include "bt_tws.h"
 #endif/*TCFG_USER_TWS_ENABLE*/
@@ -336,13 +340,6 @@ u8 get_anc_lfb_transyorder()
     }
 }
 
-void set_anc_adt_state(u8 state)
-{
-    if (anc_hdl) {
-        anc_hdl->param.adt_state = state;
-    }
-}
-
 static void anc_task(void *p)
 {
     int res;
@@ -518,7 +515,6 @@ static void anc_task(void *p)
                     anc_ear_adaptive_mode_end();	//耳道自适应训练结束
                 }
 #endif
-
                 anc_hdl->last_mode = cur_anc_mode;
 #if ANC_MULT_ORDER_ENABLE
                 audio_anc_mult_scene_coeff_free();
@@ -536,6 +532,13 @@ static void anc_task(void *p)
                 set_adt_switch_trans_state(0);
 #endif
                 anc_hdl->mode_switch_lock = 0;
+
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+                //当用户端打开RTANC时，切模式需控制RTANC
+                if (audio_rtanc_app_func_en_get()) {
+                    audio_rtanc_adaptive_en((cur_anc_mode == ANC_ON));
+                }
+#endif
                 break;
             case ANC_MSG_MODE_SYNC:
                 user_anc_log("anc_mode_sync:%d", msg[2]);
@@ -604,13 +607,18 @@ static void anc_task(void *p)
                 break;
 #endif/*ANC_EAR_ADAPTIVE_EN*/
 
-#if ANC_REAL_TIME_ADAPTIVE_ENABLE
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
             case ANC_MSG_RT_ANC_CMD:
                 extern void rt_anc_anctask_cmd_handle(void *param, u8 cmd);
                 rt_anc_anctask_cmd_handle((void *)&anc_hdl->param, (u8)msg[2]);
                 break;
 #endif
-
+#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
+            case ANC_MSG_46KOUT_DEMO:
+                extern void icsd_anc_46kout_demo();
+                icsd_anc_46kout_demo();
+                break;
+#endif
             case ANC_MSG_MIC_DATA_GET:
                 /* extern void anc_spp_mic_data_get(audio_anc_t *param); */
                 /* anc_spp_mic_data_get(&anc_hdl->param); */
@@ -944,6 +952,10 @@ void anc_init(void)
 #if ANC_MUSIC_DYNAMIC_GAIN_EN
     audio_anc_music_dynamic_gain_init();
 #endif/*ANC_MUSIC_DYNAMIC_GAIN_EN*/
+
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+    audio_anc_real_time_adaptive_init(&anc_hdl->param);
+#endif
 
     anc_hdl->param.post_msg_drc = audio_anc_post_msg_drc;
     anc_hdl->param.post_msg_debug = audio_anc_post_msg_debug;
@@ -2324,7 +2336,7 @@ void anc_dmic_io_init(audio_anc_t *param, u8 en)
     if (en) {
         int i;
         for (i = 0; i < 4; i++) {
-            if ((param->mic_type[i] > A_MIC1) && (param->mic_type[i] != MIC_NULL)) {
+            if ((param->mic_type[i] > A_MIC2) && (param->mic_type[i] != MIC_NULL)) {
                 user_anc_log("anc_dmic_io_init %d:%d\n", i, param->mic_type[i]);
                 dmic_io_mux_ctl(1, DMIC_SCLK_FROM_ANC);
                 break;

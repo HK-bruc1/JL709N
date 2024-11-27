@@ -13,6 +13,11 @@
 #if (TCFG_AUDIO_ANC_EAR_ADAPTIVE_VERSION == ANC_EXT_V2)
 #include "icsd_anc_v2_app.h"
 #endif
+
+#if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
+#include "icsd_cmp_app.h"
+#endif
+
 #include "audio_anc_fade_ctr.h"
 
 /*******************ANC User Config***********************/
@@ -70,7 +75,7 @@
 
 #define ANC_EAR_ADAPTIVE_EN					TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN  /*ANC耳道自适应使能, 耳道是变量，主动触发校准一次性能*/
 #define ANC_POWEOFF_SAVE_ADAPTIVE_DATA		1							    /*保存耳道自适应数据 0 每次保存；1 关机保存*/
-#define ANC_EAR_ADAPTIVE_CMP_EN				ANC_ADAPTIVE_CMP_EN				/*ANC耳道自适应音乐补偿使能*/
+#define ANC_EAR_ADAPTIVE_CMP_EN				TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN	/*ANC耳道自适应音乐补偿使能*/
 #define ANC_EAR_ADAPTIVE_EVERY_TIME			0                           	/*每次切ANC_ON都进行自适应*/
 
 /*
@@ -79,11 +84,6 @@
  */
 #define ANC_ADAPTIVE_EN		    	0						/*ANC增益自适应使能*/
 
-/*
-   实时自适应
-   (佩戴中实时校准ANC性能)
- */
-#define ANC_REAL_TIME_ADAPTIVE_ENABLE				0
 
 #if (TCFG_ANC_MUSIC_ANTI_CLIPPING_MODE == ANC_CLIPPING_MODE_DYNAMIC_ANC_GAIN)
 #define ANC_MUSIC_DYNAMIC_GAIN_EN					1		/*音乐动态ANC增益使能*/
@@ -195,6 +195,7 @@ enum {
     ANC_MSG_MODE_SWITCH_IN_ANCTASK,
     ANC_MSG_COEFF_UPDATE,		//无缝切换滤波器
     ANC_MSG_AFQ_CMD,
+    ANC_MSG_46KOUT_DEMO,
 };
 
 /*ANC MIC动态增益调整状态*/
@@ -438,7 +439,6 @@ u8 get_anc_l_transyorder();
 void *get_anc_ltrans_fb_coeff();
 float get_anc_gains_lfb_transgain();
 u8 get_anc_lfb_transyorder();
-void set_anc_adt_state(u8 state);
 int anc_mode_change_tool(u8 dat);
 
 /*获取ANC alogm参数，type 滤波器类型 */

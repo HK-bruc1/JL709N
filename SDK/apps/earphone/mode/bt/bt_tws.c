@@ -91,8 +91,11 @@ struct tws_user_var  gtws;
 
 static u8 tone_together_by_systime = 0;
 static u32 tws_tone_together_time = 0;
+extern const u8 adt_profile_support;
 
 void tws_sniff_controle_check_enable(void);
+extern u8 tws_edr_tx_att_data_to_peer(void);
+extern u8 get_edr_att_link_num();
 
 u8 tws_network_audio_was_started(void)
 {
@@ -595,6 +598,9 @@ void bt_page_scan_for_test(u8 inquiry_en)
 int bt_tws_poweroff()
 {
     log_info("bt_tws_poweroff\n");
+    if (adt_profile_support && get_edr_att_link_num() && tws_api_get_role() == TWS_ROLE_MASTER) {
+        tws_edr_tx_att_data_to_peer();
+    }
 
 #if (THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN))
     multi_protocol_bt_tws_poweroff_handler();

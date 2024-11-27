@@ -413,6 +413,8 @@ void connected_perip_connect_recoder(u8 en, u16 acl_hdl)
     params.latency = 50 * 1000;//tx延时暂时先设置 50ms
     params.fmt.coding_type = LE_AUDIO_CODEC_TYPE;
     params.fmt.dec_ch_mode = LEA_DEC_OUTPUT_CHANNEL;
+    connected_mutex_pend(&connected_mutex, __LINE__);
+    spin_lock(&connected_lock);
     list_for_each_entry(p, &connected_list_head, entry) {
         for (i = 0; i < CIG_MAX_CIS_NUMS; i++) {
             if (p->cis_hdl_info[i].acl_hdl == acl_hdl) {
@@ -434,7 +436,9 @@ void connected_perip_connect_recoder(u8 en, u16 acl_hdl)
                 } else {
                     if (le_audio_switch_ops && le_audio_switch_ops->tx_le_audio_close) {
                         if (p->cis_hdl_info[i].recorder) {
+                            spin_unlock(&connected_lock);
                             le_audio_switch_ops->tx_le_audio_close(p->cis_hdl_info[i].recorder);
+                            spin_lock(&connected_lock);
                             p->cis_hdl_info[i].recorder = NULL;
 
                         }
@@ -444,6 +448,8 @@ void connected_perip_connect_recoder(u8 en, u16 acl_hdl)
             }
         }
     }
+    spin_unlock(&connected_lock);
+    connected_mutex_post(&connected_mutex, __LINE__);
 }
 
 /* --------------------------------------------------------------------------*/

@@ -157,7 +157,7 @@ const struct task_info task_info_table[] = {
     {"icsd_src",            2,     0,   512,   256 },
     {"speak_to_chat",       2,     0,   512,   128 },
 #endif
-#if ANC_REAL_TIME_ADAPTIVE_ENABLE
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
     {"rt_anc",              3,     1,   512,   128 },
 #endif
 #if TCFG_AUDIO_ANC_ENABLE && (TCFG_AUDIO_ANC_EXT_VERSION == ANC_EXT_V2)
@@ -173,6 +173,9 @@ const struct task_info task_info_table[] = {
 #if (defined TCFG_AUDIO_SOMATOSENSORY_ENABLE && TCFG_AUDIO_SOMATOSENSORY_ENABLE)
     /*Head Action Detection*/
     {"HA_Detect",           2,     0,  512,   0 },
+#endif
+#if (defined(TCFG_DEBUG_DLOG_ENABLE) && TCFG_DEBUG_DLOG_ENABLE)
+    {"dlog",                1,     0,  256,   128 },
 #endif
     {0, 0},
 };
@@ -338,12 +341,15 @@ static struct app_mode *app_task_init()
 
     sdfile_init();
     syscfg_tools_init();
+    cfg_file_parse(0);
+#if (defined(TCFG_DEBUG_DLOG_ENABLE) && TCFG_DEBUG_DLOG_ENABLE)
+    dlog_init();
+#endif
 
     do_early_initcall();
     board_init();
     do_platform_initcall();
 
-    cfg_file_parse(0);
     key_driver_init();
 
     do_initcall();

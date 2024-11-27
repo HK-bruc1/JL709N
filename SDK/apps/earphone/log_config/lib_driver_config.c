@@ -56,6 +56,10 @@ const int config_otg_slave_detect_method_2 = 1;
 const int config_otg_slave_detect_method_2 = 0;
 #endif
 
+//gpadc驱动开启 “电池电压”和“温度采集功能”
+const u8 adc_vbat_ch_en = 1;
+const u8 adc_vtemp_ch_en = 1;
+
 /* 是否开启把vm配置项暂存到ram的功能 */
 /* 具体使用方法和功能特性参考《项目帮助文档》的“11.4. 配置项管理 -VM配置项暂存RAM功能描述” */
 const char vm_ram_storage_enable = FALSE;
@@ -272,4 +276,10 @@ const char log_tag_const_i_PERI  = CONFIG_DEBUG_LIB(FALSE);
 const char log_tag_const_d_PERI  = CONFIG_DEBUG_LIB(FALSE);
 const char log_tag_const_w_PERI  = CONFIG_DEBUG_LIB(FALSE);
 const char log_tag_const_e_PERI  = CONFIG_DEBUG_LIB(TRUE);
+
+const char log_tag_const_v_GPADC  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_i_GPADC  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_d_GPADC  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_w_GPADC  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_e_GPADC  = CONFIG_DEBUG_LIB(TRUE);
 

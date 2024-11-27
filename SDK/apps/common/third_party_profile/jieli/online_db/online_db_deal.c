@@ -524,7 +524,7 @@ void app_online_db_register_handle(db_pkt_e type, int (*db_parse_data)(u8 *packe
         log_error("reg_type_err");
         return;
     }
-    log_info("register_handle %d,%08x", type, db_parse_data);
+    log_info("register_handle %d,%08x", type, (void *)db_parse_data);
     db_cb_api_table[type] = (int)db_parse_data;
 }
 

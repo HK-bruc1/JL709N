@@ -270,6 +270,7 @@ INCLUDES := \
 	-Iaudio/common/icsd/dot \
 	-Iaudio/common/icsd/common_v2 \
 	-Iaudio/common/icsd/anc_v2 \
+	-Iaudio/common/icsd/avc \
 	-Iaudio/common/icsd/config \
 	-Iaudio/common/icsd/rt_anc \
 	-Iaudio/common/icsd/tool \
@@ -312,6 +313,8 @@ c_SRC_FILES := \
 	apps/common/debug/debug.c \
 	apps/common/debug/debug_lite.c \
 	apps/common/debug/debug_uart_config.c \
+	apps/common/debug/dlog_config.c \
+	apps/common/debug/dlog_output_config.c \
 	apps/common/dev_manager/dev_manager.c \
 	apps/common/dev_manager/dev_reg.c \
 	apps/common/device/eartouch/eartouch_iic_interface.c \
@@ -579,6 +582,7 @@ c_SRC_FILES := \
 	apps/earphone/board/br52/board_config.c \
 	apps/earphone/board/br52/undef_func.c \
 	apps/earphone/board/sdk_board_config.c \
+	apps/earphone/demo/att_over_edr_demo.c \
 	apps/earphone/demo/debug_record_demo.c \
 	apps/earphone/demo/pbg_demo.c \
 	apps/earphone/demo/read_sn_demo.c \
@@ -691,6 +695,7 @@ c_SRC_FILES := \
 	audio/common/icsd/adt/icsd_adt_alg.c \
 	audio/common/icsd/adt/icsd_adt_app.c \
 	audio/common/icsd/adt/icsd_adt_config.c \
+	audio/common/icsd/adt/icsd_adt_demo.c \
 	audio/common/icsd/aeq/icsd_aeq.c \
 	audio/common/icsd/aeq/icsd_aeq_app.c \
 	audio/common/icsd/aeq/icsd_aeq_config.c \
@@ -704,6 +709,7 @@ c_SRC_FILES := \
 	audio/common/icsd/anc_v2/icsd_anc_v2.c \
 	audio/common/icsd/anc_v2/icsd_anc_v2_app.c \
 	audio/common/icsd/anc_v2/icsd_anc_v2_interactive.c \
+	audio/common/icsd/avc/icsd_avc_config.c \
 	audio/common/icsd/cmp/icsd_cmp_app.c \
 	audio/common/icsd/cmp/icsd_cmp_config.c \
 	audio/common/icsd/common/icsd_common.c \
@@ -715,6 +721,7 @@ c_SRC_FILES := \
 	audio/common/icsd/dot/icsd_dot_app.c \
 	audio/common/icsd/ein/icsd_ein_config.c \
 	audio/common/icsd/rt_anc/rt_anc.c \
+	audio/common/icsd/rt_anc/rt_anc_app.c \
 	audio/common/icsd/rt_anc/rt_anc_config.c \
 	audio/common/icsd/tool/anc_ext_tool.c \
 	audio/common/icsd/tool/anc_ext_tool_file.c \
@@ -808,6 +815,7 @@ c_SRC_FILES := \
 	audio/framework/plugs/source/multi_ch_adc_file.c \
 	audio/framework/plugs/source/multi_ch_iis_file.c \
 	audio/framework/plugs/source/pc_spk_file.c \
+	audio/framework/plugs/source/pdm_mic_file.c \
 	audio/framework/plugs/source/source_dev0_file.c \
 	audio/framework/plugs/source/source_dev1_file.c \
 	audio/framework/plugs/source/source_dev2_file.c \
@@ -858,7 +866,6 @@ c_SRC_FILES := \
 	cpu/br52/charge/chargestore_config.c \
 	cpu/br52/lua_port_api.c \
 	cpu/br52/overlay_code.c \
-	cpu/br52/periph/gpadc.c \
 	cpu/br52/periph/led/pwm_led.c \
 	cpu/br52/periph/mcpwm.c \
 	cpu/br52/periph/rdec.c \
@@ -871,7 +878,7 @@ c_SRC_FILES := \
 	cpu/br52/power/power_config.c \
 	cpu/br52/power/power_port.c \
 	cpu/br52/setup.c \
-	cpu/components/gpadc_utils.c \
+	cpu/components/gpadc_battery.c \
 	cpu/components/iic_api.c \
 	cpu/components/iic_soft.c \
 	cpu/components/ir_decoder.c \
@@ -1016,6 +1023,8 @@ LFLAGS := \
 	cpu/br52/liba/lib_icsd_wat.a \
 	cpu/br52/liba/lib_icsd_vdt.a \
 	cpu/br52/liba/lib_icsd_ein.a \
+	cpu/br52/liba/lib_icsd_envnl.a \
+	cpu/br52/liba/lib_icsd_avc.a \
 	cpu/br52/liba/lib_limiter.a \
 	cpu/br52/liba/le_audio_profile.a \
 	cpu/br52/liba/jla_codec_lib.a \

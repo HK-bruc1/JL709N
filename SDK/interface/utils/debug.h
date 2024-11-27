@@ -3,6 +3,7 @@
 
 #include "asm/cpu.h"
 #include "generic/typedef.h"
+#include "dlog.h"
 
 // -- output terminal color
 #define RedBold             "\033[31;1m" // 红色加粗
@@ -73,19 +74,43 @@ LOG_TAG_CONST_DECLARE(LOG_CHAR,     LOG_TAG_CONST);
 #if (LOG_MODE == LOG_BY_MACRO)
 
 #ifdef LOG_VERB_ENABLE
-#define log_verb(format, ...)       log_print(__LOG_VERB, NULL, LOG_TAG format, ## __VA_ARGS__)
+#define log_verb(format, ...)       \
+    { \
+        if(config_dlog_enable){ \
+            dlog_print_args_check(__VA_ARGS__) \
+            dlog_uart_log_print(format, __LOG_VERB, VA_ARGS_NUM(__VA_ARGS__), VA_ARGS_TYPE_BIT_SIZE(__VA_ARGS__), ##__VA_ARGS__) \
+        }else { \
+            log_print(__LOG_VERB, NULL, LOG_TAG format, ## __VA_ARGS__); \
+        } \
+    }
 #else
 #define log_verb(...)
 #endif
 
 #ifdef LOG_INFO_ENABLE
-#define log_info(format, ...)       log_print(__LOG_INFO, NULL, _LOG_TAG format, ## __VA_ARGS__)
+#define log_info(format, ...)       \
+    { \
+        if(config_dlog_enable){ \
+            dlog_print_args_check(__VA_ARGS__) \
+            dlog_uart_log_print(format, __LOG_INFO, VA_ARGS_NUM(__VA_ARGS__), VA_ARGS_TYPE_BIT_SIZE(__VA_ARGS__), ##__VA_ARGS__) \
+        }else { \
+            log_print(__LOG_INFO, NULL, _LOG_TAG format, ## __VA_ARGS__); \
+        } \
+    }
 #else
 #define log_info(...)
 #endif
 
 #ifdef LOG_DEBUG_ENABLE
-#define log_debug(format, ...)       log_print(__LOG_DEBUG, NULL, _LOG_TAG format, ## __VA_ARGS__)
+#define log_debug(format, ...)       \
+    { \
+        if(config_dlog_enable){ \
+            dlog_print_args_check(__VA_ARGS__) \
+            dlog_uart_log_print(format, __LOG_DEBUG, VA_ARGS_NUM(__VA_ARGS__), VA_ARGS_TYPE_BIT_SIZE(__VA_ARGS__), ##__VA_ARGS__) \
+        } else { \
+            log_print(__LOG_DEBUG, NULL, _LOG_TAG format, ## __VA_ARGS__); \
+        } \
+    }
 #define log_debug_hexdump(x, y)     printf_buf(x, y)
 #else
 #define log_debug(...)
@@ -93,13 +118,29 @@ LOG_TAG_CONST_DECLARE(LOG_CHAR,     LOG_TAG_CONST);
 #endif
 
 #ifdef LOG_ERROR_ENABLE
-#define log_warn(format, ...)      log_print(__LOG_WARN, NULL, "<warning>:" _LOG_TAG format, ## __VA_ARGS__)
+#define log_warn(format, ...)      \
+    { \
+        if(config_dlog_enable){ \
+            dlog_print_args_check(__VA_ARGS__) \
+            dlog_uart_log_print(format, __LOG_WARN, VA_ARGS_NUM(__VA_ARGS__), VA_ARGS_TYPE_BIT_SIZE(__VA_ARGS__), ##__VA_ARGS__) \
+        } else { \
+            log_print(__LOG_WARN, NULL, "<warning>:" _LOG_TAG format, ## __VA_ARGS__); \
+        } \
+    }
 #else
 #define log_warn(...)
 #endif
 
 #ifdef LOG_ERROR_ENABLE
-#define log_error(format, ...)      log_print(__LOG_ERROR, NULL, "<error>:" _LOG_TAG format, ## __VA_ARGS__)
+#define log_error(format, ...)      \
+    { \
+        if(config_dlog_enable){ \
+            dlog_print_args_check(__VA_ARGS__) \
+            dlog_uart_log_print(format, __LOG_ERROR, VA_ARGS_NUM(__VA_ARGS__), VA_ARGS_TYPE_BIT_SIZE(__VA_ARGS__), ##__VA_ARGS__) \
+        } else { \
+            log_print(__LOG_ERROR, NULL, "<error>:" _LOG_TAG format, ## __VA_ARGS__); \
+        } \
+    }
 #define log_error_hexdump(x, y)     printf_buf(x, y)
 #else
 #define log_error(...)
@@ -124,32 +165,62 @@ LOG_TAG_CONST_DECLARE(LOG_CHAR,     LOG_TAG_CONST);
 #elif (LOG_MODE == LOG_BY_CONST)
 
 #define log_verb(format, ...)       \
-    if (LOG_IS_ENABLE(LOG_VERB)) \
-        log_print(__LOG_VERB, NULL, _LOG_TAG format, ## __VA_ARGS__)
+    if (LOG_IS_ENABLE(LOG_VERB)){ \
+        if(config_dlog_enable){ \
+            dlog_print_args_check(__VA_ARGS__) \
+            dlog_uart_log_print(format, __LOG_VERB, VA_ARGS_NUM(__VA_ARGS__), VA_ARGS_TYPE_BIT_SIZE(__VA_ARGS__), ##__VA_ARGS__) \
+        } else { \
+            log_print(__LOG_VERB, NULL, _LOG_TAG format, ## __VA_ARGS__); \
+        } \
+    }
 
 #define log_info(format, ...)       \
-    if (LOG_IS_ENABLE(LOG_INFO)) \
-        log_print(__LOG_INFO, NULL, _LOG_TAG format, ## __VA_ARGS__)
+    if (LOG_IS_ENABLE(LOG_INFO)){ \
+        if(config_dlog_enable){ \
+            dlog_print_args_check(__VA_ARGS__) \
+            dlog_uart_log_print(format, __LOG_INFO, VA_ARGS_NUM(__VA_ARGS__), VA_ARGS_TYPE_BIT_SIZE(__VA_ARGS__), ##__VA_ARGS__) \
+        } else { \
+            log_print(__LOG_INFO, NULL, _LOG_TAG format, ## __VA_ARGS__); \
+        } \
+    }
 
 #define log_info_hexdump(x, y)     \
     if (LOG_IS_ENABLE(LOG_INFO)) \
         printf_buf(x, y)
 
 #define log_debug(format, ...)       \
-    if (LOG_IS_ENABLE(LOG_DEBUG)) \
-        log_print(__LOG_DEBUG, NULL, _LOG_TAG format, ## __VA_ARGS__)
+    if (LOG_IS_ENABLE(LOG_DEBUG)) { \
+        if(config_dlog_enable){ \
+            dlog_print_args_check(__VA_ARGS__) \
+            dlog_uart_log_print(format, __LOG_DEBUG, VA_ARGS_NUM(__VA_ARGS__), VA_ARGS_TYPE_BIT_SIZE(__VA_ARGS__), ##__VA_ARGS__) \
+        } else { \
+            log_print(__LOG_DEBUG, NULL, _LOG_TAG format, ## __VA_ARGS__); \
+        } \
+    }
 
 #define log_debug_hexdump(x, y)     \
     if (LOG_IS_ENABLE(LOG_DEBUG)) \
         printf_buf(x, y)
 
 #define log_warn(format, ...)       \
-    if (LOG_IS_ENABLE(LOG_WARN)) \
-        log_print(__LOG_WARN, NULL, "<warning> " _LOG_TAG format, ## __VA_ARGS__)
+    if (LOG_IS_ENABLE(LOG_WARN)){ \
+        if(config_dlog_enable){ \
+            dlog_print_args_check(__VA_ARGS__) \
+            dlog_uart_log_print(format, __LOG_WARN, VA_ARGS_NUM(__VA_ARGS__), VA_ARGS_TYPE_BIT_SIZE(__VA_ARGS__), ##__VA_ARGS__) \
+        } else { \
+            log_print(__LOG_WARN, NULL, "<warning> " _LOG_TAG format, ## __VA_ARGS__); \
+        } \
+    }
 
 #define log_error(format, ...)       \
-    if (LOG_IS_ENABLE(LOG_ERROR)) \
-        log_print(__LOG_ERROR, NULL, "<error> " _LOG_TAG format, ## __VA_ARGS__)
+    if (LOG_IS_ENABLE(LOG_ERROR)){ \
+         if(config_dlog_enable){ \
+            dlog_print_args_check(__VA_ARGS__) \
+            dlog_uart_log_print(format, __LOG_ERROR, VA_ARGS_NUM(__VA_ARGS__), VA_ARGS_TYPE_BIT_SIZE(__VA_ARGS__), ##__VA_ARGS__) \
+        } else { \
+            log_print(__LOG_ERROR, NULL, "<error> " _LOG_TAG format, ## __VA_ARGS__); \
+        } \
+    }
 
 #define log_error_hexdump(x, y)     \
     if (LOG_IS_ENABLE(LOG_ERROR)) \

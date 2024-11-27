@@ -196,6 +196,7 @@
 <Add directory="audio/common/icsd/dot" />
 <Add directory="audio/common/icsd/common_v2" />
 <Add directory="audio/common/icsd/anc_v2" />
+<Add directory="audio/common/icsd/avc" />
 <Add directory="audio/common/icsd/config" />
 <Add directory="audio/common/icsd/rt_anc" />
 <Add directory="audio/common/icsd/tool" />
@@ -320,6 +321,8 @@
 <Add option="cpu/br52/liba/lib_icsd_wat.a" />
 <Add option="cpu/br52/liba/lib_icsd_vdt.a" />
 <Add option="cpu/br52/liba/lib_icsd_ein.a" />
+<Add option="cpu/br52/liba/lib_icsd_envnl.a" />
+<Add option="cpu/br52/liba/lib_icsd_avc.a" />
 <Add option="cpu/br52/liba/lib_limiter.a" />
 <Add option="cpu/br52/liba/le_audio_profile.a" />
 <Add option="cpu/br52/liba/jla_codec_lib.a" />
@@ -385,6 +388,8 @@
 <Unit filename="apps/common/debug/debug.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/debug/debug_lite.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/debug/debug_uart_config.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/debug/dlog_config.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/debug/dlog_output_config.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/dev_manager/dev_manager.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/dev_manager/dev_manager.h" />
 <Unit filename="apps/common/dev_manager/dev_reg.c"><Option compilerVer="CC"/></Unit>
@@ -890,6 +895,7 @@
 <Unit filename="apps/earphone/board/br52/sdk_config.h" />
 <Unit filename="apps/earphone/board/br52/undef_func.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/board/sdk_board_config.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/earphone/demo/att_over_edr_demo.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/demo/debug_record_demo.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/demo/pbg_demo.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/earphone/demo/read_sn_demo.c"><Option compilerVer="CC"/></Unit>
@@ -1077,6 +1083,7 @@
 <Unit filename="audio/common/icsd/adt/icsd_adt_alg.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/adt/icsd_adt_app.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/adt/icsd_adt_config.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="audio/common/icsd/adt/icsd_adt_demo.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/aeq/icsd_aeq.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/aeq/icsd_aeq_app.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/aeq/icsd_aeq_config.c"><Option compilerVer="CC"/></Unit>
@@ -1093,6 +1100,7 @@
 <Unit filename="audio/common/icsd/anc_v2/icsd_anc_v2_app.h" />
 <Unit filename="audio/common/icsd/anc_v2/icsd_anc_v2_interactive.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/anc_v2/icsd_anc_v2_interactive.h" />
+<Unit filename="audio/common/icsd/avc/icsd_avc_config.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/cmp/icsd_cmp_app.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/cmp/icsd_cmp_config.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/common/icsd_common.c"><Option compilerVer="CC"/></Unit>
@@ -1110,6 +1118,7 @@
 <Unit filename="audio/common/icsd/dot/icsd_dot_app.h" />
 <Unit filename="audio/common/icsd/ein/icsd_ein_config.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/rt_anc/rt_anc.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="audio/common/icsd/rt_anc/rt_anc_app.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/rt_anc/rt_anc_config.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/tool/anc_ext_tool.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/tool/anc_ext_tool.h" />
@@ -1241,6 +1250,7 @@
 <Unit filename="audio/framework/plugs/source/multi_ch_iis_file.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/framework/plugs/source/pc_spk_file.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/framework/plugs/source/pc_spk_file.h" />
+<Unit filename="audio/framework/plugs/source/pdm_mic_file.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/framework/plugs/source/source_dev0_file.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/framework/plugs/source/source_dev1_file.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/framework/plugs/source/source_dev2_file.c"><Option compilerVer="CC"/></Unit>
@@ -1325,7 +1335,6 @@
 <Unit filename="cpu/br52/lua_port_api.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/br52/overlay_code.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/br52/overlay_code.h" />
-<Unit filename="cpu/br52/periph/gpadc.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/br52/periph/led/pwm_led.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/br52/periph/mcpwm.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/br52/periph/rdec.c"><Option compilerVer="CC"/></Unit>
@@ -1338,7 +1347,7 @@
 <Unit filename="cpu/br52/power/power_config.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/br52/power/power_port.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/br52/setup.c"><Option compilerVer="CC"/></Unit>
-<Unit filename="cpu/components/gpadc_utils.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="cpu/components/gpadc_battery.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/components/iic_api.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/components/iic_soft.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="cpu/components/ir_decoder.c"><Option compilerVer="CC"/></Unit>
@@ -1459,6 +1468,7 @@
 <Unit filename="interface/driver/cpu/includes.h" />
 <Unit filename="interface/driver/cpu/periph/clock.h" />
 <Unit filename="interface/driver/cpu/periph/gpadc.h" />
+<Unit filename="interface/driver/cpu/periph/gpadc_hw_v10.h" />
 <Unit filename="interface/driver/cpu/periph/gpio.h" />
 <Unit filename="interface/driver/cpu/periph/gpio_config.h" />
 <Unit filename="interface/driver/cpu/periph/gptimer.h" />
@@ -1681,6 +1691,7 @@
 <Unit filename="interface/utils/generic/ascii.h" />
 <Unit filename="interface/utils/generic/atomic.h" />
 <Unit filename="interface/utils/generic/circular_buf.h" />
+<Unit filename="interface/utils/generic/dlog.h" />
 <Unit filename="interface/utils/generic/lbuf.h" />
 <Unit filename="interface/utils/generic/log.h" />
 <Unit filename="interface/utils/generic/printf.h" />

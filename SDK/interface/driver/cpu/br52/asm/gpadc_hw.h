@@ -1,7 +1,12 @@
 #ifndef  __GPADC_HW_H__
 #define  __GPADC_HW_H__
-//br50
+//br52
+#include "gpadc_hw_v10.h"
 #include "generic/typedef.h"
+#include "gpio.h"
+#include "clock.h"
+#include "asm/power_interface.h"
+
 #define ADC_CH_MASK_TYPE_SEL	0xffff0000
 #define ADC_CH_MASK_CH_SEL	    0x000000ff
 #define ADC_CH_MASK_PMU_VBG_CH_SEL   0x0000ff00
@@ -15,17 +20,16 @@
 #define ADC_CH_TYPE_IO		(0x10<<16)
 
 #define ADC_CH_BT_			(ADC_CH_TYPE_BT | 0x0)
-// #define ADC_CH_PMU_VBG  	(ADC_CH_TYPE_PMU | 0x0)//MVBG/WVBG
-#define ADC_CH_PMU_VBG_WBG04  	(ADC_CH_TYPE_PMU | (0x0<<8) | 0x0)//WBG04
-#define ADC_CH_PMU_VBG_MBG08  	(ADC_CH_TYPE_PMU | (0x1<<8) | 0x0)//MBG08
-#define ADC_CH_PMU_VBG_MBG04  	(ADC_CH_TYPE_PMU | (0x2<<8) | 0x0)//MBG04
-#define ADC_CH_PMU_VBG_LVDVBG  	(ADC_CH_TYPE_PMU | (0x3<<8) | 0x0)//LVDVBG
+#define ADC_CH_PMU_WBG04  	(ADC_CH_TYPE_PMU | (0x0<<8) | 0x0)//WBG04
+#define ADC_CH_PMU_MBG08  	(ADC_CH_TYPE_PMU | (0x1<<8) | 0x0)//MBG08
+#define ADC_CH_PMU_MBG04  	(ADC_CH_TYPE_PMU | (0x2<<8) | 0x0)//MBG04
+#define ADC_CH_PMU_LVDVBG  	(ADC_CH_TYPE_PMU | (0x3<<8) | 0x0)//LVDVBG
 #define ADC_CH_PMU_VSW  	(ADC_CH_TYPE_PMU | 0x1)
 #define ADC_CH_PMU_PROGI	(ADC_CH_TYPE_PMU | 0x2)
 #define ADC_CH_PMU_PROGF	(ADC_CH_TYPE_PMU | 0x3)
 #define ADC_CH_PMU_VTEMP	(ADC_CH_TYPE_PMU | 0x4)
-#define ADC_CH_PMU_VPWR 	(ADC_CH_TYPE_PMU | 0x5) //1/4vpwr
-#define ADC_CH_PMU_VBAT 	(ADC_CH_TYPE_PMU | 0x6)  //1/4vbat
+#define ADC_CH_PMU_VPWR_4 	(ADC_CH_TYPE_PMU | 0x5) //1/4vpwr
+#define ADC_CH_PMU_VBAT_4 	(ADC_CH_TYPE_PMU | 0x6)  //1/4vbat
 #define ADC_CH_PMU_VBAT_2	(ADC_CH_TYPE_PMU | 0x7)
 #define ADC_CH_PMU_DCVDD18  (ADC_CH_TYPE_PMU | 0x8)
 #define ADC_CH_PMU_VQPS  	(ADC_CH_TYPE_PMU | 0x9)
@@ -107,24 +111,20 @@
 #define ADC_CH_IO_DP        (ADC_CH_TYPE_IO | 0xE)
 #define ADC_CH_IO_DM        (ADC_CH_TYPE_IO | 0xF)
 
-#define     ADC_VBG_CENTER        801
-#define     ADC_VBG_TRIM_STEP     3
-#define     ADC_VBG_DATA_WIDTH    4
-
 enum AD_CH {
     AD_CH_BT = ADC_CH_BT_,
 
-    AD_CH_PMU_VBG_WBG04 = ADC_CH_PMU_VBG_WBG04,
-    AD_CH_PMU_VBG = ADC_CH_PMU_VBG_MBG08,
-    AD_CH_PMU_VBG_MBG04 = ADC_CH_PMU_VBG_MBG04,
-    AD_CH_PMU_VBG_LVDVBG = ADC_CH_PMU_VBG_LVDVBG,
+    AD_CH_PMU_WBG04 = ADC_CH_PMU_WBG04,
+    AD_CH_PMU_MBG08 = ADC_CH_PMU_MBG08,
+    AD_CH_PMU_MBG04 = ADC_CH_PMU_MBG04,
+    AD_CH_PMU_LVDVBG = ADC_CH_PMU_LVDVBG,
 
     AD_CH_PMU_VSW = ADC_CH_PMU_VSW,
     AD_CH_PMU_PROGI,
     AD_CH_PMU_PROGF,
     AD_CH_PMU_VTEMP,
-    AD_CH_PMU_VPWR,
-    AD_CH_PMU_VBAT,
+    AD_CH_PMU_VPWR_4,
+    AD_CH_PMU_VBAT_4,
     AD_CH_PMU_VBAT_2,
     AD_CH_PMU_DCVDD18,
     AD_CH_PMU_VQPS,
@@ -151,33 +151,36 @@ enum AD_CH {
     AD_CH_PMU_DVD_PORB_09V,
     AD_CH_PMU_DVD2_PORB_09V,
 
-    AD_CH_AUDIO = ADC_CH_AUDIO_MICLDO, //该宏定义非法, 防止编译报错
-    AD_CH_AUDIO_MICLDO = ADC_CH_AUDIO_MICLDO,
-    AD_CH_AUDIO_MICBIASA,
+    AD_CH_AUDIO = ADC_CH_AUDIO_MICBIASA, //该宏定义非法, 防止编译报错
+    AD_CH_AUDIO_MICBIASA = ADC_CH_AUDIO_MICBIASA,
     AD_CH_AUDIO_MICBIASB,
     AD_CH_AUDIO_MICBIASC,
+    AD_CH_AUDIO_MICBIASD,
+    AD_CH_AUDIO_MICBIASE,
+    AD_CH_AUDIO_MICLDO,
+    AD_CH_AUDIO_ADCLDO0,
+    AD_CH_AUDIO_ADCLDO1,
+    AD_CH_AUDIO_FIFLDO,
+    AD_CH_AUDIO_BUFP,
     AD_CH_AUDIO_AIN_AP0,
     AD_CH_AUDIO_AIN_AN0,
     AD_CH_AUDIO_AIN_BP0,
     AD_CH_AUDIO_AIN_BN0,
     AD_CH_AUDIO_AIN_CP0,
     AD_CH_AUDIO_AIN_CN0,
+    AD_CH_AUDIO_AIN_DP0,
+    AD_CH_AUDIO_AIN_DN0,
+    AD_CH_AUDIO_AIN_EP0,
+    AD_CH_AUDIO_AIN_EN0,
     AD_CH_AUDIO_BUFA,
     AD_CH_AUDIO_BUFB,
     AD_CH_AUDIO_BUFC,
-    AD_CH_AUDIO_ADCLDO0,
-    AD_CH_AUDIO_ADCLDO1,
-    AD_CH_AUDIO_ADCLDO2,
-    AD_CH_AUDIO_QTREF0,
-    AD_CH_AUDIO_QTREF1,
-    AD_CH_AUDIO_QTREF2,
-    AD_CH_AUDIO_QTVDD0,
-    AD_CH_AUDIO_QTVDD1,
-    AD_CH_AUDIO_QTVDD2,
-    AD_CH_AUDIO_CKVDD,
+    AD_CH_AUDIO_BUFD,
+    AD_CH_AUDIO_BUFE,
     AD_CH_AUDIO_LDACVDD,
     AD_CH_AUDIO_RDACVDD,
-    AD_CH_AUDIO_DACLP = ADC_CH_AUDIO_DACLP,
+    AD_CH_AUDIO_HPVDD,
+    AD_CH_AUDIO_DACLP,
     AD_CH_AUDIO_DACLN,
     AD_CH_AUDIO_DACRP,
     AD_CH_AUDIO_DACRN,
@@ -211,13 +214,38 @@ enum AD_CH {
     AD_CH_IOVDD = 0xffffffff,
 };
 
+#define     ADC_VBG_CENTER        800
+#define     ADC_VBG_TRIM_STEP     0
+#define     ADC_VBG_DATA_WIDTH    0
+
+//防编译报错
+#define AD_CH_PMU_VBG   AD_CH_PMU_MBG08
 #define AD_CH_LDOREF    AD_CH_PMU_VBG
+#define AD_CH_PMU_VPWR   AD_CH_PMU_VPWR_4
+#define AD_CH_PMU_VBAT  AD_CH_PMU_VBAT_2
+#define AD_CH_PMU_VBAT_DIV  2
 
 
-void adc_pmu_ch_select(u32 ch);
-u32 get_vbg_trim();
-//int get_hpvdd_voltage(void);
+#define ADC_PMU_PMUTS_OE(x)         SFR(P3_PMU_ADC0, 6, 1, x)
+#define ADC_PMU_VBG_TEST_SEL(x)     SFR(P3_PMU_ADC0, 4, 2, x)
+#define ADC_PMU_VBG_TEST_EN(x)      SFR(P3_PMU_ADC0, 3, 1, x)
+#define ADC_PMU_VBG_BUFFER_EN(x)    SFR(P3_PMU_ADC0, 2, 1, x)
+#define ADC_PMU_VBG_TEST_OE(x)      SFR(P3_PMU_ADC0, 1, 1, x)
+#define ADC_PMU_TOADC_EN(x)         SFR(P3_PMU_ADC0, 0, 1, x)
+#define ADC_PMU_CHANNEL_ADC(x)      SFR(P3_PMU_ADC1, 0, 5, x) //CHANNEL_ADC_S
+#define ADC_PMU_CH_CLOSE()  {   ADC_PMU_TOADC_EN(0);\
+                                ADC_PMU_VBG_TEST_OE(0);\
+                                ADC_PMU_VBG_TEST_EN(0);\
+                            }
 
+//ADC_CON寄存器差异部分
+// #define GPADC_CON_RESERVED  26 //bit26~bit31
+#define GPADC_CON_ADC_ISEL      24
+#define GPADC_CON_ADC_ISEL_      2
+#define GPADC_CON_ADC_MUX_SEL   21
+#define GPADC_CON_ADC_MUX_SEL_  3
+#define GPADC_CON_ADC_ASEL      18
+#define GPADC_CON_ADC_ASEL_     3
 
 #endif  /*GPADC_HW_H*/
 
