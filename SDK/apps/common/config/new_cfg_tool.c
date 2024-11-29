@@ -162,6 +162,8 @@ RESFILE *cfg_open_file(u32 file_id)
         cfg_fp = resfile_open(CFG_STREAM_FILE);
     } else if (file_id == CFG_EFFECT_CFG_FILEID) {
         cfg_fp = resfile_open(CFG_EFFECT_CFG_FILE);
+    } else if (file_id == CFG_DNSFB_COEFF_FILEID) {
+        cfg_fp = resfile_open(CFG_DNSFB_COEFF_FILE);
     }
     return cfg_fp;
 }
@@ -638,6 +640,8 @@ static void cfg_tool_callback(u8 *packet, u32 size)
 
         if (__this->r_prepare_write_file.file_id == CFG_STREAM_FILEID) {
             app_send_message(APP_MSG_WRITE_RESFILE_START, (int)"stream.bin");
+        } else if (__this->r_prepare_write_file.file_id == CFG_DNSFB_COEFF_FILEID) {
+            app_send_message(APP_MSG_WRITE_RESFILE_START, (int)"DNSFB_Coeff.bin");
         }
         break;
 
@@ -729,6 +733,10 @@ static void cfg_tool_callback(u8 *packet, u32 size)
         if (__this->r_prepare_write_file.file_id == CFG_STREAM_FILEID) {
             if (a >= b) {
                 app_send_message(APP_MSG_WRITE_RESFILE_STOP, (int)"stream.bin");
+            }
+        } else if (__this->r_prepare_write_file.file_id == CFG_DNSFB_COEFF_FILEID) {
+            if (a >= b) {
+                app_send_message(APP_MSG_WRITE_RESFILE_STOP, (int)"DNSFB_Coeff.bin");
             }
         }
         break;

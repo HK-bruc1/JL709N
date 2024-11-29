@@ -274,6 +274,26 @@ int a2dp_player_open(u8 *btaddr)
                              BREAKER_TARGER_NODE_UUID, BREAKER_TARGER_NODE_NEME);
 #endif
 
+#if TCFG_VIRTUAL_SURROUND_PRO_MODULE_NODE_ENABLE
+    //iphone sbc解码帧长短得情况下，使用三线程推数
+    jlstream_add_thread(player->stream, "media0");
+    jlstream_add_thread(player->stream, "media1");
+
+    int codec_type = 0xff;
+    void *file = a2dp_open_media_file(player->bt_addr);
+    if (file) {
+        codec_type = a2dp_media_get_codec_type(file);
+    }
+    if (codec_type == A2DP_CODEC_SBC) {
+#if defined(CONFIG_CPU_BR28)
+        jlstream_add_thread(player->stream, "media2");
+#endif
+    }
+
+#endif
+
+
+
     if (err == 0) {
         err = jlstream_start(player->stream);
         if (err) {

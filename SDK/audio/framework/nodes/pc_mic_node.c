@@ -159,7 +159,6 @@ int audio_pcmic_channel_buffered_frames(struct audio_pcmic_channel *ch)
 
     int buffered_frames = 0;
 
-    os_mutex_pend(&hdl->mutex, 0);
     if (ch->state != AUDIO_CFIFO_START) {
         goto ret_value;
     }
@@ -170,7 +169,6 @@ int audio_pcmic_channel_buffered_frames(struct audio_pcmic_channel *ch)
     }
 
 ret_value:
-    os_mutex_post(&hdl->mutex);
 
     return buffered_frames;
 }
@@ -224,21 +222,17 @@ static int audio_pcmic_add_syncts_with_timestamp(struct audio_pcmic_channel *ch,
     if (!hdl) {
         return 0;
     }
-
-    spin_lock(&pc_mic_lock);
+#if TCFG_DAC_NODE_ENABLE
     if (dac_adapter_link_to_syncts_check(syncts)) {
-        spin_unlock(&pc_mic_lock);
+        log_debug("syncts has beed link to dac");
         return 0;
     }
+#endif
 
+    spin_lock(&pc_mic_lock);
     if (iis_adapter_link_to_syncts_check(syncts)) {
         log_debug("syncts has beed link to iis");
         spin_unlock(&pc_mic_lock);
-        return 0;
-    }
-    if (dac_adapter_link_to_syncts_check(syncts)) {
-        spin_unlock(&pc_mic_lock);
-        log_debug("syncts has beed link to dac");
         return 0;
     }
 

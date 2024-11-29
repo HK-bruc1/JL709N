@@ -129,9 +129,12 @@ void aec_param_dump(struct tms_attr *param)
     put_float(param->wn_gain_offset);
 
     printf("******************* MFDT ********************");
-    puts("MFDT detect_time:"), put_float(param->detect_time);
-    puts("MFDT detect_eng_diff_thr:"), put_float(param->detect_eng_diff_thr);
-    puts("MFDT detect_eng_lowerbound:"), put_float(param->detect_eng_lowerbound);
+    puts("MFDT detect_time:");
+    put_float(param->detect_time);
+    puts("MFDT detect_eng_diff_thr:");
+    put_float(param->detect_eng_diff_thr);
+    puts("MFDT detect_eng_lowerbound:");
+    put_float(param->detect_eng_lowerbound);
     printf("MalfuncDet_MaxFrequency:%d", param->MalfuncDet_MaxFrequency);
     printf("MalfuncDet_MinFrequency:%d", param->MalfuncDet_MinFrequency);
     printf("MFDT OnlyDetect:%d", param->OnlyDetect);

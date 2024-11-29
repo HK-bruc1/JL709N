@@ -215,7 +215,11 @@ int jlstream_read_effects_online_param(u32 uuid, char *name, void *param, u16 le
  *小机主动往上位机发数据接口
  * */
 void eff_node_send_packet(u32 id, u8 sq, u8 *packet, int size);
+/*
+ *name_son:子节点名字
+ *name_father:父节点名字
+ *name_out:计算得到节点的实际名字 16byte
+ * */
+void jlstream_module_node_get_name(char *name_son, char *name_father, char *name_out);
 
-u32 jlstream_read_jbhash(u8 *data, int len);
-void jlstream_node_name_to_uuid(char *name, char *out);
 #endif/*__EFFECTS_ADJ__H*/

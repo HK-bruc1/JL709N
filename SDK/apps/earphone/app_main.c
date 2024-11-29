@@ -75,6 +75,14 @@ const struct task_info task_info_table[] = {
     {"jlstream_6",          5,     0,  768,   0 },
     {"jlstream_7",          5,     0,  768,   0 },
 
+#if TCFG_VIRTUAL_SURROUND_PRO_MODULE_NODE_ENABLE
+    /*virtual surround pro*/
+
+    {"media0",          5,     0,  768,   0 },
+    {"media1",          5,     0,  768,   0 },
+    {"media2",          5,     0,  768,   0 },
+#endif
+
 #if (TCFG_BT_SUPPORT_LHDC || TCFG_BT_SUPPORT_LHDC_V5)
     {"a2dp_dec",            4,     1,   256 + 512,   0 },
 #else

@@ -73,6 +73,16 @@ const int const_audio_codec_wma_dec_supoort_POS_play = 1; //是否支持指定�
 const int const_audio_codec_wav_dec_bitDepth_set_en = 0;
 
 
+const float config_bandmerge_node_fade_step = 0.0f;//淡入步进 0:默认不淡入 非0：淡入步进，范围：0.01f~10.0f，建议值0.1f,步进越大，更新越快
+
+/*控制 eq_design.c中的butterworth 函数 设计的系数是定点还是浮点 */
+#if defined(EQ_CORE_V2)
+const int butterworth_iir_filter_coeff_type_select = 1;//虚拟低音根据此变量使用相应的滤波器设计函数 0:float  1:int
+#else
+const int butterworth_iir_filter_coeff_type_select = 0;//虚拟低音根据此变量使用相应的滤波器设计函数 0:float  1:int
+#endif
+
+
 
 __attribute__((weak))
 int get_system_stream_bit_width(void *par)

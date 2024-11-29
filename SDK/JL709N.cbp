@@ -294,6 +294,7 @@
 <Add option="cpu/br52/liba/lib_drc_advance.a" />
 <Add option="cpu/br52/liba/lib_voiceChanger.a" />
 <Add option="cpu/br52/liba/VirtualBass.a" />
+<Add option="cpu/br52/liba/lib_virtual_bass_classic.a" />
 <Add option="cpu/br52/liba/DynamicEQ.a" />
 <Add option="cpu/br52/liba/DynamicEQPro.a" />
 <Add option="cpu/br52/liba/lib_point360_td.a" />
@@ -333,6 +334,7 @@
 <Add option="cpu/br52/liba/lib_SurroundEffect.a" />
 <Add option="cpu/br52/liba/lib_StereoWidener.a" />
 <Add option="cpu/br52/liba/lib_ThreeD_effect.a" />
+<Add option="cpu/br52/liba/libSAS_pi32v2_OnChip.a" />
 <Add option="cpu/br52/liba/libFFT_pi32v2_OnChip.a" />
 <Add option="cpu/br52/liba/lib_wtg_dec.a" />
 <Add option="cpu/br52/liba/bfilterfun_lib.a" />
@@ -1587,6 +1589,7 @@
 <Unit filename="interface/media/effects/audio_stereo_widener.h" />
 <Unit filename="interface/media/effects/audio_surround.h" />
 <Unit filename="interface/media/effects/audio_vbass.h" />
+<Unit filename="interface/media/effects/audio_virtual_bass_classic.h" />
 <Unit filename="interface/media/effects/audio_virtual_surround_pro.h" />
 <Unit filename="interface/media/effects/audio_vocal_remove.h" />
 <Unit filename="interface/media/effects/audio_voice_changer.h" />
@@ -1619,6 +1622,7 @@
 <Unit filename="interface/media/effects/spectrum/spectrum_fft.h" />
 <Unit filename="interface/media/effects/spectrum/visual_tool.h" />
 <Unit filename="interface/media/effects/stereo_widen_api.h" />
+<Unit filename="interface/media/effects/virtual_bass_classic_api.h" />
 <Unit filename="interface/media/effects/voiceChanger_api.h" />
 <Unit filename="interface/media/framework/include/dac_node.h" />
 <Unit filename="interface/media/framework/include/decoder_node.h" />

@@ -996,6 +996,7 @@ LFLAGS := \
 	cpu/br52/liba/lib_drc_advance.a \
 	cpu/br52/liba/lib_voiceChanger.a \
 	cpu/br52/liba/VirtualBass.a \
+	cpu/br52/liba/lib_virtual_bass_classic.a \
 	cpu/br52/liba/DynamicEQ.a \
 	cpu/br52/liba/DynamicEQPro.a \
 	cpu/br52/liba/lib_point360_td.a \
@@ -1035,6 +1036,7 @@ LFLAGS := \
 	cpu/br52/liba/lib_SurroundEffect.a \
 	cpu/br52/liba/lib_StereoWidener.a \
 	cpu/br52/liba/lib_ThreeD_effect.a \
+	cpu/br52/liba/libSAS_pi32v2_OnChip.a \
 	cpu/br52/liba/libFFT_pi32v2_OnChip.a \
 	cpu/br52/liba/lib_wtg_dec.a \
 	cpu/br52/liba/bfilterfun_lib.a \

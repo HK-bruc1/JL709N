@@ -481,3 +481,12 @@ speex_dec_plug
 speex_encoder_plug
 #endif
 
+#if TCFG_VIRTUAL_BASS_CLASSIC_NODE_ENABLE
+virtual_bass_classic_node_adapter
+#endif
+
+#if TCFG_VIRTUAL_SURROUND_PRO_NODE_ENABLE
+upmix_node_adapter
+#endif
+
+

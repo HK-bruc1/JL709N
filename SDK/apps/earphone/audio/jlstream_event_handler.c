@@ -198,6 +198,24 @@ static void player_close_handler(const char *name)
     }
 }
 
+#if TCFG_VIRTUAL_SURROUND_PRO_MODULE_NODE_ENABLE
+//调整解码器输出帧长
+static const int frame_unit_size[] = { 64, 128, 256, 384, 512, 1024, 2048, 4096, 8192};
+int decoder_check_frame_unit_size(int dest_len)
+{
+    for (int i = 0; i < ARRAY_SIZE(frame_unit_size); i++) {
+        if (dest_len <= frame_unit_size[i]) {
+            dest_len = frame_unit_size[i];
+            return dest_len;
+        }
+    }
+    dest_len = 8192;
+    return dest_len ;
+}
+
+#endif
+
+
 static int load_decoder_handler(struct stream_decoder_info *info)
 {
 #if TCFG_BT_SUPPORT_AAC
@@ -208,6 +226,10 @@ static int load_decoder_handler(struct stream_decoder_info *info)
 #endif
     if (info->scene == STREAM_SCENE_A2DP) {
         info->task_name = "a2dp_dec";
+
+#if TCFG_VIRTUAL_SURROUND_PRO_MODULE_NODE_ENABLE
+        info->frame_time = 16;
+#endif
     }
     if (info->scene == STREAM_SCENE_LEA_CALL) {
         //printf("decoder scene:LEA CALL\n");

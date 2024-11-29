@@ -56,6 +56,29 @@ int band_merge_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
     }
     return jlstream_set_node_param(NODE_UUID_3BAND_MERGE, node_name, &cfg, sizeof(cfg));
 }
+
+int two_band_merge_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
+{
+    multi_mix_param_tool_set cfg = {0};
+    int ret = jlstream_read_form_data(mode_index, node_name, cfg_index, &cfg);
+    if (!ret) {
+        printf("read parm err, %s, %s\n", __func__, node_name);
+        return -1;
+    }
+    return jlstream_set_node_param(NODE_UUID_2BAND_MERGE, node_name, &cfg, sizeof(cfg));
+}
+int vocal_remover_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
+{
+    vocal_remover_param_tool_set cfg = {0};
+    int ret = jlstream_read_form_data(mode_index, node_name, cfg_index, &cfg);
+    if (!ret) {
+        printf("read parm err, %s, %s\n", __func__, node_name);
+        return -1;
+    }
+    return jlstream_set_node_param(NODE_UUID_VOCAL_REMOVER, node_name, &cfg, sizeof(cfg));
+}
+
+
 int drc_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
 {
     wdrc_param_tool_set cfg = {0};
@@ -219,6 +242,16 @@ int virtual_bass_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
     }
     return jlstream_set_node_param(NODE_UUID_VBASS, node_name, &cfg, sizeof(cfg));
 }
+int virtual_bass_classic_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
+{
+    virtual_bass_param_tool_set cfg = {0};
+    int ret = jlstream_read_form_data(mode_index, node_name, cfg_index, &cfg);
+    if (!ret) {
+        printf("read parm err, %s, %s\n", __func__, node_name);
+        return -1;
+    }
+    return jlstream_set_node_param(NODE_UUID_VIRTUAL_BASS_CLASSIC, node_name, &cfg, sizeof(cfg));
+}
 int voice_changer_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
 {
     voice_changer_param_tool_set cfg = {0};
@@ -268,8 +301,11 @@ int eq_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
         struct eq_adj eff = {0};
         eff.type = EQ_GLOBAL_GAIN_CMD;
         eff.param.global_gain =  tab->global_gain;
-        eff.fade_parm.fade_time = 10;        //ms，淡入timer执行的周期
-        eff.fade_parm.fade_step = 0.1f;      //淡入步进
+        eff.fade_parm.fade_time = 1;        //en
+        eff.fade_parm.fade_step = 0.1f;  //滤波器增益淡入步进
+        eff.fade_parm.q_fade_step = 0.1f;//滤波器q值淡入步进
+        eff.fade_parm.g_fade_step = 0.1f;//总增益淡入步进
+        eff.fade_parm.f_fade_step = 100;//滤波器中心截止频率淡入步进
         jlstream_set_node_param(NODE_UUID_EQ, node_name, &eff, sizeof(eff));//更新总增益
 
         eff.type = EQ_SEG_NUM_CMD;
@@ -281,8 +317,13 @@ int eq_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
             memcpy(&eff.param.seg, &tab->seg[i], sizeof(struct eq_seg_info));
             jlstream_set_node_param(NODE_UUID_EQ, node_name, &eff, sizeof(eff));//更新滤波器系数
         }
+
+        eff.type = EQ_IS_BYPASS_CMD;
+        eff.param.is_bypass = tab->is_bypass;
+        ret = jlstream_set_node_param(NODE_UUID_EQ, node_name, &eff, sizeof(eff));//更新bypass标志
+
         free(tab);
-        return 0;
+        return ret;
     }
     return -1;
 }
@@ -316,6 +357,52 @@ int eq_update_tab(u8 mode_index, char *node_name, u8 cfg_index)
     }
     return ret;
 }
+/* 软件EQ参数更新接口 */
+/*  return: 0 返回成功，非0 ：返回失败 */
+int sw_eq_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
+{
+    struct cfg_info info  = {0};             //节点配置相关信息（参数存储的目标地址、配置项大小）
+    int ret = jlstream_read_form_node_info_base(mode_index, node_name, cfg_index, &info);
+    if (!ret) {
+        struct eq_tool *tab = zalloc(info.size);
+        if (!jlstream_read_form_cfg_data(&info, tab)) {
+            printf("user eq cfg parm read err\n");
+            free(tab);
+            return -1;
+        }
+
+        //运行时，直接设置更新
+        struct eq_adj eff = {0};
+        eff.type = EQ_GLOBAL_GAIN_CMD;
+        eff.param.global_gain =  tab->global_gain;
+        eff.fade_parm.fade_time = 1;        //en
+        eff.fade_parm.fade_step = 0.1f;  //滤波器增益淡入步进
+        eff.fade_parm.q_fade_step = 0.1f;//滤波器q值淡入步进
+        eff.fade_parm.g_fade_step = 0.1f;//总增益淡入步进
+        eff.fade_parm.f_fade_step = 100;//滤波器中心截止频率淡入步进
+        jlstream_set_node_param(NODE_UUID_SOF_EQ, node_name, &eff, sizeof(eff));//更新总增益
+
+        eff.type = EQ_SEG_NUM_CMD;
+        eff.param.seg_num = tab->seg_num;
+        jlstream_set_node_param(NODE_UUID_SOF_EQ, node_name, &eff, sizeof(eff));//更新滤波器段数
+
+        for (int i = 0; i < tab->seg_num; i++) {
+            eff.type = EQ_SEG_CMD;
+            memcpy(&eff.param.seg, &tab->seg[i], sizeof(struct eq_seg_info));
+            jlstream_set_node_param(NODE_UUID_SOF_EQ, node_name, &eff, sizeof(eff));//更新滤波器系数
+        }
+
+        eff.type = EQ_IS_BYPASS_CMD;
+        eff.param.is_bypass = tab->is_bypass;
+        ret = jlstream_set_node_param(NODE_UUID_SOF_EQ, node_name, &eff, sizeof(eff));//更新bypass标志
+
+        free(tab);
+        return ret;
+    }
+    return -1;
+}
+
+
 
 int multiband_drc_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
 {
