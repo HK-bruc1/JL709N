@@ -58,14 +58,7 @@
 #define TCFG_DEBUG_UART_BAUDRATE 2000000 // 波特率
 #define TCFG_EXCEPTION_LOG_ENABLE 1 // 打印异常信息
 #define TCFG_EXCEPTION_RESET_ENABLE 1 // 异常自动复位
-#define TCFG_CONFIG_DEBUG_RECORD_ENABLE 1
 #endif // TCFG_DEBUG_UART_ENABLE
-
-#if !TCFG_DEBUG_UART_ENABLE
-#define TCFG_DEBUG_DLOG_ENABLE 0       // 离线log功能
-#define TCFG_DEBUG_DLOG_FLASH_SEL   0  // 选择log保存到内置flash还是外置flash; 0:内置flash; 1:外置flash
-#define TCFG_DEBUG_DLOG_RESET_ERASE 0  // 开机擦除flash的log数据
-#endif
 
 #define TCFG_CFG_TOOL_ENABLE 0 // FW编辑、在线调音
 #if TCFG_CFG_TOOL_ENABLE
@@ -257,6 +250,11 @@
 #define TCFG_DAC_PERFORMANCE_MODE DAC_MODE_HIGH_PERFORMANCE // 性能模式
 #define TCFG_AUDIO_VCM_CAP_EN 0x1 // VCM电容
 #define TCFG_AUDIO_DAC_BUFFER_TIME_MS 80 // 缓冲长度(ms)
+#define TCFG_AUDIO_DAC_LDO_VOLT 2
+#define TCFG_AUDIO_DAC_HP_PA_ISEL0 4
+#define TCFG_AUDIO_DAC_HP_PA_ISEL1 4
+#define TCFG_AUDIO_DAC_LP_PA_ISEL0 3
+#define TCFG_AUDIO_DAC_LP_PA_ISEL1 3
 #define TCFG_AUDIO_DAC_VOLUME_BOOST 0 // 音量增强
 #define TCFG_AUDIO_L_CHANNEL_GAIN 0x01 // L Channel
 #define TCFG_AUDIO_R_CHANNEL_GAIN 0x01 // R Channel

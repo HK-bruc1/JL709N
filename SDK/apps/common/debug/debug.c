@@ -16,19 +16,15 @@ int putchar(int a)
     return a;
 }
 
-#ifndef puts
-int puts(const char *out)
+int (puts)(const char *out)
 {
     return 0;
 }
-#endif
 
-#ifndef printf
-int printf(const char *format, ...)
+int (printf)(const char *format, ...)
 {
     return 0;
 }
-#endif
 
 void printf_buf(u8 *buf, u32 len)
 {

@@ -132,9 +132,11 @@ const int IDLE_RAM_ENTER_SD_MODE_ENABLE = 0;
 #ifdef TCFG_DEBUG_DLOG_ENABLE
 const int config_dlog_enable = TCFG_DEBUG_DLOG_ENABLE;
 const int config_dlog_reset_erase_enable = TCFG_DEBUG_DLOG_RESET_ERASE;
+const int config_dlog_auto_flush_timeout = TCFG_DEBUG_DLOG_AUTO_FLUSH_TIMEOUT;
 #else
 const int config_dlog_enable = 0;
 const int config_dlog_reset_erase_enable = 0;
+const int config_dlog_auto_flush_timeout = 0;
 #endif
 
 /**

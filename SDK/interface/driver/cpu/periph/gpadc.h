@@ -122,6 +122,11 @@ void adc_dump(void);
   */
 u32 gpadc_battery_get_voltage();
 
+/**@brief 电池电压采集初始化
+  * @param[in]  无
+  * @return     0
+  */
+int gpadc_battery_init();
 
 
 

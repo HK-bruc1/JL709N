@@ -136,7 +136,7 @@ static void gpadc_battery_callback(void *priv)
 }
 
 extern const u8 gpadc_battery_mode;
-static int gpadc_battery_init()
+int gpadc_battery_init()
 {
     if (gpadc_battery_mode != MEAN_FILTERING_MODE) {
         return 0;

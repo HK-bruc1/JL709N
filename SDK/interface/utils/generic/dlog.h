@@ -44,28 +44,42 @@ struct dlog_output_channel_s {
 /**@brief dlog功能初始化
   @param  void
   @return 成功返回 0, 失败返回 < 0
-  @note
+  @note   dlog_init后dlog处于disable状态,需要通过dlog_enable(1)去使能dlog
  */
 /*----------------------------------------------------------------------------*/
 int dlog_init(void);
 
 /*----------------------------------------------------------------------------*/
-/**@brief dlog功能的关闭
+/**@brief dlog功能的关闭(与dlog_init对应)
   @param  void
   @return void
-  @note
+  @note   禁止在关中断/中断下调用该函数, 否则可能丢失ram中数据
  */
 /*----------------------------------------------------------------------------*/
 void dlog_close(void);
 
 /*----------------------------------------------------------------------------*/
-/**@brief 更新 ram 的数据到 flash 中
-  @param  void
-  @return 成功返回 0, 失败返回 < 0
-  @note
+/**@brief dlog功能的临时使能/失能
+  @param  en
+            0 : 禁止打印数据输出(禁止输出到缓冲区)
+            1 : 使能打印数据输出(使能输出到缓冲区)
+  @return void
+  @note   只是临时开关打印数据输出, 不刷新缓冲区数据到flash,(可自行调用flush接口)
  */
 /*----------------------------------------------------------------------------*/
-int dlog_flush2flash(void);
+void dlog_enable(u8 en);
+
+/*----------------------------------------------------------------------------*/
+/**@brief 更新 ram 的数据到 flash 中
+  @param  timeout 刷新等待时间
+              0 : 不等待, 只发送消息给任务刷新dlog, 不管是否刷新成功, 都马上退出
+              -1: 一直等待, 直到刷新成功才退出该函数
+              xx: 刷新成功则马上退出, 否则等待 xx * 10ms的超时时间, 直到刷新成功
+  @return 成功返回 0, 失败返回非 0
+  @note   不可在中断/关中断传入非 0 参数值
+ */
+/*----------------------------------------------------------------------------*/
+int dlog_flush2flash(u32 timeout);
 
 /*----------------------------------------------------------------------------*/
 /**@brief 读取flash中的dlog信息
@@ -78,8 +92,27 @@ int dlog_flush2flash(void);
 /*----------------------------------------------------------------------------*/
 u16 dlog_read_from_flash(u8 *buf, u16 len, u32 offset);
 
+/*----------------------------------------------------------------------------*/
+/**@brief 设置dlog等级
+  @param  level  : 等级
+  @return void
+  @note
+ */
+/*----------------------------------------------------------------------------*/
+void dlog_level_set(int level);
+
+/*----------------------------------------------------------------------------*/
+/**@brief 获取dlog等级
+  @param  void
+  @return level  : 等级
+  @note
+ */
+/*----------------------------------------------------------------------------*/
+int dlog_level_get(void);
+
+
 // 仅声明, 非外部调用接口
-int __attribute__((weak)) dlog_print(const struct dlog_str_tab_s *str_tab, u32 arg_bit_map_and_num, ...);
+int __attribute__((weak)) dlog_print(int level, const struct dlog_str_tab_s *str_tab, u32 arg_bit_map_and_num, ...);
 
 extern const int config_dlog_enable;
 
@@ -154,7 +187,7 @@ extern const int config_dlog_enable;
             .dlog_str_addr = (u32)dlog_printf_str, \
             .arg_type_bit_map = (u32)VA_ARGS_TYPE_BIT_SIZE(__VA_ARGS__) \
         }; \
-        dlog_print((const struct dlog_str_tab_s *)&dlog_printf_str_tab, \
+        dlog_print(level, (const struct dlog_str_tab_s *)&dlog_printf_str_tab, \
                 ((u32)VA_ARGS_NUM(__VA_ARGS__) << 28) | (VA_ARGS_TYPE_BIT_SIZE(__VA_ARGS__) & 0x0FFFFFFF), \
                 ##__VA_ARGS__); \
     };
@@ -174,7 +207,7 @@ extern const int config_dlog_enable;
                 .dlog_str_addr = (u32)dlog_printf_str, \
                 .arg_type_bit_map = (u32)args_bit_map \
             }; \
-            dlog_print((const struct dlog_str_tab_s *)&dlog_printf_str_tab, \
+            dlog_print(level, (const struct dlog_str_tab_s *)&dlog_printf_str_tab, \
                     ((u32)args_num << 28) | (args_bit_map & 0x0FFFFFFF), \
                     ##__VA_ARGS__); \
         }
@@ -189,7 +222,7 @@ extern const int config_dlog_enable;
                 .dlog_str_addr = (u32)dlog_printf_str, \
                 .arg_type_bit_map = (u32)args_bit_map \
             }; \
-            dlog_print((const struct dlog_str_tab_s *)&dlog_printf_str_tab, \
+            dlog_print(level, (const struct dlog_str_tab_s *)&dlog_printf_str_tab, \
                     ((u32)args_num << 28) | (args_bit_map & 0x0FFFFFFF), \
                     ##__VA_ARGS__); \
         }
@@ -204,7 +237,7 @@ extern const int config_dlog_enable;
                 .dlog_str_addr = (u32)dlog_printf_str, \
                 .arg_type_bit_map = (u32)2 \
             }; \
-            dlog_print(&dlog_printf_str_tab, \
+            dlog_print(level, &dlog_printf_str_tab, \
                     ((u32)dlog_printf_str_tab.arg_num << 28) | (dlog_printf_str_tab.arg_type_bit_map & 0x0FFFFFFF), format); \
         }
 

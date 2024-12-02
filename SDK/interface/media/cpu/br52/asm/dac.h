@@ -123,6 +123,9 @@ struct dac_platform_data {
     u8 epa_clk_sel;
     u8 epa_dsm_mode;
     u8 epa_pwm_mode;
+    u8 ldo_volt;                //电压：0~3
+    u8 pa_isel0;                //电流：3~5
+    u8 pa_isel1;                //电流：2~6
 };
 
 /*DAC数字相关的变量*/

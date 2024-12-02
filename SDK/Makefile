@@ -124,7 +124,7 @@ DEFINES := \
 	-D__GCC_PI32V2__ \
 	-DCONFIG_NEW_ECC_ENABLE \
 	-DCONFIG_EFFECT_CORE_V2_ENABLE \
-	-DCONFIG_OS_AFFINITY_ENABLE=0 \
+	-DCONFIG_OS_AFFINITY_ENABLE=1 \
 	-DEVENT_HANDLER_NUM_CONFIG=2 \
 	-DEVENT_TOUCH_ENABLE_CONFIG=0 \
 	-DEVENT_POOL_SIZE_CONFIG=256 \
@@ -687,6 +687,7 @@ c_SRC_FILES := \
 	audio/common/audio_volume_mixer.c \
 	audio/common/bt_audio_energy_detection.c \
 	audio/common/debug/audio_debug.c \
+	audio/common/demo/audio_eq_demo.c \
 	audio/common/demo/codec_demo/audio_enc_file_demo.c \
 	audio/common/demo/codec_demo/audio_file_dec_demo.c \
 	audio/common/demo/codec_demo/audio_frame_codec_demo.c \

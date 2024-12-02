@@ -658,6 +658,7 @@ static void update_common_state_cbk(update_mode_info_t *info, u32 state, void *p
     switch (state) {
     case UPDATE_CH_EXIT:
         update_exit_common_handle(info->type, priv);
+        dlog_flush2flash(100);
         break;
     }
 }

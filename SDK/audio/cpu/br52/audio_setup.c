@@ -354,6 +354,14 @@ struct dac_platform_data dac_data = {//临时处理
     .pa_sel         = 0,
     .epa_dsm_mode   = EPA_DSM_MODE_750K,
     .epa_pwm_mode   = EPA_PWM_MODE1,
+    .ldo_volt       = TCFG_AUDIO_DAC_LDO_VOLT,
+#if (TCFG_DAC_PERFORMANCE_MODE == DAC_MODE_HIGH_PERFORMANCE)
+    .pa_isel0       = TCFG_AUDIO_DAC_HP_PA_ISEL0,
+    .pa_isel1       = TCFG_AUDIO_DAC_HP_PA_ISEL1,
+#else
+    .pa_isel0       = TCFG_AUDIO_DAC_LP_PA_ISEL0,
+    .pa_isel1       = TCFG_AUDIO_DAC_LP_PA_ISEL1,
+#endif
 };
 
 static void wl_audio_clk_on(void)
