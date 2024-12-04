@@ -110,7 +110,7 @@ int audio_digital_vol_init(u16 *vol_table, u16 vol_max)
         dvol_attr.digital_vol_max = vol_max;
     } else {
         dvol_attr.dig_vol_table = (u16 *)default_dig_vol_table;
-        dvol_attr.digital_vol_max = DIGITAL_VOLUME_LEVEL_MAX;
+        dvol_attr.digital_vol_max = DEFAULT_DIGITAL_VOL_MAX;
     }
 
     return 0;

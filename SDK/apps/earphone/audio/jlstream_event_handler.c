@@ -17,6 +17,7 @@
 #include "audio_manager.h"
 #include "classic/tws_api.h"
 #include "esco_recoder.h"
+#include "clock.h"
 
 #if TCFG_AUDIO_DUT_ENABLE
 #include "test_tools/audio_dut_control.h"
@@ -169,12 +170,16 @@ static int get_pipeline_uuid(const char *name)
 #endif
 #if LE_AUDIO_STREAM_ENABLE
     if (!strcmp(name, "le_audio")) {
-        clock_alloc("le_audio", 24 * 1000000UL);
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
+        clock_alloc("le_audio", clk_get_max_frequency());
+#endif
         return PIPELINE_UUID_LE_AUDIO;
     }
     if (!strcmp(name, "le_audio_call") || \
         !strcmp(name, "mic_le_audio_call")) {
-        clock_alloc("le_audio", 24 * 1000000UL);
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
+        clock_alloc("le_audio", clk_get_max_frequency());
+#endif
         return PIPELINE_UUID_ESCO;
     }
 #endif

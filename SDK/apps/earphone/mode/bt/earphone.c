@@ -239,7 +239,7 @@ static void rx_dual_conn_info(u8 *data, int len)
     log_info("tws_sync_dual_conn_info_func: %d\n", data[0]);
     g_bt_hdl.bt_dual_conn_config = data[0];
     syscfg_write(CFG_TWS_DUAL_CONFIG, &(g_bt_hdl.bt_dual_conn_config), 1);
-
+    free(data);
 }
 static void tws_sync_dual_conn_info_func(void *_data, u16 len, bool rx)
 {
@@ -247,7 +247,10 @@ static void tws_sync_dual_conn_info_func(void *_data, u16 len, bool rx)
         u8 *data = malloc(len);
         memcpy(data, _data, len);
         int msg[4] = { (int)rx_dual_conn_info, 2, (int)data, len};
-        os_taskq_post_type("app_core", Q_CALLBACK, 4, msg);
+        int err = os_taskq_post_type("app_core", Q_CALLBACK, 4, msg);
+        if (err != OS_NO_ERR) {
+            free(data);
+        }
     }
 }
 REGISTER_TWS_FUNC_STUB(app_vol_sync_stub) = {

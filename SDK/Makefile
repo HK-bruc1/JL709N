@@ -28,9 +28,9 @@ EXT_CFLAGS  := # Windows 下不需要 -D__SHELL__
 export PATH:=$(TOOL_DIR);$(PATH)
 
 ## 后处理脚本
-FIXBAT          := tools/utils/fixbat.exe # 用于处理 utf8->gbk 编码问题
+FIXBAT          := tools\utils\fixbat.exe # 用于处理 utf8->gbk 编码问题
 POST_SCRIPT     := cpu/br52/tools/download.bat
-RUN_POST_SCRIPT := $(subst /,\,$(POST_SCRIPT))
+RUN_POST_SCRIPT := cpu\br52\tools\download.bat
 else
 # Linux 下工具链位置
 TOOL_DIR := /opt/jieli/pi32v2/bin

@@ -645,9 +645,9 @@ void audio_fade_in_fade_out(u8 left_vol, u8 right_vol)
 
 /*
  *************************************************************
- *
- *	audio volume save
- *
+ *					Audio Volume Save
+ *Notes:如果不想保存音量（比如保存音量到vm，可能会阻塞），可以
+ *		定义AUDIO_VOLUME_SAVE_DISABLE来关闭音量保存
  *************************************************************
  */
 
@@ -669,12 +669,14 @@ static void app_audio_volume_save_do(void *priv)
 
 static void app_audio_volume_change(void)
 {
+#ifndef AUDIO_VOLUME_SAVE_DISABLE
     local_irq_disable();
     __this->save_vol_cnt = 0;
     if (__this->save_vol_timer == 0) {
         __this->save_vol_timer = sys_timer_add(NULL, app_audio_volume_save_do, 1000);//中断里不能操作vm 关中断不能操作vm
     }
     local_irq_enable();
+#endif
 }
 
 int audio_digital_vol_node_name_get(u8 dvol_idx, char *node_name)
