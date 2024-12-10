@@ -350,13 +350,15 @@ static struct app_mode *app_task_init()
     sdfile_init();
     syscfg_tools_init();
     cfg_file_parse(0);
-#if (defined(TCFG_DEBUG_DLOG_ENABLE) && TCFG_DEBUG_DLOG_ENABLE)
-    dlog_init();
-#endif
 
     do_early_initcall();
     board_init();
     do_platform_initcall();
+
+#if (defined(TCFG_DEBUG_DLOG_ENABLE) && TCFG_DEBUG_DLOG_ENABLE)
+    dlog_init();
+    dlog_enable(1);
+#endif
 
     key_driver_init();
 

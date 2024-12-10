@@ -183,7 +183,7 @@ extern const int config_dlog_enable;
         __attribute__((used,section(".dlog.rodata.str_tab"))) static const struct dlog_str_tab_s dlog_printf_str_tab = \
         { \
             .arg_num = (u32)VA_ARGS_NUM(__VA_ARGS__), \
-            .dlog_level = level,\
+            .dlog_level = (u8)level,\
             .dlog_str_addr = (u32)dlog_printf_str, \
             .arg_type_bit_map = (u32)VA_ARGS_TYPE_BIT_SIZE(__VA_ARGS__) \
         }; \
@@ -203,7 +203,7 @@ extern const int config_dlog_enable;
             __attribute__((used,section(".dlog.rodata.str_tab"))) static const struct dlog_str_tab_s dlog_printf_str_tab = \
             { \
                 .arg_num = (u32)args_num, \
-                .dlog_level = level,\
+                .dlog_level = (u8)level,\
                 .dlog_str_addr = (u32)dlog_printf_str, \
                 .arg_type_bit_map = (u32)args_bit_map \
             }; \
@@ -218,7 +218,7 @@ extern const int config_dlog_enable;
             __attribute__((used,section(".dlog.rodata.str_tab"))) static const struct dlog_str_tab_s dlog_printf_str_tab = \
             { \
                 .arg_num = (u32)args_num, \
-                .dlog_level = level,\
+                .dlog_level = (u8)level,\
                 .dlog_str_addr = (u32)dlog_printf_str, \
                 .arg_type_bit_map = (u32)args_bit_map \
             }; \
@@ -233,7 +233,7 @@ extern const int config_dlog_enable;
             __attribute__((used,section(".dlog.rodata.str_tab"))) static const struct dlog_str_tab_s dlog_printf_str_tab = \
             { \
                 .arg_num = (u32)1, \
-                .dlog_level = 0,\
+                .dlog_level = (u8)(-2 & ~BIT(31)),\
                 .dlog_str_addr = (u32)dlog_printf_str, \
                 .arg_type_bit_map = (u32)2 \
             }; \

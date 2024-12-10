@@ -945,13 +945,13 @@
 //*********************************************************************************//
 //                    异常记录/离线log配置                                      //
 //*********************************************************************************//
-#define TCFG_CONFIG_DEBUG_RECORD_ENABLE 0
+#define TCFG_CONFIG_DEBUG_RECORD_ENABLE    0
 
 // #if !TCFG_DEBUG_UART_ENABLE
 #define TCFG_DEBUG_DLOG_ENABLE             0      // 离线log功能
 #define TCFG_DEBUG_DLOG_FLASH_SEL          0      // 选择log保存到内置flash还是外置flash; 0:内置flash; 1:外置flash
 #define TCFG_DEBUG_DLOG_RESET_ERASE        0      // 开机擦除flash的log数据
-#define TCFG_DEBUG_DLOG_AUTO_FLUSH_TIMEOUT (60)   // 主动刷新的超时时间(当指定时间没有刷新过缓存数据到flash, 则主动刷新)(单位秒)
+#define TCFG_DEBUG_DLOG_AUTO_FLUSH_TIMEOUT (30)   // 主动刷新的超时时间(当指定时间没有刷新过缓存数据到flash, 则主动刷新)(单位秒)
 // #endif
 
 

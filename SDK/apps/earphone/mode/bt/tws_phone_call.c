@@ -31,6 +31,7 @@
 #include "vol_sync.h"
 #include "audio_config.h"
 #include "bt_slience_detect.h"
+#include "clock_manager/clock_manager.h"
 #if TCFG_SMART_VOICE_ENABLE
 #include "asr/jl_kws.h"
 #include "smart_voice/smart_voice.h"
@@ -487,7 +488,11 @@ int bt_phone_esco_play(u8 *bt_addr)
 #if TCFG_AUDIO_SOMATOSENSORY_ENABLE && SOMATOSENSORY_CALL_EVENT
     somatosensory_open();
 #endif
-
+#if defined(CONFIG_CPU_BR52)
+    if (CONFIG_AES_CCM_FOR_EDR_ENABLE) {
+        clock_alloc("aes_esco_play", 128 * 1000000L);
+    }
+#endif
     a2dp_player_close(bt_addr);
     bt_stop_a2dp_slience_detect(bt_addr);
     a2dp_media_close(bt_addr);
@@ -535,6 +540,12 @@ int bt_phone_esco_stop(u8 *bt_addr)
         puts("esco_player_is_close\n");
         return 0;
     }
+
+#if defined(CONFIG_CPU_BR52)
+    if (CONFIG_AES_CCM_FOR_EDR_ENABLE) {
+        clock_free("aes_esco_play");
+    }
+#endif
 #if TCFG_KWS_VOICE_RECOGNITION_ENABLE
     /* 处理来电时挂断电话，先跑释放资源再收到handup命令的情况
      * 避免先开smart voice，再关闭"yes/no"，导致出错*/

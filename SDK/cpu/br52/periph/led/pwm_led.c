@@ -375,6 +375,7 @@ void pwm_led_io_unmount(void)
     if (soft_alternate_timer) {
         sys_timer_del(soft_alternate_timer);
         soft_alternate_timer = 0;
+        __this->alternate_out = 1;
     }
 
     if (__this->port0 < IO_PORT_MAX) {
@@ -398,7 +399,7 @@ void pwm_led_dump(void)
     printf("l_pwm_duty = %d\n", __this->l_pwm_duty);
     printf("mode = %d\n", __this->out_mode);
     printf("ctl_cycle_num = %d\n", __this->ctl_cycle_num);
-    printf("cbfunc = %p\n", (void *)__this->cbfunc);
+    printf("cbfunc = %p\n", __this->cbfunc);
     switch (__this->out_mode) {
     case 0:
         printf("out_once.pwm_out_time = %u\n", __this->out_once.pwm_out_time);
@@ -570,6 +571,9 @@ void pwm_led_get_sync_status(struct pwm_led_status_t *status)
     status->dir   = !!(cnt_rd & BIT(17));
     status->level = !!(cnt_rd & BIT(16));
     status->cur_cnt  = cnt_rd & 0xffff;
+    if ((JL_PLED->CON0 & BIT(1)) == 0) {//不是呼吸变化模式
+        status->cur_cnt  = cnt_rd & 0xff;
+    }
     status->cnt_max = pwm_led_get_cur_status_cnt_max(status->dir, status->level);
     pwm_led_get_next_dir_level(status->dir, status->level, (u32 *)&next_dir, (u32 *)&next_level);
     status->next_cnt_max = pwm_led_get_cur_status_cnt_max(next_dir, next_level);

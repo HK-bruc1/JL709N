@@ -206,7 +206,7 @@ const char log_tag_const_e_DEBUG_RECORD = CONFIG_DEBUG_LIB(TRUE);
 
 const char log_tag_const_v_DLOG  = CONFIG_DEBUG_LIB(0);
 const char log_tag_const_i_DLOG  = CONFIG_DEBUG_LIB(0);
-const char log_tag_const_d_DLOG  = CONFIG_DEBUG_LIB(0);
+const char log_tag_const_d_DLOG  = CONFIG_DEBUG_LIB(1);
 const char log_tag_const_w_DLOG  = CONFIG_DEBUG_LIB(0);
-const char log_tag_const_e_DLOG  = CONFIG_DEBUG_LIB(0);
+const char log_tag_const_e_DLOG  = CONFIG_DEBUG_LIB(1);
 

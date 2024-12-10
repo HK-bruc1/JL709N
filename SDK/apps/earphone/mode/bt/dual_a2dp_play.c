@@ -376,6 +376,11 @@ static int a2dp_bt_status_event_handler(int *event)
             a2dp_media_close(bt->args);
             break;
         }
+#if defined(CONFIG_CPU_BR52)
+        if (CONFIG_AES_CCM_FOR_EDR_ENABLE) {
+            clock_alloc("aes_a2dp_play", 64 * 1000000UL);
+        }
+#endif
         if (tws_api_get_role() == TWS_ROLE_SLAVE) {
             break;
         }
@@ -405,6 +410,11 @@ static int a2dp_bt_status_event_handler(int *event)
         break;
     case BT_STATUS_A2DP_MEDIA_STOP:
         g_printf("BT_STATUS_A2DP_MEDIA_STOP\n");
+#if defined(CONFIG_CPU_BR52)
+        if (CONFIG_AES_CCM_FOR_EDR_ENABLE) {
+            clock_free("aes_a2dp_play");
+        }
+#endif
         put_buf(bt->args, 6);
         if (tws_api_get_role() == TWS_ROLE_SLAVE) {
             break;

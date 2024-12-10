@@ -31,7 +31,7 @@
                 "__GCC_PI32V2__",
                 "CONFIG_NEW_ECC_ENABLE",
                 "CONFIG_EFFECT_CORE_V2_ENABLE",
-                "CONFIG_OS_AFFINITY_ENABLE=1",
+                "CONFIG_OS_AFFINITY_ENABLE=0",
                 "EVENT_HANDLER_NUM_CONFIG=2",
                 "EVENT_TOUCH_ENABLE_CONFIG=0",
                 "EVENT_POOL_SIZE_CONFIG=256",

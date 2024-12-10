@@ -37,8 +37,6 @@
 VM_MANAGE_ID_REG(touch_key0_algo_cfg, VM_LP_TOUCH_KEY0_ALOG_CFG);
 VM_MANAGE_ID_REG(touch_key1_algo_cfg, VM_LP_TOUCH_KEY1_ALOG_CFG);
 VM_MANAGE_ID_REG(touch_key2_algo_cfg, VM_LP_TOUCH_KEY2_ALOG_CFG);
-VM_MANAGE_ID_REG(touch_key3_algo_cfg, VM_LP_TOUCH_KEY3_ALOG_CFG);
-VM_MANAGE_ID_REG(touch_key4_algo_cfg, VM_LP_TOUCH_KEY4_ALOG_CFG);
 
 
 static volatile u8 is_lpkey_active = 0;

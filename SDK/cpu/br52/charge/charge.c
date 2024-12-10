@@ -101,9 +101,6 @@ static spinlock_t ldo5v_lock;
 #define GET_VBTCH_AWKUP_CLK_SET()  (P33_CON_GET(P3_AWKUP_CLK_SEL) & 0x03)
 
 extern void charge_event_to_user(u8 event);
-extern u16 efuse_get_vbat_trim();
-extern u16 efuse_get_vbat_trim_4p35(void);
-extern u16 efuse_get_charge_cur_trim(void);
 
 #if (!CHARGE_VILOOP2_ENABLE)
 static u8 vbat_port_wakeup_edge = 0;
@@ -549,8 +546,10 @@ u16 get_charge_current_value(void)
 
 void set_charge_mA(u16 charge_mA)
 {
-    u8 vref, type;
-    u16 chgi, temp;
+    u8 type;
+    u16 chgi;
+    u16 min_chgi;
+    float temp, min_div;
 
     type = (charge_mA & TRICKLE_EN_FLAG) ? 1 : 0;
     charge_mA &= ~TRICKLE_EN_FLAG;
@@ -563,29 +562,29 @@ void set_charge_mA(u16 charge_mA)
         }
     }
 
-    for (vref = 0; vref < 8; vref++) {
-        for (chgi = 0; chgi < 1024; chgi++) {
-            if (type) {
-                temp = (float)(1.16f + 0.01f * vref) * 0.0146484f * (chgi + 1);
-            } else {
-                temp = (float)(1.16f + 0.01f * vref) * 0.146484f * (chgi + 1);
-            }
-            if (!((temp > charge_mA) ? (temp - charge_mA) : (charge_mA - temp))) {
-                log_info("chgi check success!");
-                goto _check_end;
-            }
+    min_chgi = 0;
+    min_div = 2000.0f;
+    for (chgi = 0; chgi < 1024; chgi++) {
+        if (type) {
+            temp = 1.20f * 0.0146484f * (float)(chgi + 1);
+        } else {
+            temp = 1.20f * 0.146484f * (float)(chgi + 1);
+        }
+
+        if (temp >= (float)charge_mA) {
+            temp = temp - (float)charge_mA;
+        } else {
+            temp = (float)charge_mA - temp;
+        }
+        if (min_div > temp) {
+            min_div = temp;
+            min_chgi = chgi;
         }
     }
 
-    //没有找到对应的电流则设置为最大档
-    vref = 7;
-    chgi = 1023;
-    log_info("chgi check fail! set max level!");
-
-_check_end:
-    log_info("vref: %d, chgi: %d", vref, chgi);
-    CHGV_VREF_SEL(vref);
-    CHARGE_mA_SEL(chgi);
+    log_info("chgi: %d", min_chgi);
+    CHGV_VREF_SEL(0x4);
+    CHARGE_mA_SEL(min_chgi);
     CHG_TRICKLE_EN(type);
 }
 
@@ -602,19 +601,19 @@ static void charge_config(void)
     u8 charge_full_v_val = 0;
     u8 charge_curr_trim;
     //判断是用高压档还是低压档
-    if (__this->data->charge_full_V < CHARGE_FULL_V_4237) {
+    if (__this->data->charge_full_V <= CHARGE_FULL_V_MIN_4340) {
         CHG_HV_MODE(0);
         charge_trim_val = efuse_get_vbat_trim();//4.20V对应的trim出来的实际档位
         log_info("low charge_trim_val = %d\n", charge_trim_val);
-        if (__this->data->charge_full_V >= CHARGE_FULL_V_4199) {
-            offset = __this->data->charge_full_V - CHARGE_FULL_V_4199;
+        if (__this->data->charge_full_V >= CHARGE_FULL_V_MIN_4200) {
+            offset = __this->data->charge_full_V - CHARGE_FULL_V_MIN_4200;
             charge_full_v_val = charge_trim_val + offset;
             if (charge_full_v_val > 0xf) {
                 charge_full_v_val = 0xf;
             }
             __this->full_voltage = 4200 + (charge_full_v_val - charge_trim_val) * 20;
         } else {
-            offset = CHARGE_FULL_V_4199 - __this->data->charge_full_V;
+            offset = CHARGE_FULL_V_MIN_4200 - __this->data->charge_full_V;
             if (charge_trim_val >= offset) {
                 charge_full_v_val = charge_trim_val - offset;
             } else {
@@ -624,23 +623,23 @@ static void charge_config(void)
         }
     } else {
         CHG_HV_MODE(1);
-        charge_trim_val = efuse_get_vbat_trim_4p35();//4.35V对应的trim出来的实际档位
+        charge_trim_val = efuse_get_vbat_trim_4p40();//4.40V对应的trim出来的实际档位
         log_info("high charge_trim_val = %d\n", charge_trim_val);
-        if (__this->data->charge_full_V >= CHARGE_FULL_V_4354) {
-            offset = __this->data->charge_full_V - CHARGE_FULL_V_4354;
+        if (__this->data->charge_full_V >= CHARGE_FULL_V_MAX_4400) {
+            offset = __this->data->charge_full_V - CHARGE_FULL_V_MAX_4400;
             charge_full_v_val = charge_trim_val + offset;
             if (charge_full_v_val > 0xf) {
                 charge_full_v_val = 0xf;
             }
-            __this->full_voltage = 4350 + (charge_full_v_val - charge_trim_val) * 20;
+            __this->full_voltage = 4400 + (charge_full_v_val - charge_trim_val) * 20;
         } else {
-            offset = CHARGE_FULL_V_4354 - __this->data->charge_full_V;
+            offset = CHARGE_FULL_V_MAX_4400 - __this->data->charge_full_V;
             if (charge_trim_val >= offset) {
                 charge_full_v_val = charge_trim_val - offset;
             } else {
                 charge_full_v_val = 0;
             }
-            __this->full_voltage = 4350 - (charge_trim_val - charge_full_v_val) * 20;
+            __this->full_voltage = 4400 - (charge_trim_val - charge_full_v_val) * 20;
         }
     }
     log_info("charge_full_v_val = %d\n", charge_full_v_val);

@@ -25,7 +25,7 @@ u8 efuse_get_cp_pass();
 u8 efuse_get_ft_pass();
 u8 efuse_get_wvdd_level_trim();
 u16 efuse_get_vbat_trim();
-u16 efuse_get_vbat_trim_4p35(void);
+u16 efuse_get_vbat_trim_4p40(void);
 u16 efuse_get_charge_cur_trim(void);
 u16 efuse_get_io_pu_100k(void);
 u16 efuse_get_vtemp(void);
@@ -35,6 +35,8 @@ u8 efuse_get_audio_vbg_trim();
 u8 efuse_get_btvbg_bg_20k();
 u8 efuse_get_bttx_pwr_trim();
 u8 efuse_get_dcvdd12();
+u8 efuse_get_bt_pll_pfd_ofst_act();
+u8 efuse_get_bt_pll_pfd_ofst_sel();
 u8 efuse_get_bt_cp_act();
 u8 efuse_get_bt_ft_act();
 

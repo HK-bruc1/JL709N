@@ -279,6 +279,7 @@ void setup_arch()
 
     __crc16_mutex_init();
 
+    ASSERT(local_irq_disable < 0x120000);
     app_main();
 }
 

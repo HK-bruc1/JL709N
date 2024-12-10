@@ -51,15 +51,6 @@ typedef struct {
 audio_setup_t audio_setup = {0};
 #define __this      (&audio_setup)
 
-#if TCFG_MC_BIAS_AUTO_ADJUST
-u8 mic_bias_rsel_use_save[AUDIO_ADC_MIC_MAX_NUM] = {0};
-u8 save_mic_bias_rsel[AUDIO_ADC_MIC_MAX_NUM]     = {0};
-u8 mic_ldo_vsel_use_save = 0;
-u8 save_mic_ldo_vsel     = 0;
-#endif // #if TCFG_MC_BIAS_AUTO_ADJUST
-
-void audio_fade_in_fade_out(u8 left_vol, u8 right_vol);
-extern u32 read_capless_DTB(void);
 extern struct dac_platform_data dac_data;
 
 #ifndef TCFG_DAC_POWER_MODE
@@ -200,12 +191,6 @@ void audio_dac_initcall(void)
     */
     audio_anc_common_param_init();
 #endif/*TCFG_AUDIO_ANC_ENABLE*/
-
-#if TCFG_SUPPORT_MIC_CAPLESS
-    u32 dacr32 = read_capless_DTB();
-    audio_dac_set_capless_DTB(&dac_hdl, dacr32);
-    mic_capless_trim_run();
-#endif
 
     audio_dac_set_analog_vol(&dac_hdl, 0);
 
@@ -443,31 +428,6 @@ void dac_power_off(void)
     audio_dac_close(&dac_hdl);
 }
 
-/*
- *dac快速校准
- */
-//#define DAC_TRIM_FAST_EN
-#ifdef DAC_TRIM_FAST_EN
-u8 dac_trim_fast_en()
-{
-    return 1;
-}
-#endif/*DAC_TRIM_FAST_EN*/
-
-/*
- *自定义dac上电延时时间，具体延时多久应通过示波器测量
- */
-#if 1
-void dac_power_on_delay()
-{
-    /* #if TCFG_MC_BIAS_AUTO_ADJUST */
-    /* void mic_capless_auto_adjust_init(); */
-    /* mic_capless_auto_adjust_init(); */
-    /* #endif */
-    os_time_dly(50);
-}
-#endif
-
 #define TRIM_VALUE_LR_ERR_MAX           (600)   // 距离参考值的差值限制
 #define abs(x) ((x)>0?(x):-(x))
 int audio_dac_trim_value_check(struct audio_dac_trim *dac_trim)
@@ -488,14 +448,6 @@ int audio_dac_trim_value_check(struct audio_dac_trim *dac_trim)
     }
 
     return 0;
-}
-
-/*
- *capless模式一开始不要的数据包数量
- */
-u16 get_ladc_capless_dump_num(void)
-{
-    return 10;
 }
 
 /*音频模块寄存器跟踪*/

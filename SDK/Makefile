@@ -28,9 +28,9 @@ EXT_CFLAGS  := # Windows 下不需要 -D__SHELL__
 export PATH:=$(TOOL_DIR);$(PATH)
 
 ## 后处理脚本
-FIXBAT          := tools\utils\fixbat.exe # 用于处理 utf8->gbk 编码问题
+FIXBAT          := tools/utils/fixbat.exe # 用于处理 utf8->gbk 编码问题
 POST_SCRIPT     := cpu/br52/tools/download.bat
-RUN_POST_SCRIPT := cpu\br52\tools\download.bat
+RUN_POST_SCRIPT := $(subst /,\,$(POST_SCRIPT))
 else
 # Linux 下工具链位置
 TOOL_DIR := /opt/jieli/pi32v2/bin
@@ -124,7 +124,7 @@ DEFINES := \
 	-D__GCC_PI32V2__ \
 	-DCONFIG_NEW_ECC_ENABLE \
 	-DCONFIG_EFFECT_CORE_V2_ENABLE \
-	-DCONFIG_OS_AFFINITY_ENABLE=1 \
+	-DCONFIG_OS_AFFINITY_ENABLE=0 \
 	-DEVENT_HANDLER_NUM_CONFIG=2 \
 	-DEVENT_TOUCH_ENABLE_CONFIG=0 \
 	-DEVENT_POOL_SIZE_CONFIG=256 \
@@ -764,6 +764,7 @@ c_SRC_FILES := \
 	audio/effect/demo/voice_changer_demo.c \
 	audio/effect/effects_adj.c \
 	audio/effect/effects_default_param.c \
+	audio/effect/effects_dev.c \
 	audio/effect/eq_config.c \
 	audio/effect/esco_ul_voice_changer.c \
 	audio/effect/node_param_update.c \

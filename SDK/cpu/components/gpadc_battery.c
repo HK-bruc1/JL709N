@@ -23,16 +23,11 @@ static struct battery_data_fifo {
 } battery_fifo;
 
 
-_WEAK_
-u32 get_vddiom_voltage()
-{
-    return 2800;
-}
 
 _WEAK_
 u32 efuse_get_vbat_3700()
 {
-    u32 vddiom_vol = get_vddiom_voltage();
+    u32 vddiom_vol = 2800;
     u32 adc_value_max = BIT(adc_data_res) - 1;
     u32 voltage = 3700 / AD_CH_PMU_VBAT_DIV;
 
@@ -96,25 +91,10 @@ static u32 gpadc_battery_get_average(u32 *data, u32 size, u32 mid)
 }
 static u32 gpadc_battery_get_vbat_voltage()
 {
-    int max_v = 0;
-    int min_v = 4096;
-    int sum_v = 0;
-
-    for (u8 i = 0; i < BATTERY_SAMPLE_TIMES; i++) {
-        int value = adc_get_value_blocking(AD_CH_PMU_VBAT);
-        if (value > max_v) {
-            max_v = value;
-        }
-        if (value < min_v) {
-            min_v = value;
-        }
-        sum_v += value;
-    }
-    sum_v -= max_v;
-    sum_v -= min_v;
+    int sum_v = adc_get_value_blocking_filter_dma(AD_CH_PMU_VBAT, NULL, BATTERY_SAMPLE_TIMES);
 
     int K = efuse_get_vbat_3700();
-    int Dg = get_vddiom_voltage() - 2800; //当前IOVDD档位-2800
+    int Dg = get_vddiom_vol() - 2800; //当前IOVDD档位-2800
     int V = 3700.0f * sum_v / K + (Dg * sum_v * 1.0f / 4096);
     /* printf("voltage:%dmv, value:%d, Dg:%d, K:%d\n", V, sum_v, Dg, K); */
     return (u32)V;

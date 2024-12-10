@@ -77,9 +77,9 @@ LOG_TAG_CONST_DECLARE(LOG_CHAR,     LOG_TAG_CONST);
 #define log_verb(format, ...)       \
     { \
         if(config_dlog_enable) { \
-            dlog_printf(__LOG_VERB, format, ##__VA_ARGS__) \
+            dlog_printf(__LOG_VERB, _LOG_TAG format, ##__VA_ARGS__) \
         } else { \
-            log_print(__LOG_VERB, NULL, LOG_TAG format, ## __VA_ARGS__); \
+            log_print(__LOG_VERB, NULL, _LOG_TAG format, ## __VA_ARGS__); \
         } \
     }
 #else
@@ -90,7 +90,7 @@ LOG_TAG_CONST_DECLARE(LOG_CHAR,     LOG_TAG_CONST);
 #define log_info(format, ...)       \
     { \
         if(config_dlog_enable) { \
-            dlog_printf(__LOG_INFO, format, ##__VA_ARGS__) \
+            dlog_printf(__LOG_INFO, _LOG_TAG format, ##__VA_ARGS__) \
         } else { \
             log_print(__LOG_INFO, NULL, _LOG_TAG format, ## __VA_ARGS__); \
         } \
@@ -103,7 +103,7 @@ LOG_TAG_CONST_DECLARE(LOG_CHAR,     LOG_TAG_CONST);
 #define log_debug(format, ...)       \
     { \
         if(config_dlog_enable) { \
-            dlog_printf(__LOG_DEBUG, format, ##__VA_ARGS__) \
+            dlog_printf(__LOG_DEBUG, _LOG_TAG format, ##__VA_ARGS__) \
         } else { \
             log_print(__LOG_DEBUG, NULL, _LOG_TAG format, ## __VA_ARGS__); \
         } \
@@ -118,7 +118,7 @@ LOG_TAG_CONST_DECLARE(LOG_CHAR,     LOG_TAG_CONST);
 #define log_warn(format, ...)      \
     { \
         if(config_dlog_enable) { \
-            dlog_printf(__LOG_WARN, format, ##__VA_ARGS__) \
+            dlog_printf(__LOG_WARN, _LOG_TAG format, ##__VA_ARGS__) \
         } else { \
             log_print(__LOG_WARN, NULL, "<warning>:" _LOG_TAG format, ## __VA_ARGS__); \
         } \
@@ -131,7 +131,7 @@ LOG_TAG_CONST_DECLARE(LOG_CHAR,     LOG_TAG_CONST);
 #define log_error(format, ...)      \
     { \
         if(config_dlog_enable) { \
-            dlog_printf(__LOG_ERROR, format, ##__VA_ARGS__) \
+            dlog_printf(__LOG_ERROR, _LOG_TAG format, ##__VA_ARGS__) \
         } else { \
             log_print(__LOG_ERROR, NULL, "<error>:" _LOG_TAG format, ## __VA_ARGS__); \
         } \
@@ -162,7 +162,7 @@ LOG_TAG_CONST_DECLARE(LOG_CHAR,     LOG_TAG_CONST);
 #define log_verb(format, ...)       \
     if (LOG_IS_ENABLE(LOG_VERB)){ \
         if(config_dlog_enable) { \
-            dlog_printf(__LOG_VERB, format, ##__VA_ARGS__) \
+            dlog_printf(__LOG_VERB, _LOG_TAG format, ##__VA_ARGS__) \
         } else { \
             log_print(__LOG_VERB, NULL, _LOG_TAG format, ## __VA_ARGS__); \
         } \
@@ -171,7 +171,7 @@ LOG_TAG_CONST_DECLARE(LOG_CHAR,     LOG_TAG_CONST);
 #define log_info(format, ...)       \
     if (LOG_IS_ENABLE(LOG_INFO)){ \
         if(config_dlog_enable) { \
-            dlog_printf(__LOG_INFO, format, ##__VA_ARGS__) \
+            dlog_printf(__LOG_INFO, _LOG_TAG format, ##__VA_ARGS__) \
         } else { \
             log_print(__LOG_INFO, NULL, _LOG_TAG format, ## __VA_ARGS__); \
         } \
@@ -184,7 +184,7 @@ LOG_TAG_CONST_DECLARE(LOG_CHAR,     LOG_TAG_CONST);
 #define log_debug(format, ...)       \
     if (LOG_IS_ENABLE(LOG_DEBUG)) { \
         if(config_dlog_enable) { \
-            dlog_printf(__LOG_DEBUG, format, ##__VA_ARGS__) \
+            dlog_printf(__LOG_DEBUG, _LOG_TAG format, ##__VA_ARGS__) \
         } else { \
             log_print(__LOG_DEBUG, NULL, _LOG_TAG format, ## __VA_ARGS__); \
         } \
@@ -197,7 +197,7 @@ LOG_TAG_CONST_DECLARE(LOG_CHAR,     LOG_TAG_CONST);
 #define log_warn(format, ...)       \
     if (LOG_IS_ENABLE(LOG_WARN)){ \
         if(config_dlog_enable) { \
-            dlog_printf(__LOG_WARN, format, ##__VA_ARGS__) \
+            dlog_printf(__LOG_WARN, _LOG_TAG format, ##__VA_ARGS__) \
         } else { \
             log_print(__LOG_WARN, NULL, "<warning> " _LOG_TAG format, ## __VA_ARGS__); \
         } \
@@ -206,7 +206,7 @@ LOG_TAG_CONST_DECLARE(LOG_CHAR,     LOG_TAG_CONST);
 #define log_error(format, ...)       \
     if (LOG_IS_ENABLE(LOG_ERROR)){ \
         if(config_dlog_enable) { \
-            dlog_printf(__LOG_ERROR, format, ##__VA_ARGS__) \
+            dlog_printf(__LOG_ERROR, _LOG_TAG format, ##__VA_ARGS__) \
         } else { \
             log_print(__LOG_ERROR, NULL, "<error> " _LOG_TAG format, ## __VA_ARGS__); \
         } \

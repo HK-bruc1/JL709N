@@ -100,6 +100,48 @@ SECTIONS
         *(.mmu_tlb_segment);
     } > ram0
 
+	.data_code ALIGN(32):SUBALIGN(4)
+	{
+		data_code_pc_limit_begin = .;
+        *(.cache)
+        *(.volatile_ram_code)
+
+		. = ALIGN(4);
+	} > ram0
+
+    //for decompress
+	//.data_code_compress ALIGN(32):SUBALIGN(4)
+	.data_code_z ALIGN(32):SUBALIGN(4)
+	{
+		. = ALIGN(4);
+		#include "media/media_lib_data_text.ld"
+
+        *(.os_critical_code)
+        *(.os.text*)
+
+        *(.chargebox_code)
+        *(.movable.stub.1)
+        *(.*.text.cache.L1)
+
+        *(.ui_ram)
+        *(.math_fast_funtion_code)
+
+		. = ALIGN(4);
+        _SPI_CODE_START = . ;
+        *(.spi_code)
+		. = ALIGN(4);
+        _SPI_CODE_END = . ;
+
+		. = ALIGN(4);
+	} > ram0
+
+	__report_overlay_begin = .;
+	overlay_code_begin = .;
+    #include "app_overlay.ld"
+
+	data_code_pc_limit_end = .;
+	__report_overlay_end = .;
+
 	.data ALIGN(32):SUBALIGN(4)
 	{
         . = ALIGN(4);
@@ -149,48 +191,6 @@ SECTIONS
         . = ALIGN(32);
 
     } > ram0
-
-	.data_code ALIGN(32):SUBALIGN(4)
-	{
-		data_code_pc_limit_begin = .;
-        *(.cache)
-        *(.volatile_ram_code)
-
-		. = ALIGN(4);
-	} > ram0
-
-    //for decompress
-	//.data_code_compress ALIGN(32):SUBALIGN(4)
-	.data_code_z ALIGN(32):SUBALIGN(4)
-	{
-		. = ALIGN(4);
-		#include "media/media_lib_data_text.ld"
-
-        *(.os_critical_code)
-        *(.os.text*)
-
-        *(.chargebox_code)
-        *(.movable.stub.1)
-        *(.*.text.cache.L1)
-
-        *(.ui_ram)
-        *(.math_fast_funtion_code)
-
-		. = ALIGN(4);
-        _SPI_CODE_START = . ;
-        *(.spi_code)
-		. = ALIGN(4);
-        _SPI_CODE_END = . ;
-
-		. = ALIGN(4);
-	} > ram0
-
-	__report_overlay_begin = .;
-	overlay_code_begin = .;
-    #include "app_overlay.ld"
-
-	data_code_pc_limit_end = .;
-	__report_overlay_end = .;
 
 #if TCFG_CONFIG_DEBUG_RECORD_ENABLE
     // 需要避免与uboot和maskrom冲突
