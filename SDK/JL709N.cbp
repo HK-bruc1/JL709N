@@ -1161,7 +1161,6 @@
 <Unit filename="audio/cpu/br52/audio_demo/audio_dac_demo.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/cpu/br52/audio_demo/audio_demo.h" />
 <Unit filename="audio/cpu/br52/audio_demo/audio_fft_demo.c"><Option compilerVer="CC"/></Unit>
-<Unit filename="audio/cpu/br52/audio_mic_capless.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/cpu/br52/audio_pmu.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/cpu/br52/audio_pmu.h" />
 <Unit filename="audio/cpu/br52/audio_setup.c"><Option compilerVer="CC"/></Unit>

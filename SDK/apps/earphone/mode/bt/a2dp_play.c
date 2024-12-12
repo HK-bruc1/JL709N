@@ -61,7 +61,7 @@ static void tws_a2dp_play_in_task(u8 *data)
         app_audio_state_switch(APP_AUDIO_STATE_MUSIC,
                                app_audio_volume_max_query(AppVol_BT_MUSIC), NULL);
         set_music_device_volume(dev_vol);
-        a2dp_player_low_latency_enable(tws_api_get_low_latency_state());
+        a2dp_player_low_latency_enable(bt_get_low_latency_mode());
         a2dp_player_open(bt_addr);
         break;
     case CMD_A2DP_CLOSE:

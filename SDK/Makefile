@@ -745,7 +745,6 @@ c_SRC_FILES := \
 	audio/cpu/br52/audio_demo/audio_adc_demo.c \
 	audio/cpu/br52/audio_demo/audio_dac_demo.c \
 	audio/cpu/br52/audio_demo/audio_fft_demo.c \
-	audio/cpu/br52/audio_mic_capless.c \
 	audio/cpu/br52/audio_pmu.c \
 	audio/cpu/br52/audio_setup.c \
 	audio/cpu/br52/icsd_anc_user.c \

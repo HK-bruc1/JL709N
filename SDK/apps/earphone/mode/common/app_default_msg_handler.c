@@ -238,6 +238,11 @@ static void app_common_app_event_handler(int *msg)
         audio_icsd_wind_detect_demo();
         break;
 #endif
+#if (defined TCFG_AUDIO_VOLUME_ADAPTIVE_ENABLE) && TCFG_AUDIO_VOLUME_ADAPTIVE_ENABLE
+    case APP_MSG_ADAPTIVE_VOL_SWITCH:
+        audio_icsd_adaptive_vol_demo();
+        break;
+#endif
 #if (defined ANC_EAR_ADAPTIVE_EN) && ANC_EAR_ADAPTIVE_EN
     case APP_MSG_EAR_ADAPTIVE_OPEN:
         audio_anc_mode_ear_adaptive(1);

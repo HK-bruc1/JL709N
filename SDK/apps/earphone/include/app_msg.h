@@ -175,6 +175,7 @@ enum {
     APP_MSG_SPEAK_TO_CHAT_SWITCH,               //智能免摘
     APP_MSG_WAT_CLICK_SWITCH,                   //广域点击
     APP_MSG_WIND_DETECT_SWITCH,                 //风噪检测
+    APP_MSG_ADAPTIVE_VOL_SWITCH,                 //音量自适应
     APP_MSG_FIT_DET_SWITCH,
     APP_MSG_IMU_TRIM_START,                     //开始陀螺仪校准
     APP_MSG_IMU_TRIM_STOP,                      //关闭陀螺仪校准

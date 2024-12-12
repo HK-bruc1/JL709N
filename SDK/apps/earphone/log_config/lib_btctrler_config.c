@@ -153,7 +153,7 @@ const int CONFIG_LNA_CHECK_VAL = -80;
 	#if TWS_PURE_MONITOR_MODE
 		const int CONFIG_EXTWS_NACK_LIMIT_INT_CNT       = 63;
 	#else
-		const int CONFIG_EXTWS_NACK_LIMIT_INT_CNT       = 8;
+		const int CONFIG_EXTWS_NACK_LIMIT_INT_CNT       = 4;
 	#endif
 #endif
 
