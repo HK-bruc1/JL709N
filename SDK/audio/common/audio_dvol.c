@@ -158,12 +158,29 @@ dvol_handle *audio_digital_vol_open(struct audio_vol_params params)
         }
         dvol->vol_max 	= vol_max;
         if (vol_limit == -1) {
-            dvol->vol_limit = dvol_attr.digital_vol_max;
+            dvol->vol_limit = dvol->vol_max;
         } else {
-            dvol->vol_limit = (vol_limit > dvol_attr.digital_vol_max) ? dvol_attr.digital_vol_max : vol_limit;
+            dvol->vol_limit = (vol_limit > dvol->vol_max) ? dvol->vol_max : vol_limit;
         }
         vol_level 		= dvol->vol * dvol->vol_limit / vol_max;
-        dvol->vol_target = dvol_attr.dig_vol_table[vol_level];
+        if (dvol->vol_table_default) {
+            dvol->vol_target = dvol_attr.dig_vol_table[vol_level];
+        } else {
+            if (vol_level == 0) {
+                dvol->vol_target = 0;
+            } else {
+                if (!dvol->vol_table) {
+                    u16 step = (dvol->cfg_level_max - 1 > 0) ? (dvol->cfg_level_max - 1) : 1;
+                    float step_db = (dvol->cfg_vol_max - dvol->cfg_vol_min) / (float)step;
+                    float hdl_db = dvol->cfg_vol_min  + (vol_level - 1) * step_db;
+                    float hdl_gain = eq_db2mag(hdl_db);//dB转换倍数
+                    dvol->vol_target = (s16)(DVOL_MAX_FLOAT  * hdl_gain + 0.5f);
+                    //printf("vol param calc:%d,%d,%d,%d,%d",(int)hdl_gain,dvol->vol_target,(int)step_db,dvol->cfg_level_max - vol_level,(int)hdl_db);
+                } else {
+                    dvol->vol_target = dvol->vol_table[vol_level - 1];
+                }
+            }
+        }
         dvol->vol_fade 	= dvol->vol_target;
         dvol->fade_step 	= fade_step;
         dvol->toggle 	= 1;

@@ -9,7 +9,7 @@
 extern int putchar(int a);
 extern int puts(const char *out);
 // puts 目前无法提取字符串常量
-#define puts(format)  {if(config_dlog_enable){dlog_printf((-2 & ~BIT(31)), "%s\n", (const char *)format);}else{puts(format);}}
+#define puts(format)  {puts(format);if(config_dlog_enable){dlog_printf((-2 & ~BIT(31)), "%s\n", (const char *)format);}}
 extern void put_float(double fv);
 void put_u4hex(unsigned char dat);
 void put_u8hex(unsigned char dat);
@@ -17,7 +17,7 @@ void put_u16hex(unsigned short dat);
 void put_u32hex(unsigned int dat);
 void put_buf(const u8 *buf, int len);
 int printf(const char *format, ...);
-#define printf(format, ...)  {if(config_dlog_enable){dlog_printf((-1 & ~BIT(31)), format, ##__VA_ARGS__);}else{printf(format, ##__VA_ARGS__);}}
+#define printf(format, ...)  {printf(format, ##__VA_ARGS__);if(config_dlog_enable){dlog_printf((-1 & ~BIT(31)), format, ##__VA_ARGS__);}}
 int assert_printf(const char *format, ...);
 int sprintf(char *out, const char *format, ...);
 int vprintf(const char *fmt, __builtin_va_list va);
