@@ -21,6 +21,13 @@ struct icsd_anc_buf_v2 {
     float biquad_coef_best_de[31];
     float mse_tmp[DE_FLEN];
     float target_gain_db[FLEN_V2];
+    float ff_wz[DE_FLEN];
+    float fb_gz[DE_FLEN];
+    float pz_fd[DE_FLEN];
+    float sz_fd[DE_FLEN];
+
+    float pzfd_gain;
+    float szfd_gain;
 };
 
 struct icsd_De_param_v2 {
@@ -60,6 +67,10 @@ struct icsd_De_param_v2 {
     float limit_mse_end;
     int swarm_num;
     int flen;
+
+    float fitness;
+    u8 high_fgq_fix; // default:0
+    u8 de_alg_sel;   // default:0
 };
 
 struct icsd_ff_candidate_v2 {

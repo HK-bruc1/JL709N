@@ -34,7 +34,7 @@ void audio_anc_power_adaptive_init(audio_anc_t *param);
 void audio_anc_power_adaptive_tone_play(int ref_lvl, int err_lvl);
 
 /*切换ANC自适应模式*/
-void audio_anc_adaptive_mode_set(u8 mode, u8 lvl);
+void audio_anc_power_adaptive_mode_set(u8 mode, u8 lvl);
 
 //用于功能互斥需要挂起场景自适应
 void audio_anc_power_adaptive_suspend(void);

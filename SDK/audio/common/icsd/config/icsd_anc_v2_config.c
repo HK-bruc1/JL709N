@@ -6,6 +6,7 @@
 #endif
 
 #define USE_BOARD_CONFIG 0
+#define EXT_PRINTF_DEBUG 0 //前期调试工具使用，后期上传该宏定义相关删除
 
 #include "app_config.h"
 #include "audio_config_def.h"
@@ -149,6 +150,27 @@ float degree_set1[] = {8, 10, 50, 2200, 50, 2700, 8};
 float degree_set2[] = {11, 5, 50, 2200, 50, 2700, 11};
 
 
+#if EXT_PRINTF_DEBUG
+static void de_vrange_printf(float *vrange, int order)
+{
+    printf(" ff oreder = %d\n", order);
+    for (int i = 0; i < order; i++) {
+        printf("%d >>>>>>>>>>> g:%d, %d, f:%d, %d, q:%d, %d\n", i, (int)(vrange[6 * i + 0] * 1000), (int)(vrange[6 * i + 1] * 1000)
+               , (int)(vrange[6 * i + 2] * 1000), (int)(vrange[6 * i + 3] * 1000)
+               , (int)(vrange[6 * i + 4] * 1000), (int)(vrange[6 * i + 5] * 1000));
+    }
+}
+
+static void de_biquad_printf(float *biquad, int order)
+{
+    printf(" ff oreder = %d\n", order);
+    for (int i = 0; i < order; i++) {
+        printf("%d >>>>> g:%d, f:%d, q:%d\n", i, (int)(biquad[3 * i + 0] * 1000), (int)(biquad[3 * i + 1]), (int)(biquad[3 * i + 2] * 1000));
+    }
+    printf("total gain = %d\n", (int)(biquad[order * 3] * 1000));
+}
+#endif
+
 void icsd_sd_cfg_set(__icsd_anc_config_data *SD_CFG, void *_ext_cfg)
 {
     struct anc_ext_ear_adaptive_param *ext_cfg = (struct anc_ext_ear_adaptive_param *)_ext_cfg;
@@ -200,6 +222,11 @@ void icsd_sd_cfg_set(__icsd_anc_config_data *SD_CFG, void *_ext_cfg)
         /**************** left channel config **************/
         /***************************************************/
         SD_CFG->adpt_cfg.pnc_times = ext_cfg->base_cfg->adaptive_times;
+
+        // de alg config
+        SD_CFG->adpt_cfg.high_fgq_fix = 1; // gali TODO  需要工具做传参
+        SD_CFG->adpt_cfg.de_alg_sel = 1; // gali TODO
+
         // target配置
         SD_CFG->adpt_cfg.cmp_en = ext_cfg->ff_target_param->cmp_en;
         SD_CFG->adpt_cfg.target_cmp_num = ext_cfg->ff_target_param->cmp_curve_num;
@@ -315,6 +342,12 @@ void icsd_sd_cfg_set(__icsd_anc_config_data *SD_CFG, void *_ext_cfg)
         for (int i = 0; i < 60; i++) {
             printf("idx=%d, mse=%d, weight=%d\n", i, (int)SD_CFG->adpt_cfg.Gold_csv_H[i], (int)SD_CFG->adpt_cfg.Weight_H[i]);
         }
+        for (int i = 0; i < 60; i++) {
+            printf("idx=%d, mse=%d, weight=%d\n", i, (int)SD_CFG->adpt_cfg.Gold_csv_M[i], (int)SD_CFG->adpt_cfg.Weight_M[i]);
+        }
+        for (int i = 0; i < 60; i++) {
+            printf("idx=%d, mse=%d, weight=%d\n", i, (int)SD_CFG->adpt_cfg.Gold_csv_L[i], (int)SD_CFG->adpt_cfg.Weight_L[i]);
+        }
 
         de_vrange_printf(SD_CFG->adpt_cfg.Vrange_H, SD_CFG->adpt_cfg.IIR_NUM_FLEX + SD_CFG->adpt_cfg.IIR_NUM_FIX);
         de_vrange_printf(SD_CFG->adpt_cfg.Vrange_M, SD_CFG->adpt_cfg.IIR_NUM_FLEX + SD_CFG->adpt_cfg.IIR_NUM_FIX);
@@ -330,6 +363,11 @@ void icsd_sd_cfg_set(__icsd_anc_config_data *SD_CFG, void *_ext_cfg)
         /*************** right channel config **************/
         /***************************************************/
         SD_CFG->adpt_cfg_r.pnc_times = ext_cfg->base_cfg->adaptive_times;
+
+        // de alg config
+        SD_CFG->adpt_cfg_r.high_fgq_fix = 1; // gali TODO
+        SD_CFG->adpt_cfg_r.de_alg_sel = 1; // TODO
+
         // target配置
         SD_CFG->adpt_cfg_r.cmp_en = ext_cfg->rff_target_param->cmp_en;
         SD_CFG->adpt_cfg_r.target_cmp_num = ext_cfg->rff_target_param->cmp_curve_num;

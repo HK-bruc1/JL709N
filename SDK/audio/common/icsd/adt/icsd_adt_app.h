@@ -17,8 +17,15 @@
  * 需要同时打开TCFG_BT_SUPPORT_SPP和APP_ONLINE_DEBUG*/
 #define ICSD_ADT_WIND_INFO_SPP_DEBUG_EN  0
 
-/*串口写卡导出MIC的数据，需要先打开宏AUDIO_PCM_DEBUG*/
+/* 通过蓝牙spp发送音量自适应得噪声大小信息
+ * 需要同时打开TCFG_BT_SUPPORT_SPP和APP_ONLINE_DEBUG*/
+#define ICSD_ADT_VOL_NOISE_LVL_SPP_DEBUG_EN  0
+
+/*串口写卡导出MIC的数据，需要先打开宏AUDIO_DATA_EXPORT_VIA_UART*/
 #define ICSD_ADT_MIC_DATA_EXPORT_EN  0
+
+/*支持和其他功能共用ADC,需要在audio_config_def.h定义TCFG_AUDIO_ADC_ENABLE_ALL_DIGITAL_CH*/
+#define ICSD_ADT_SHARE_ADC_ENABLE    0
 
 enum {
     AUDIO_ADT_CLOSE = 0,    //关闭关闭
@@ -61,6 +68,7 @@ enum {
     ICSD_ADT_VOICE_STATE = 1,
     ICSD_ADT_WIND_LVL,
     ICSD_ADT_WAT_RESULT,
+    ICSD_ADT_VOL_NOISE_LVL,
     ICSD_ADT_TONE_PLAY,
     SPEAK_TO_CHAT_TASK_KILL,
     ICSD_ANC_MODE_SWITCH,
@@ -76,6 +84,8 @@ enum {
     SYNC_ICSD_ADT_OPEN,
     SYNC_ICSD_ADT_CLOSE,
     SYNC_ICSD_ADT_SET_ANC_FADE_GAIN,
+    SYNC_ICSD_ADT_ADAP_VOL_CMP,
+    SYNC_ICSD_ADT_ADAP_VOL_RESULT,
 };
 
 /*打开智能免摘*/
@@ -195,6 +205,22 @@ void audio_acoustic_detector_output_hdl(u8 voice_state, u8 wind_lvl, u8 wat_resu
 
 /*设置ADT 通透模式下的FB/CMP 参数*/
 void audio_icsd_adt_trans_fb_param_set(audio_anc_t *param);
+
+/*打开音量自适应*/
+int audio_icsd_adaptive_vol_open();
+
+/*关闭音量自适应*/
+int audio_icsd_adaptive_vol_close();
+
+/*音量自适应使用demo*/
+void audio_icsd_adaptive_vol_demo();
+
+/*智能免摘识别结果输出回调*/
+void audio_speak_to_chat_output_handle(u8 voice_state);
+/*广域点击识别结果输出回调*/
+void audio_wat_click_output_handle(u8 wat_result);
+/*风噪检测识别结果输出回调*/
+void audio_icsd_wind_detect_output_handle(u8 wind_lvl);
 
 extern void *get_anc_lfb_coeff();
 extern void *get_anc_lff_coeff();

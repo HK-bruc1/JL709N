@@ -19,7 +19,7 @@ int (*ein_printf)(const char *format, ...) = _ein_printf;
 void ein_config_init(__ein_config *_ein_config)
 {
     ein_printf("ein_config_init \n");
-    _ein_config->tot_checkin_cnt_thr = 2;
+    _ein_config->tot_checkin_cnt_thr = 5;
     _ein_config->thr1_trn2in_pz 	 = 0.51;
     _ein_config->thr1_anc2in_pz 	 = 0.52;//0.85;
     _ein_config->thr1_pnc2in_pz 	 = 0.53;

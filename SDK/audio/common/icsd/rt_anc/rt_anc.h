@@ -102,6 +102,8 @@ typedef struct {
     u8  cmp_yorder;
     float ffgain;
     float fbgain;
+    float ff_fade_gain;
+    float fb_fade_gain;
     float cmpgain;
     double ff_coeff[5 * RT_ANC_MAX_ORDER]; //max
     double fb_coeff[5 * RT_ANC_MAX_ORDER]; //max
@@ -118,6 +120,7 @@ struct rt_anc_infmt {
     __rt_anc_param *anc_param_l;
     __rt_anc_param *anc_param_r;
     u8  id;
+    struct icsd_rtanc_tool_data *rtanc_tool;
 };
 
 struct rt_anc_libfmt {
@@ -147,6 +150,8 @@ typedef struct {
 extern const u8 rt_anc_dma_ch_num;
 extern const u8 rt_cmp_en;
 extern const u8 rt_anc_dac_en;
+extern const u8 rt_anc_tool_data;
+extern  u16	RT_ANC_STATE;
 //RT_ANC调用
 int os_taskq_post_msg(const char *name, int argc, ...);
 //SDK 调用
@@ -178,6 +183,7 @@ struct icsd_rtanc_infmt {
     __rt_anc_param *anc_param_r;
     u8  ch_num;
     u8  ep_type;
+    struct icsd_rtanc_tool_data *rtanc_tool;
 };
 
 struct icsd_rtanc_libfmt {
@@ -208,22 +214,19 @@ typedef struct {
     float *szpz_out;
 } __icsd_rtanc_part2_parm;
 
+
+typedef struct {
+    u8     yorder;
+    double *coeff;
+    float  gain;
+    float  fade_gain;
+} __rtanc_filter;
+
 struct rtanc_param {
-    float *ffl_coeff;
-    float  ffl_gain;
-    float  ffl_yorder;
-
-    float *fbl_coeff;
-    float  fbl_gain;
-    float  fbl_yorder;
-
-    float *ffr_coeff;
-    float  ffr_gain;
-    float  ffr_yorder;
-
-    float *fbr_coeff;
-    float  fbr_gain;
-    float  fbr_yorder;
+    __rtanc_filter ffl_filter;
+    __rtanc_filter fbl_filter;
+    __rtanc_filter ffr_filter;
+    __rtanc_filter fbr_filter;
 };
 
 void icsd_rtanc_get_libfmt(struct icsd_rtanc_libfmt *libfmt);
@@ -235,10 +238,9 @@ void rt_anc_time_out_del();
 void rt_anc_init(struct rt_anc_infmt *fmt);
 void rt_anc_param_updata_cmd(void *param_l, void *param_r);
 void rt_anc_part1_reset();
-void rtanc_extern_sz_out(float *sz_out, u8 search_tg_ind);
-u8 rtanc_extern_sz_ind();
-void icsd_rtanc_alg_get_sz(float *sz_out);
-void icsd_alg_rtanc_param_update(struct rtanc_param *param);
+void icsd_rtanc_alg_get_sz(float *sz_out, u8 ch);
+void icsd_alg_rtanc_fadegain_update(struct rtanc_param *param);
+void icsd_alg_rtanc_filter_update(struct rtanc_param *param);
 void icsd_post_rtanctask_msg(u8 cmd);
 
 extern const u8 RTANC_ALG_DEBUG;

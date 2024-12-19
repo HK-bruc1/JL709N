@@ -358,7 +358,7 @@ REGISTER_TWS_FUNC_STUB(tws_anc_power_adaptive_compare) = {
 static int bt_tws_anc_power_adaptive_compare_send(int ref_lvl, int err_lvl)
 {
     u8 data[2];
-    int ret = -EINVAL;
+    int ret;
     data[0] = ref_lvl;
     data[1] = err_lvl;
     /* r_printf("tws_anc_power_adaptive_sync: %d, %d\n", data[0], data[1]); */
@@ -448,6 +448,9 @@ u8 audio_anc_power_adaptive_mode_get(void)
 //用于功能互斥需要挂起场景自适应
 void audio_anc_power_adaptive_suspend(void)
 {
+    if (power_adaptive_hdl->suspend == 1) {
+        return;
+    }
     power_adaptive_hdl->suspend = 1;
     power_adaptive_hdl->suspend_state = audio_anc_power_adaptive_mode_get();
     if (power_adaptive_hdl->suspend_state == ANC_ADAPTIVE_GAIN_MODE) {
@@ -458,6 +461,9 @@ void audio_anc_power_adaptive_suspend(void)
 //用于功能互斥结束后恢复场景自适应
 void audio_anc_power_adaptive_resume(void)
 {
+    if (power_adaptive_hdl->suspend == 0) {
+        return;
+    }
     power_adaptive_hdl->suspend = 0;
     if (power_adaptive_hdl->suspend_state == ANC_ADAPTIVE_GAIN_MODE) {
         audio_anc_power_adaptive_mode_set(ANC_ADAPTIVE_GAIN_MODE, 0);

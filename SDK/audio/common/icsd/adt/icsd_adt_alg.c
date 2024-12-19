@@ -16,7 +16,7 @@
 #define ICSD_EIN_LIB          0	//入耳检测
 #define ICSD_WIND_LIB         TCFG_AUDIO_ANC_WIND_NOISE_DET_ENABLE
 #define ICSD_RTANC_LIB        TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
-#define ICSD_AVC_LIB		  0	//自适应音量
+#define ICSD_AVC_LIB		  TCFG_AUDIO_VOLUME_ADAPTIVE_ENABLE	//自适应音量
 // #define ICSD_RTAEQ_LIB        1
 
 #include "icsd_adt.h"
@@ -88,6 +88,7 @@ void icsd_adt_avc_run(__adt_avc_run_parm *_run_parm, __adt_avc_output *_output)
     */
     icsd_avc_run(&run_parm, &output);
     _output->ctl_lvl = output.ctl_lvl;
+    _output->spldb_iir = output.spldb_iir;
     ADT_FUNC->icsd_AVC_output(_output);
 #endif
 }
@@ -120,20 +121,22 @@ int icsd_adt_rtanc_get_libfmt()
     return add_size;
 }
 
-int icsd_adt_rtanc_set_infmt(int _ram_addr)
+int icsd_adt_rtanc_set_infmt(int _ram_addr, void *rtanc_tool)
 {
     int set_size = 0;
 #if ICSD_RTANC_LIB
     struct icsd_rtanc_infmt rtanc_fmt;
+    DeAlorithm_enable();
     rtanc_fmt.ep_type = ICSD_ADT_EP_TYPE;
     rtanc_fmt.ch_num = rt_anc_dma_ch_num;
     rtanc_fmt.alloc_ptr = (void *)_ram_addr;
+    rtanc_fmt.rtanc_tool = rtanc_tool;
     icsd_rtanc_set_infmt(&rtanc_fmt);
     set_size = rtanc_fmt.lib_alloc_size;
     extern void icsd_adt_rtanc_set_ch_num(u8 ch_num);
     icsd_adt_rtanc_set_ch_num(rt_anc_dma_ch_num);
 
-    audio_adt_rtanc_set_infmt();
+    audio_adt_rtanc_set_infmt(rtanc_tool);
 #endif
     return set_size;
 }

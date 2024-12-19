@@ -20,21 +20,21 @@ void icsd_EIN_output_demo(u8 ein_state)
 void icsd_VDT_output_demo(u8 vdt_result)
 {
     if (vdt_result) {
-        printf("VDT OUTPUT:%d---------------------\n", vdt_result);
+        printf("--------------------------------VDT OUTPUT:%d---------------------\n", vdt_result);
     }
 }
 
 void icsd_WAT_output_demo(u8 wat_result)
 {
-    if (wat_result) {
-        printf("WAT OUTPUT:%d---------------------\n", wat_result);
+    if ((wat_result == 2) || (wat_result == 3)) {
+        printf("--------------------------------WAT OUTPUT:%d---------------------\n", wat_result);
     }
 }
 
 void icsd_WDT_output_demo(u8 wind_lvl)
 {
     if (wind_lvl) {
-        printf("WDT OUTPUT:%d---------------------\n", wind_lvl);
+        printf("--------------------------------WDT OUTPUT:%d---------------------\n", wind_lvl);
     }
     static u8 wind_sus_rtanc = 0;
     if (wind_lvl > 50) {
@@ -52,9 +52,7 @@ void icsd_WDT_output_demo(u8 wind_lvl)
 void icsd_AVC_output_demo(__adt_avc_output *_output)
 {
     if (_output->ctl_lvl) {
-        printf("--------------------------------------icsd_adt_avc_output:%d\n", _output->ctl_lvl);
-    } else {
-        printf("icsd_adt_avc_output:%d\n", _output->ctl_lvl);
+        printf("--------------------------------icsd_adt_avc_output:%d %d------------\n", _output->ctl_lvl, (int)(100 * _output->spldb_iir));
     }
 }
 
@@ -63,7 +61,7 @@ void icsd_envnl_output(int result)
     printf("icsd_envnl_output:>>>>>>>>>>>>>>>>>>%d\n", result);
 }
 
-#define	ICSD_ANCDMA_4CH_46K_DEBUG_EN		1
+#define	ICSD_ANCDMA_4CH_46K_DEBUG_EN		0
 #if ICSD_ANCDMA_4CH_46K_DEBUG_EN
 #define anc46k_DEBUG_LEN		(1024*3)
 s16 wptr_dma1_h_debug[anc46k_DEBUG_LEN];

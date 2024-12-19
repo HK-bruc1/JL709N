@@ -968,6 +968,22 @@ void audio_anc_adaptive_data_packet(struct icsd_anc_v2_tool_data *TOOL_DATA)
 
 }
 
+int audio_anc_ear_adaptive_tool_data_get(u8 **buf, u32 *len)
+{
+    if (anc_adaptive_data == NULL) {
+        printf("EAR ANC packet is NULL, return!\n");
+        return -1;
+    }
+    if (anc_adaptive_data->dat_len == 0) {
+        printf("EAR ANC error: dat_len == 0\n");
+        return -1;
+    }
+    *buf = anc_adaptive_data->dat;
+    *len = anc_adaptive_data->dat_len;
+    return 0;
+}
+
+
 /* 开机自适应数据拼包，预备工具读取 */
 static void audio_anc_adaptive_poweron_catch_data(anc_adaptive_iir_t *iir)
 {
@@ -1314,7 +1330,7 @@ void anc_ear_adaptive_sz_output(__afq_output *output)
         audio_afq_common_output_post_msg(output);
     }
 #if ANC_EAR_ADAPTIVE_CMP_EN
-    audio_anc_ear_adaptive_cmp_run(output);
+    audio_anc_ear_adaptive_cmp_run(output, CMP_FROM_ANC_EAR_ADAPTIVE);
 #endif
 }
 

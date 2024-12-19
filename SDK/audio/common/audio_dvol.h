@@ -54,13 +54,17 @@ typedef struct {
     volatile s16 vol_target;	/*淡入淡出对应的目标音量*/
     volatile u16 fade_step;		/*淡入淡出的步进*/
     float  cfg_vol_min;         /*最小音量的分贝数*/
-    float  cfg_vol_max;         /*最小音量的分贝数*/
+    float  cfg_vol_max;         /*最大音量的分贝数*/
     u16    cfg_level_max;       /*最大音量等级*/
     u8     vol_table_custom;    /*是否使用外部工具读取的音量表*/
     u8     vol_table_default;    /*是否使用默认的音量表*/
     u8     mute_en;              /*是否将数据设成0*/
     u8     bit_wide;            /*数据位宽*/
-    float   *vol_table;            /*自定义音量表*/
+    float  *vol_table;         /*自定义音量表*/
+    float  offset_dB;            /*音量偏移分贝数*/
+    s16    offset;              /*音量偏移大小*/
+    s16  min_vol;         /*最小音量幅度*/
+    s16  max_vol;         /*最大音量幅度*/
 } dvol_handle;
 
 int audio_digital_vol_init(u16 *vol_table, u16 vol_max);
@@ -69,6 +73,7 @@ dvol_handle *audio_digital_vol_open(struct audio_vol_params params);
 void audio_digital_vol_close(dvol_handle  *dvol);
 void audio_digital_vol_set(dvol_handle *dvol, u16 vol);
 void audio_digital_vol_mute_set(dvol_handle *dvol, u8 mute_en);
+void audio_digital_vol_offset_dB_set(dvol_handle *dvol, float offset_dB);
 int audio_digital_vol_run(dvol_handle *dvol, void *data, u32 len);
 void audio_digital_vol_reset_fade(dvol_handle *dvol);
 

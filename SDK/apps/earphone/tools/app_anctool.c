@@ -41,6 +41,10 @@
 #include "icsd_aeq_app.h"
 #endif
 
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+#include "rt_anc_app.h"
+#endif
+
 #define anctool_printf  log_i
 #define anctool_put_buf put_buf
 
@@ -535,43 +539,38 @@ static void anctool_ack_read_file_start(u32 id)
             ret = -1;
         }
         break;
-#if ADPTIVE_EQ_TOOL_BETA_ENABLE
     case FILE_ID_ADAPTIVE:
-        extern anc_packet_data_t *adaptive_eq_data;
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE && AUDIO_ANC_DEBUG_CMD_RTANC_EN
+        u8 packet_sel = audio_anc_debug_cmd_packet_sel();
+        g_printf("ANC ADAPTIVE PACKET_SEL %d\n", packet_sel);
+        switch (packet_sel) {
+        case ANC_DEBUG_PACKET_SEL_EAR_ANC:
+            ret = audio_anc_ear_adaptive_tool_data_get(&__this->file_hdl, &__this->file_len);
+            break;
+        case ANC_DEBUG_PACKET_SEL_AEQ:	//仅挂起RTANC才能获取
+#if ADPTIVE_EQ_TOOL_BETA_ENABLE
+            if (audio_anc_real_time_adaptive_suspend_get() || (!audio_anc_real_time_adaptive_state_get())) {
+                ret = audio_adaptive_eq_tool_data_get(&__this->file_hdl, &__this->file_len);
+            }
+            break;
+#endif
+        case ANC_DEBUG_PACKET_SEL_RTANC: //仅挂起RTANC才能获取
+            if (audio_anc_real_time_adaptive_suspend_get() || (!audio_anc_real_time_adaptive_state_get())) {
+                ret = audio_anc_real_time_adaptive_tool_data_get(&__this->file_hdl, &__this->file_len);
+            }
+            break;
+        }
+#elif ADPTIVE_EQ_TOOL_BETA_ENABLE
         if (audio_adaptive_eq_is_running()) {
             printf("error:Adaptive EQ is running, return!\n");
             ret = -1;
             break;
         }
-        if (adaptive_eq_data == NULL) {
-            printf("packet is NULL, return!\n");
-            ret = -1;
-            break;
-        }
-        if (adaptive_eq_data->dat_len == 0) {
-            printf("error: dat_len == 0\n");
-            ret = -1;
-            break;
-        }
-        __this->file_len = adaptive_eq_data->dat_len;
-        __this->file_hdl = (u8 *)(adaptive_eq_data->dat);
-        break;
+        ret = audio_adaptive_eq_tool_data_get(&__this->file_hdl, &__this->file_len);
 #elif ANC_EAR_ADAPTIVE_EN
-    case FILE_ID_ADAPTIVE:
-        if (anc_adaptive_data == NULL) {
-            printf("packet is NULL, return!\n");
-            ret = -1;
-            break;
-        }
-        if (anc_adaptive_data->dat_len == 0) {
-            printf("error: dat_len == 0\n");
-            ret = -1;
-            break;
-        }
-        __this->file_len = anc_adaptive_data->dat_len;
-        __this->file_hdl = (u8 *)(anc_adaptive_data->dat);
+        ret = audio_anc_ear_adaptive_tool_data_get(&__this->file_hdl, &__this->file_len);
+#endif
         break;
-#endif/*ANC_EAR_ADAPTIVE_EN*/
 #if TCFG_AUDIO_ANC_EXT_TOOL_ENABLE
     case FILE_ID_ANC_EXT_START ... FILE_ID_ANC_EXT_STOP:
         ret = anc_ext_tool_read_file_start(__this->file_id, &__this->file_hdl, &__this->file_len);
@@ -847,7 +846,7 @@ static void app_anctool_module_deal(u8 *data, u16 len)
     anctool_printf("recv packet:\n");
     anctool_put_buf(data, len);
     __this->connected_flag = 1;
-#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
+#if 0//TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
     /*关闭所有模块*/
     if (audio_icsd_adt_is_running()) {
         audio_icsd_adt_close_all();

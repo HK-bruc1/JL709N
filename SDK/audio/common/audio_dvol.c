@@ -304,6 +304,46 @@ void audio_digital_vol_mute_set(dvol_handle *dvol, u8 mute_en)
 
 /*
 *********************************************************************
+*                  Audio Digital offset Set
+* Description: 数字音量设置音量偏移大小
+* Arguments  : dvol     数字音量操作句柄，详见audio_dvol.h宏定义
+*			   offset	音量偏移大小
+* Return	 : None.
+* Note(s)    : None.
+*********************************************************************
+*/
+void audio_digital_vol_offset_set(dvol_handle *dvol, s16 offset)
+{
+    if (dvol == NULL) {
+        return;
+    }
+    dvol->offset = offset;
+}
+
+/*
+*********************************************************************
+*                  Audio Digital offset Set
+* Description: 数字音量设置音量dB偏移大小
+* Arguments  : dvol         数字音量操作句柄，详见audio_dvol.h宏定义
+*			   offset_dB	音量偏移大小，单位dB
+* Return	 : None.
+* Note(s)    : None.
+*********************************************************************
+*/
+void audio_digital_vol_offset_dB_set(dvol_handle *dvol, float offset_dB)
+{
+    if (dvol == NULL) {
+        return;
+    }
+    s16 cur_vol = dvol->vol_target;
+    dvol->offset_dB = offset_dB;
+    float tar_dB = 20 * log10_float(cur_vol / DVOL_MAX_FLOAT) + offset_dB;
+    s16 tar_vol = (s16)(eq_db2mag(tar_dB) * DVOL_MAX_FLOAT + 0.5f);
+    dvol->offset = tar_vol - cur_vol;
+}
+
+/*
+*********************************************************************
 *                  Audio Digital Volume Set
 * Description: 数字音量设置
 * Arguments  : dvol     数字音量操作句柄，详见audio_dvol.h宏定义
@@ -346,6 +386,12 @@ void audio_digital_vol_set(dvol_handle *dvol, u16 vol)
             }
         }
     }
+
+    /*音量改变时，更新音量dB偏移的音量大小*/
+    if (dvol->offset) {
+        audio_digital_vol_offset_dB_set(dvol, dvol->offset_dB);
+    }
+
     dvol_log("digital_vol:%d-%d-%d-%d\n", vol, vol_level, dvol->vol_fade, dvol->vol_target);
 }
 /*********************************************************************
@@ -393,6 +439,10 @@ void audio_digital_vol_set_no_fade(dvol_handle *dvol, u8 vol)
             }
         }
     }
+    /*音量改变时，更新音量dB偏移的音量大小*/
+    if (dvol->offset) {
+        audio_digital_vol_offset_dB_set(dvol, dvol->offset_dB);
+    }
     dvol_log("digital_vol:%d-%d-%d-%d\n", vol, vol_level, dvol->vol_fade, dvol->vol_target);
 }
 
@@ -427,6 +477,17 @@ int audio_digital_vol_run(dvol_handle *dvol, void *data, u32 len)
     }
 
     s16 vol_target = dvol->vol_target;
+
+    /*音量不为0时，才做偏移*/
+    if (vol_target && dvol->offset) {
+        vol_target += dvol->offset;
+        if (vol_target < dvol->min_vol) {
+            vol_target = dvol->min_vol;
+        } else if (vol_target > dvol->max_vol) {
+            vol_target = dvol->max_vol;
+        }
+    }
+
     if (dvol->mute_en) {
         vol_target = 0;
     }

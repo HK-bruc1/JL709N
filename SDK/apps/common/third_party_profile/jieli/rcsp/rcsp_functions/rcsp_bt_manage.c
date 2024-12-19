@@ -760,7 +760,7 @@ void JL_rcsp_auth_flag_tws_sync(void)
 
 static void rcsp_bound_tws_sync_in_irq(void *_data, u16 len, bool rx)
 {
-    if (rx && (tws_api_get_role() == TWS_ROLE_SLAVE)) {
+    if (rx && (tws_api_get_role() == TWS_ROLE_SLAVE) && rcsp_handle_get()) {
         /* printf("bound %s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
         /* put_buf(_data, len); */
         u16 auth_hdl_size = sizeof(JL_rcsp_bound_hdl);
@@ -786,7 +786,7 @@ REGISTER_TWS_FUNC_STUB(tws_rcsp_bnd_sync) = {
 // rcsp协议库调用，用于tws同步设备的协议绑定信息，勿删
 void rcsp_protocol_bound_tws_sync(void)
 {
-    if (IS_CHARGE_EN()) {
+    if (IS_CHARGE_EN() || (rcsp_handle_get() == NULL)) {
         /* printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
         return;
     }
@@ -842,6 +842,7 @@ static void rcsp_interface_bt_handle_tws_sync_in_irq(void *_data, u16 len, bool 
         int ret = os_taskq_post_type("app_core", Q_CALLBACK, 4, argv);
         if (ret) {
             log_e("taskq post err \n");
+            free(rx_data);
         }
     }
 }
@@ -859,6 +860,9 @@ void rcsp_interface_bt_handle_tws_sync(void)
     }
     /* if (get_bt_tws_connect_status() && TWS_ROLE_MASTER == tws_api_get_role()) { */
     u16 buf_size = rcsp_interface_tws_sync_buf_size();
+    if (buf_size == 0) {
+        return;
+    }
     u8 *buf = malloc(buf_size);
     ASSERT(buf, "rcsp_interface_bt_handle_tws_sync buf malloc fail!");
     rcsp_interface_tws_sync_buf_content(buf);

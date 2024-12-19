@@ -16,8 +16,18 @@
 
 #if TCFG_ANC_TOOL_DEBUG_ONLINE && TCFG_AUDIO_ANC_ENABLE
 
+#include "audio_anc.h"
+
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
 #include "rt_anc_app.h"
+#endif
+
+#if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
+#include "icsd_aeq_app.h"
+#endif
+
+#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
+#include "icsd_adt_app.h"
 #endif
 
 #define ANC_DEBUG_TOOL_BY_TIMER			1  //定时器输出
@@ -66,6 +76,10 @@ enum anc_debug_tool_cmd_t {
 
 
 static struct anc_debug_tool_t *debug_hdl = NULL;
+
+#if AUDIO_ANC_DEBUG_CMD_RTANC_EN
+u8 audio_anc_debug_packet_sel = 2;	//0 ear anc; 1 aeq; 2 rtanc
+#endif
 
 static void audio_anc_debug_spp_send(u8 *buf, int len)
 {
@@ -227,24 +241,90 @@ int audio_anc_debug_user_cmd_process(u8 *data, int len)
     u8 cmd = data[0];
     int data_len = len - 1;	//目标数据长度
     u8 *data_p = data + 1;	//目标数据地址
+    float f_param = 0.0f;
+
+    if (data_len == 4) {
+        memcpy((u8 *)&f_param, data_p, 4);
+    }
+
     printf("ANC DEBUG USER CMD:0x%x\n", cmd);
+    put_buf(data_p, data_len);
+
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE && AUDIO_RT_ANC_PARAM_BY_TOOL_DEBUG
+    //暂时屏蔽
+    /* audio_rtanc_debug_param_set(cmd, f_param); */
+#endif
+
     switch (cmd) {
     case CMD_DEFAULT:
-        put_buf(data_p, data_len);
+        /* put_buf(data_p, data_len); */
         break;
+#if AUDIO_ANC_DEBUG_CMD_RTANC_EN	//测试用
+    case 0x1:
+        //AEQ 0默认参数 1自适应参数
+#if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
+        audio_adaptive_eq_eff_set(data[1]);
+#endif
+        break;
+    case 0x2:
+        //开关啸叫检测
+        void audio_anc_howl_det_toggle_demo();
+        audio_anc_howl_det_toggle_demo();
+        break;
+    case 0x3:
+        //开关风噪检测
+        audio_icsd_wind_detect_demo();
+        break;
+    case 0x4:
+        //开关环境自适应
+        void audio_anc_env_det_toggle_demo();
+        audio_anc_env_det_toggle_demo();
+        break;
+    case 0x5:
+        //开关RTANC
+        void audio_real_time_adaptive_app_ctr_demo(void);
+        audio_real_time_adaptive_app_ctr_demo();
+        break;
+    case 0x6:
+        //RT ANC suspend 0 挂起 1 恢复
+        void audio_anc_real_time_adaptive_suspend(void);
+        void audio_anc_real_time_adaptive_resume(void);
+        static u8 suspend = 0;
+        printf("suspend %d data %d\n", suspend, data[1]);
+        if (suspend && data[1]) {
+            printf("-----------resume\n");
+            suspend = 0;
+            audio_anc_real_time_adaptive_resume();
+        } else if (!(suspend || data[1])) {
+            suspend = 1;
+            printf("------------suspend\n");
+            audio_anc_real_time_adaptive_suspend();
+        }
+        break;
+    case 0x7:
+        printf("debug packet sel %d\n", data[1]);
+        audio_anc_debug_packet_sel = data[1];
+        break;
+    case 0x8:
+        if (data_len == 4) {
+            audio_anc_fade_ctr_set(ANC_FADE_MODE_USER, AUDIO_ANC_FDAE_CH_FF, (u16)f_param);
+        }
+        break;
+#endif
     default:
         break;
     }
 
-#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE && AUDIO_RT_ANC_PARAM_BY_TOOL_DEBUG
-    float f_param;
-    memcpy((u8 *)&f_param, data_p, 4);
-    audio_rtanc_debug_param_set(cmd, f_param);
-#endif
-
     audio_anc_debug_user_cmd_ack(cmd, TRUE, 0);
     return 0;
 }
+
+#if AUDIO_ANC_DEBUG_CMD_RTANC_EN	//测试用
+int audio_anc_debug_cmd_packet_sel(void)
+{
+    return audio_anc_debug_packet_sel;
+}
+#endif
 
 #if 0
 void audio_anc_debug_test(void)

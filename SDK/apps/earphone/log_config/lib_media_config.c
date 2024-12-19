@@ -17,6 +17,7 @@
 #include "asm/audio_adc.h"
 #include "audio_config.h"
 #include "media/audio_def.h"
+#include "audio_config_def.h"
 
 
 /*
@@ -81,8 +82,8 @@ const int CONFIG_SPATIAL_EFFECT_VERSION  = 1;
 #endif/*TCFG_SUPPORT_MIC_CAPLESS*/
 const u8 const_mic_capless_en = TCFG_SUPPORT_MIC_CAPLESS;
 /*是否支持多个ADC 异步打开功能*/
-#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN && (ANC_CHIP_VERSION == ANC_VERSION_BR28)
-//ICSD ADT功能, 由于BR28 ANC 复用ADC DIGITAL 需支持多个ADC异步
+#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN && defined(TCFG_AUDIO_ADC_ENABLE_ALL_DIGITAL_CH)
+//ICSD ADT功能, 需支持多个ADC异步
 const u8 const_adc_async_en = 1;
 #else
 const u8 const_adc_async_en = 0;

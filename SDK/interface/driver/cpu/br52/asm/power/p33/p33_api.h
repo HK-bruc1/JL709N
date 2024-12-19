@@ -301,18 +301,6 @@ void lvd_config(LVD_VOL vol, u8 expin_en, LVD_MODE mode, void (*callback));
 
 //
 //
-//                    pinr
-//
-//
-//
-//******************************************************************
-void gpio_longpress_pin0_reset_config(u32 pin, u32 level, u32 time, u32 release, u32 pull_enable);
-void gpio_longpress_pin1_reset_config(u32 pin, u32 level, u32 time, u32 release);
-
-
-
-//
-//
 //                    dcdc
 //
 //

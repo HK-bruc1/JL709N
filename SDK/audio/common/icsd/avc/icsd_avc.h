@@ -42,6 +42,7 @@ typedef struct {
 
 typedef struct {
     int ctl_lvl;
+    float spldb_iir;
 } __icsd_avc_output;
 
 

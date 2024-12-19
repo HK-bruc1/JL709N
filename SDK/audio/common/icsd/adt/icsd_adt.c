@@ -280,7 +280,7 @@ void icsd_adt_anc46k_out_isr()
 //////临时添加
 u8 audio_adt_talk_mic_analog_close()
 {
-    printf("talk_mic_analog_close\n");
+    /* printf("talk_mic_analog_close\n"); */
     return 0;
 }
 u8 audio_adt_talk_mic_analog_open()
@@ -289,9 +289,10 @@ u8 audio_adt_talk_mic_analog_open()
     return 0;
 }
 
-u8  audio_anc_debug_busy_get(void);
-int audio_dac_read_anc_reset(void);
-int audio_dac_read_anc(s16 points_offset, void *data, int len, u8 read_channel);
+extern u8  audio_anc_debug_busy_get(void);
+extern int audio_dac_read_anc_reset(void);
+extern int audio_dac_read_anc(s16 points_offset, void *data, int len, u8 read_channel);
+extern void audio_icsd_adptive_vol_output_handle(__adt_avc_output *_output);
 void adt_function_init()
 {
     printf("adt_function_init\n");
@@ -338,16 +339,22 @@ void adt_function_init()
     ADT_FUNC->icsd_adt_src_close = icsd_adt_src_close;
     ADT_FUNC->icsd_adt_src_init = icsd_adt_src_init;
     //OUTPUT
-    ADT_FUNC->icsd_VDT_output = icsd_VDT_output_demo;
-    ADT_FUNC->icsd_WAT_output = icsd_WAT_output_demo;
-    ADT_FUNC->icsd_WDT_output = icsd_WDT_output_demo;
-    ADT_FUNC->icsd_EIN_output = icsd_EIN_output_demo;
-    ADT_FUNC->icsd_AVC_output = icsd_AVC_output_demo;
-
+#if TCFG_AUDIO_SPEAK_TO_CHAT_ENABLE
+    ADT_FUNC->icsd_VDT_output = audio_speak_to_chat_output_handle;
+#endif
+#if TCFG_AUDIO_WIDE_AREA_TAP_ENABLE
+    ADT_FUNC->icsd_WAT_output = audio_wat_click_output_handle;
+#endif
+#if TCFG_AUDIO_ANC_WIND_NOISE_DET_ENABLE
+    ADT_FUNC->icsd_WDT_output = audio_icsd_wind_detect_output_handle;
+#endif
+#if TCFG_AUDIO_VOLUME_ADAPTIVE_ENABLE
+    ADT_FUNC->icsd_AVC_output = audio_icsd_adptive_vol_output_handle;
+#endif
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
     ADT_FUNC->icsd_RTANC_output = audio_adt_rtanc_output_handle;
 #endif
-
+    ADT_FUNC->icsd_EIN_output = icsd_EIN_output_demo;
 }
 
 void icsd_adt_tone_play_handler(u8 idx)

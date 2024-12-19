@@ -38,11 +38,16 @@ const u8 ICSD_RTANC_EN		=  1;//实时自适应ANC
 const u8 ICSD_RTANC_EN		=  0;
 #endif
 
+#if TCFG_AUDIO_VOLUME_ADAPTIVE_ENABLE
+const u8 ICSD_AVC_EN  		=  1;//自适应音量
+#else
+const u8 ICSD_AVC_EN  		=  0;//自适应音量
+#endif
+
 const u8 ICSD_ENVNL_EN		=  0;//环境声检测使能
 const u8 ICSD_RTAEQ_EN		=  0;//实时自适应EQ
 const u8 ICSD_HOWL_EN 		=  0;//啸叫检测
 const u8 ICSD_EIN_EN  		=  0;//入耳检测
-const u8 ICSD_AVC_EN  		=  0;//自适应音量
 const u8 ICSD_46KOUT_EN     =  0;//ANC 48K数据输出
 const u8 ICSD_ADT_EP_TYPE   =  ADT_TWS;
 

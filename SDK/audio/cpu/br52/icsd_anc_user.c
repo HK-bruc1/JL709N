@@ -321,12 +321,24 @@ u8 icsd_get_talk_mic_ch(void)
 
 u8 icsd_get_ref_mic_ch(void)
 {
-    return BIT(TCFG_AUDIO_ANCL_FF_MIC);
+    if (TCFG_AUDIO_ANCL_FF_MIC != MIC_NULL) {
+        return BIT(TCFG_AUDIO_ANCL_FF_MIC);
+    } else if (TCFG_AUDIO_ANCR_FF_MIC != MIC_NULL) {
+        return BIT(TCFG_AUDIO_ANCR_FF_MIC);
+    } else {
+        return 0;
+    }
 }
 
 u8 icsd_get_fb_mic_ch(void)
 {
-    return BIT(TCFG_AUDIO_ANCL_FB_MIC);
+    if (TCFG_AUDIO_ANCL_FB_MIC != MIC_NULL) {
+        return BIT(TCFG_AUDIO_ANCL_FB_MIC);
+    } else if (TCFG_AUDIO_ANCR_FB_MIC != MIC_NULL) {
+        return BIT(TCFG_AUDIO_ANCR_FB_MIC);
+    } else {
+        return 0;
+    }
 }
 
 u8 icsd_get_esco_mic_en_map(void)

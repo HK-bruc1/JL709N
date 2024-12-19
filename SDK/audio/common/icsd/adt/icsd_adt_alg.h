@@ -9,6 +9,7 @@ typedef struct {
 
 typedef struct {
     int ctl_lvl;
+    float spldb_iir;
 } __adt_avc_output;
 
 int icsd_adt_avc_get_libfmt();
@@ -38,7 +39,7 @@ typedef struct {
 } __adt_rtanc_part2_parm;
 
 int  icsd_adt_rtanc_get_libfmt();
-int  icsd_adt_rtanc_set_infmt(int _ram_addr);
+int  icsd_adt_rtanc_set_infmt(int _ram_addr, void *rtanc_tool);
 void icsd_adt_alg_rtanc_run_part1(__adt_anc_part1_parm *_part1_parm);
 void icsd_adt_alg_rtanc_part2_parm_init();
 void icsd_adt_alg_rtanc_run_part2(__adt_rtanc_part2_parm *_part2_parm);

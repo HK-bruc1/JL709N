@@ -63,6 +63,21 @@ extern const float right_pz_table[];
 extern const float right_sz_table[];
 
 
+struct icsd_rtanc_tool_data {
+    int h_len;//60
+    float h_freq[60];//60
+    float sz_out_l[120];
+    float sz_out_r[120];
+    float pz_out_l[120];
+    float pz_out_r[120];
+    float ff_fgq_l[10 * 3 + 1];
+    float ff_fgq_r[10 * 3 + 1];
+    float target_out_l[120];
+    float target_out_r[120];
+    float target_out_cmp_l[120];
+    float target_out_cmp_r[120];
+};
+
 struct icsd_anc_v2_tool_data {
     int h_len;
     int yorderb;//int fb_yorder;
@@ -148,6 +163,9 @@ typedef struct {
     float *sz_table;
     float *pz_table_cmp;
     float *sz_table_cmp;
+
+    u8 high_fgq_fix;
+    u8 de_alg_sel;
 } adpt_anc_cfg;
 
 

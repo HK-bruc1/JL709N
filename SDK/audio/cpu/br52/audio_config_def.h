@@ -244,6 +244,9 @@
 
 #define TCFG_AUDIO_MIC_DUT_ENABLE	0   //麦克风测试和传递函数测试
 
+//支持 ADC DIGITAL 按最大通道数开启, 中断拿数需按使用的ADC_CH拆分
+// #define TCFG_AUDIO_ADC_ENABLE_ALL_DIGITAL_CH
+
 #define ANC_EXT_V1			1	//仅支持入耳
 #define ANC_EXT_V2			2	//支持入耳、半入耳
 //ANC耳道自适应版本

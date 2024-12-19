@@ -4,7 +4,7 @@
     {
 		.overlay_init
 		{
-            *(.rf_init.text.cache.L2)
+            /* *(.rf_init.text.cache.L2) */
         }
 		.overlay_aec
 		{

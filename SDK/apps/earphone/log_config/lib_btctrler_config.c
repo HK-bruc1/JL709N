@@ -408,11 +408,7 @@ const int config_btctler_le_acl_total_nums = 15;
  * @brief Bluetooth Analog setting
  */
 /*-----------------------------------------------------------*/
-#if ((!TCFG_USER_BT_CLASSIC_ENABLE) && TCFG_USER_BLE_ENABLE)
-	const int config_btctler_single_carrier_en = 1;   ////单模ble才设置
-#else
-	const int config_btctler_single_carrier_en = 0;
-#endif
+const int config_btctler_single_carrier_en = 0;   // 单载波，如果是单模ble建议设置为1，否则会有部分芯片测试盒连接不上的情况。by zhibin
 
 const int sniff_support_reset_anchor_point = 0;   //sniff状态下是否支持reset到最近一次通信点，用于HID
 const int sniff_long_interval = (500 / 0.625);    //sniff状态下进入long interval的通信间隔(ms)

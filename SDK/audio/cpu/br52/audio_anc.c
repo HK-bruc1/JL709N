@@ -153,6 +153,7 @@ typedef struct {
     u16 scene_id;					/*多场景滤波器-场景ID*/
     u8 scene_max;					/*多场景滤波器-最大场景个数*/
 #endif/*ANC_MULT_ORDER_ENABLE*/
+    u8 howldet_suspend_rtanc;		/*啸叫检测挂起RTANC的标识*/
     u16 ui_mode_sel_timer;
     u16 fade_in_timer;
     u16 fade_gain;
@@ -537,6 +538,9 @@ static void anc_task(void *p)
                 //当用户端打开RTANC时，切模式需控制RTANC
                 if (audio_rtanc_app_func_en_get()) {
                     audio_rtanc_adaptive_en((cur_anc_mode == ANC_ON));
+                    /* } else if (cur_anc_mode == ANC_ON) { */
+                    /* void audio_real_time_adaptive_app_open_demo(void); */
+                    /* audio_real_time_adaptive_app_open_demo(); */
                 }
 #endif
                 break;
@@ -684,7 +688,13 @@ static void anc_task(void *p)
                 anc_mode_switch(msg[2], msg[3]);
                 break;
             case ANC_MSG_COEFF_UPDATE:
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+                audio_anc_real_time_adaptive_suspend();
                 anc_coeff_online_update(&anc_hdl->param, 0);			//更新ANC滤波器
+                audio_anc_real_time_adaptive_resume();
+#else
+                anc_coeff_online_update(&anc_hdl->param, 0);			//更新ANC滤波器
+#endif
                 break;
             }
         } else {
@@ -2707,6 +2717,9 @@ void audio_ear_adaptive_train_app_suspend(void)
     anc_mode_change_tool(ANC_FF_EN);					//设置仅FF通路
     audio_anc_drc_toggle_set(0);						//关闭DRC
     audio_anc_dcc_adaptive_toggle_set(0);				//关闭DCC
+#if ANC_HOWLING_DETECT_EN
+    anc_howling_detect_app_suspend();
+#endif
 #if ANC_ADAPTIVE_EN
     //关闭场景自适应功能
     audio_anc_power_adaptive_suspend();
@@ -2719,6 +2732,9 @@ void audio_ear_adaptive_train_app_resume(void)
     anc_mode_change_tool(TCFG_AUDIO_ANC_TRAIN_MODE);
     audio_anc_drc_toggle_set(1);
     audio_anc_dcc_adaptive_toggle_set(1);
+#if ANC_HOWLING_DETECT_EN
+    anc_howling_detect_app_resume();
+#endif
 #if ANC_ADAPTIVE_EN
     //恢复场景自适应功能
     audio_anc_power_adaptive_resume();
@@ -2753,7 +2769,9 @@ int audio_anc_mult_scene_set(u16 scene_id)
 int audio_anc_mult_scene_update(u16 scene_id)
 {
     int ret = audio_anc_mult_scene_set(scene_id);
-    audio_anc_coeff_smooth_update();
+    if (!ret) {
+        audio_anc_coeff_smooth_update();
+    }
     return ret;
 }
 
@@ -2797,6 +2815,20 @@ void audio_anc_mult_scene_switch(u8 tone_flag)
 void audio_anc_howldet_fade_set(u16 gain)
 {
     if (anc_hdl) {
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+        //触发啸叫检测之后需要挂起RTANC
+        if (audio_anc_real_time_adaptive_state_get()) {
+            if (gain != 16384) {
+                if (!anc_hdl->howldet_suspend_rtanc) {
+                    anc_hdl->howldet_suspend_rtanc = 1;
+                    audio_anc_real_time_adaptive_suspend();
+                }
+            } else if (anc_hdl->howldet_suspend_rtanc) {
+                anc_hdl->howldet_suspend_rtanc = 0;
+                audio_anc_real_time_adaptive_resume();
+            }
+        }
+#endif
         audio_anc_fade_ctr_set(ANC_FADE_MODE_HOWLDET, AUDIO_ANC_FDAE_CH_ALL, gain);
     }
 }

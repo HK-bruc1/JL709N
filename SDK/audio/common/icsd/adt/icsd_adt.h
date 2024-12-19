@@ -96,6 +96,7 @@ extern struct adt_function	*ADT_FUNC;
 struct icsd_acoustic_detector_infmt {
     void *param;
     u16 sample_rate;     //当前播放采样率
+    u16 adc_sr;           //MIC数据采样率
     u8 ein_state;
     u8 ff_gain;
     u8 fb_gain;
@@ -122,6 +123,7 @@ struct icsd_acoustic_detector_infmt {
     u32   trans_alogm;
     u32   alogm;
     void *alloc_ptr;    //外部申请的ram地址
+    struct icsd_rtanc_tool_data *rtanc_tool;
     /*
         算法结果输出
         voice_state: 0 无讲话； 1 有讲话

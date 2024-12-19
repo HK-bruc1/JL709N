@@ -39,6 +39,8 @@
 #include "rt_anc_app.h"
 #endif
 
+#define ADAPTIVE_EQ_OUTPUT_IN_CUR_VOL_EN		0	//AEQ只根据当前音量生成一组AEQ，其他音量用默认EQ
+
 #if 1
 #define aeq_printf printf
 #else
@@ -50,6 +52,7 @@ struct audio_aeq_t {
     u8 real_time_eq_en;						//实时自适应EQ使能
     enum audio_adaptive_fre_sel fre_sel;	//AEQ数据来源
     volatile u8 state;						//状态
+    u8 run_busy;							//运行繁忙标志
     s16 now_volume;							//当前EQ参数的音量
     void *lib_alloc_ptr;					//AEQ申请的内存指针
     float *sz_ref;							//金机参考SZ
@@ -59,6 +62,7 @@ struct audio_aeq_t {
     struct audio_afq_output *fre_out;		//实时SZ输出句柄
     struct eq_default_seg_tab *eq_ref;		//参考EQ
     void (*result_cb)(int msg);			//AEQ训练结束回调
+    OS_MUTEX mutex;
 };
 
 struct audio_aeq_bulk {
@@ -162,6 +166,7 @@ int audio_adaptive_eq_init(void)
     aeq_hdl = zalloc(sizeof(struct audio_aeq_t));
     spin_lock_init(&aeq_hdl->lock);
     INIT_LIST_HEAD(&aeq_hdl->head);
+    os_mutex_create(&aeq_hdl->mutex);
     ASSERT(aeq_hdl);
     return 0;
 }
@@ -173,13 +178,15 @@ int audio_adaptive_eq_open(enum audio_adaptive_fre_sel fre_sel, void (*result_cb
         return 1;
     }
 
-    aeq_printf("===================adaptive_eq_init:from %d===================\n", fre_sel);
+    aeq_printf("ICSD_AEQ_STATE:OPEN, real time %d, fre_sel %d\n", aeq_hdl->real_time_eq_en, fre_sel);
     mem_stats();
 
     //1.保留现场及功能互斥
     audio_adaptive_eq_mutex_suspend();
 
-    clock_alloc("ANC_AEQ", 160 * 1000000L);
+    if (!aeq_hdl->real_time_eq_en) {	//非实时自适应EQ才申请时钟
+        clock_alloc("ANC_AEQ", 160 * 1000000L);
+    }
 
     aeq_hdl->state = ADAPTIVE_EQ_STATE_OPEN;
     aeq_hdl->fre_sel = fre_sel;
@@ -211,20 +218,35 @@ int audio_adaptive_eq_open(enum audio_adaptive_fre_sel fre_sel, void (*result_cb
     return 0;
 }
 
-
+//(实时)自适应EQ打开
 int audio_real_time_adaptive_eq_open(enum audio_adaptive_fre_sel fre_sel, void (*result_cb)(int result))
 {
+    aeq_hdl->real_time_eq_en = 1;
     int ret = audio_adaptive_eq_open(fre_sel, result_cb);
     if (!ret) {
-        aeq_hdl->real_time_eq_en = 1;
+        aeq_hdl->real_time_eq_en = 0;
     }
     return ret;
+}
+
+//(实时)自适应EQ退出
+int audio_real_time_adaptive_eq_close(void)
+{
+    aeq_printf("ICSD_AEQ_STATE:FORCE_EXIT");
+    aeq_hdl->state = ADAPTIVE_EQ_STATE_FORCE_EXIT;
+    if (aeq_hdl->run_busy) {
+        icsd_aeq_force_exit();  // RUN过程强制退出，之后执行CLOSE
+    } else {
+        audio_adaptive_eq_close();
+    }
+    return 0;
 }
 
 int audio_adaptive_eq_close()
 {
     aeq_printf("%s\n", __func__);
     if (aeq_hdl) {
+        os_mutex_pend(&aeq_hdl->mutex, 0);
         if (aeq_hdl->state != ADAPTIVE_EQ_STATE_CLOSE) {
             if (strcmp(os_current_task(), "afq_common") == 0) {
                 //aeq close在AEQ线程执行会造成死锁，需改为在APP任务执行
@@ -236,6 +258,7 @@ int audio_adaptive_eq_close()
                 if (ret) {
                     aeq_printf("aeq taskq_post err\n");
                 }
+                os_mutex_post(&aeq_hdl->mutex);
                 return 0;
             }
             //删除频响来源回调，若来源结束，则关闭来源
@@ -253,6 +276,7 @@ int audio_adaptive_eq_close()
                 aeq_hdl->eq_ref = NULL;
             }
             clock_free("ANC_AEQ");
+            aeq_hdl->run_busy = 0;
 
             //在线更新EQ效果
             aeq_hdl->eff_mode = AEQ_EFF_MODE_ADAPTIVE;
@@ -262,22 +286,34 @@ int audio_adaptive_eq_close()
             aeq_hdl->real_time_eq_en = 0;
 
             aeq_hdl->state = ADAPTIVE_EQ_STATE_CLOSE;
+            aeq_printf("ICSD_AEQ_STATE:CLOSE");
 
             if (aeq_hdl->result_cb) {
                 aeq_hdl->result_cb(0);
             }
         }
+        os_mutex_post(&aeq_hdl->mutex);
     }
     return 0;
 }
 
-//查询aeq是否活动中
-u8 audio_adaptive_eq_is_running(void)
+//查询AEQ的状态
+u8 audio_adaptive_eq_state_get(void)
 {
     if (aeq_hdl) {
         return aeq_hdl->state;
     }
     return ADAPTIVE_EQ_STATE_CLOSE;
+}
+
+
+//查询aeq是否活动中
+u8 audio_adaptive_eq_is_running(void)
+{
+    if (aeq_hdl) {
+        return aeq_hdl->run_busy;
+    }
+    return 0;
 }
 
 //立即更新EQ参数
@@ -440,11 +476,18 @@ static void audio_adaptive_eq_data_packet(_aeq_output *aeq_output, float *sz, fl
     /* printf("freq:%d\n", (int)aeq_output->h_freq[i]); */
     /* } */
     audio_anc_fr_format(leq_dat, fgq, out_seg_num, tmp_type);
+
+#if ADAPTIVE_EQ_OUTPUT_IN_CUR_VOL_EN
+    adaptive_eq_data = anc_data_catch(adaptive_eq_data, NULL, 0, 0, 1);
+#else
     if (cnt == 0) {
         adaptive_eq_data = anc_data_catch(adaptive_eq_data, NULL, 0, 0, 1);
+    }
+#endif
+    if (cnt == 0) {
 #if TCFG_USER_TWS_ENABLE
         if (bt_tws_get_local_channel() == 'R') {
-            r_printf("ANC ear-adaptive send data, ch:R\n");
+            r_printf("AEQ-adaptive send data, ch:R\n");
             adaptive_eq_data = anc_data_catch(adaptive_eq_data, (u8 *)aeq_output->h_freq, len * 4, ANC_R_ADAP_FRE, 0);
             adaptive_eq_data = anc_data_catch(adaptive_eq_data, (u8 *)sz, len * 8, ANC_R_ADAP_SZPZ, 0);
             adaptive_eq_data = anc_data_catch(adaptive_eq_data, (u8 *)aeq_output->target, len * 8, ANC_R_ADAP_TARGET, 0);
@@ -452,7 +495,7 @@ static void audio_adaptive_eq_data_packet(_aeq_output *aeq_output, float *sz, fl
         } else
 #endif
         {
-            r_printf("ANC ear-adaptive send data, ch:L\n");
+            r_printf("AEQ-adaptive send data, ch:L\n");
             adaptive_eq_data = anc_data_catch(adaptive_eq_data, (u8 *)aeq_output->h_freq, len * 4, ANC_L_ADAP_FRE, 0);
             adaptive_eq_data = anc_data_catch(adaptive_eq_data, (u8 *)sz, len * 8, ANC_L_ADAP_SZPZ, 0);
             adaptive_eq_data = anc_data_catch(adaptive_eq_data, (u8 *)aeq_output->target, len * 8, ANC_L_ADAP_TARGET, 0);
@@ -461,28 +504,43 @@ static void audio_adaptive_eq_data_packet(_aeq_output *aeq_output, float *sz, fl
     } else if (cnt == 1) {
 #if TCFG_USER_TWS_ENABLE
         if (bt_tws_get_local_channel() == 'R') {
-            r_printf("ANC ear-adaptive send data, ch:R\n");
+            r_printf("AEQ-adaptive send data, ch:R\n");
             adaptive_eq_data = anc_data_catch(adaptive_eq_data, (u8 *)leq_dat, eq_dat_len, ANC_R_FB_IIR, 0);  //R_ff
         } else
 #endif
         {
-            r_printf("ANC ear-adaptive send data, ch:L\n");
+            r_printf("AEQ-adaptive send data, ch:L\n");
             adaptive_eq_data = anc_data_catch(adaptive_eq_data, (u8 *)leq_dat, eq_dat_len, ANC_L_FB_IIR, 0);  //R_ff
         }
     } else if (cnt == 2) {
 #if TCFG_USER_TWS_ENABLE
         if (bt_tws_get_local_channel() == 'R') {
-            r_printf("ANC ear-adaptive send data, ch:R\n");
+            r_printf("AEQ-adaptive send data, ch:R\n");
             adaptive_eq_data = anc_data_catch(adaptive_eq_data, (u8 *)leq_dat, eq_dat_len, ANC_R_CMP_IIR, 0);  //R_ff
         } else
 #endif
         {
-            r_printf("ANC ear-adaptive send data, ch:L\n");
+            r_printf("AEQ-adaptive send data, ch:L\n");
             adaptive_eq_data = anc_data_catch(adaptive_eq_data, (u8 *)leq_dat, eq_dat_len, ANC_L_CMP_IIR, 0);  //R_ff
         }
     }
 
     free(leq_dat);
+}
+
+int audio_adaptive_eq_tool_data_get(u8 **buf, u32 *len)
+{
+    if (adaptive_eq_data == NULL) {
+        printf("AEQ packet is NULL, return!\n");
+        return -1;
+    }
+    if (adaptive_eq_data->dat_len == 0) {
+        printf("AEQ error: dat_len == 0\n");
+        return -1;
+    }
+    *buf = adaptive_eq_data->dat;
+    *len = adaptive_eq_data->dat_len;
+    return 0;
 }
 
 static int audio_adaptive_eq_cur_list_add(s16 volume, struct eq_default_seg_tab *eq_output)
@@ -678,18 +736,33 @@ static int audio_adaptive_eq_dot_run(void)
 
 static void audio_adaptive_eq_afq_output_hdl(struct audio_afq_output *p)
 {
-    aeq_hdl->fre_out = p;
-
     struct eq_default_seg_tab *eq_output;
     float maxgain_dB;
-    aeq_printf("AEQ RUN \n");
-    aeq_hdl->state = ADAPTIVE_EQ_STATE_RUN;
 
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
-    if (aeq_hdl->fre_sel == AUDIO_ADAPTIVE_FRE_SEL_ANC) {
-        audio_anc_real_time_adaptive_suspend();
+#if ADAPTIVE_EQ_ONLY_IN_MUSIC_UPDATE
+    //非通话/播歌状态 不更新
+    if (!(a2dp_player_runing() || esco_player_runing())) {
+        if (aeq_hdl->fre_sel == AUDIO_ADAPTIVE_FRE_SEL_ANC) {
+            audio_anc_real_time_adaptive_resume();
+        }
+        return;
     }
 #endif
+    /*if (aeq_hdl->fre_sel == AUDIO_ADAPTIVE_FRE_SEL_ANC) {
+        audio_anc_real_time_adaptive_suspend();
+    }*/
+#endif
+    if (aeq_hdl->state == ADAPTIVE_EQ_STATE_FORCE_EXIT) {
+        goto __aeq_close;
+    }
+
+    aeq_hdl->fre_out = p;
+
+    aeq_printf("ICSD_AEQ_STATE:RUN");
+    /* mem_stats(); */
+    aeq_hdl->state = ADAPTIVE_EQ_STATE_RUN;
+    aeq_hdl->run_busy = 1;
 
     //释放上一次AEQ存储空间
     audio_adaptive_eq_cur_list_del();
@@ -705,7 +778,23 @@ static void audio_adaptive_eq_afq_output_hdl(struct audio_afq_output *p)
 #else
     int dot_lvl = 0;
 #endif
-
+#if ADAPTIVE_EQ_OUTPUT_IN_CUR_VOL_EN
+    //根据当前音量计算1次AEQ
+    s16 target_volume = app_audio_get_volume(APP_AUDIO_STATE_MUSIC);
+    int vol_list_num = sizeof(aeq_volume_grade_list);
+    for (u8 i = 0; i < vol_list_num; i++) {
+        if (target_volume <= aeq_volume_grade_list[i]) {
+            target_volume = aeq_volume_grade_list[i];
+            maxgain_dB = aeq_volume_grade_maxdB_table[dot_lvl][i];
+            r_printf("max_dB %d/10, lvl %d\n", (int)(maxgain_dB * 10), aeq_volume_grade_list[i]);
+            audio_adaptive_eq_start();
+            eq_output = audio_adaptive_eq_run(maxgain_dB, i);
+            audio_adaptive_eq_cur_list_add(aeq_volume_grade_list[i], eq_output);
+            audio_adaptive_eq_stop();
+            break;
+        }
+    }
+#else
     int vol_list_num = sizeof(aeq_volume_grade_list);
     for (u8 i = 0; i < vol_list_num; i++) {
         /* maxgain_dB = 0 - audio_adaptive_eq_vol_gain_get(aeq_volume_grade_list[i]); */
@@ -717,6 +806,7 @@ static void audio_adaptive_eq_afq_output_hdl(struct audio_afq_output *p)
         audio_adaptive_eq_cur_list_add(aeq_volume_grade_list[i], eq_output);
         audio_adaptive_eq_stop();
     }
+#endif
 #else
     audio_adaptive_eq_start();
     eq_output = audio_adaptive_eq_run(ADAPTIVE_EQ_MAXGAIN_DB, 0);
@@ -725,16 +815,20 @@ static void audio_adaptive_eq_afq_output_hdl(struct audio_afq_output *p)
 
 #endif
 
+    aeq_hdl->run_busy = 0;
+
 __aeq_close:
+    if (aeq_hdl->state == ADAPTIVE_EQ_STATE_FORCE_EXIT) {
+        audio_adaptive_eq_close();
+    }
     if (aeq_hdl->real_time_eq_en) {
         //实时AEQ 在线更新EQ效果
-        aeq_printf("aeq updata \n");
         aeq_hdl->eff_mode = AEQ_EFF_MODE_ADAPTIVE;
         s16 volume = app_audio_get_volume(APP_AUDIO_STATE_MUSIC);
         aeq_hdl->now_volume = volume;
         audio_icsd_eq_eff_update(audio_adaptive_eq_cur_list_query(volume));
 
-        aeq_printf("AEQ END\n");
+        aeq_printf("ICSD_AEQ_STATE:RUN FINISH");
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
         if (aeq_hdl->fre_sel == AUDIO_ADAPTIVE_FRE_SEL_ANC) {
             audio_anc_real_time_adaptive_resume();
@@ -824,12 +918,14 @@ static float audio_adaptive_eq_vol_gain_get(s16 volume)
     return 0;
 }
 
-// 自适应EQ强制退出
+// (单次)自适应EQ强制退出
 int audio_adaptive_eq_force_exit(void)
 {
     aeq_printf("func:%s, aeq_hdl->state:%d", __FUNCTION__, aeq_hdl->state);
     switch (aeq_hdl->state) {
     case ADAPTIVE_EQ_STATE_RUN:
+        aeq_printf("ICSD_AEQ_STATE:(SINGLE)FORCE_EXIT");
+        aeq_hdl->state = ADAPTIVE_EQ_STATE_FORCE_EXIT;
         icsd_aeq_force_exit();  // RUN才跑算法流程
         break;
     case ADAPTIVE_EQ_STATE_OPEN:

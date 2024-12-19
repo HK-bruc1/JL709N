@@ -11,8 +11,10 @@
 #if (TCFG_AUDIO_ANC_ENABLE && \
 	 TCFG_AUDIO_ANC_EXT_VERSION == ANC_EXT_V2)
 
+#include "audio_anc.h"
 #include "audio_anc_common.h"
 #include "icsd_common_v2_app.h"
+#include "audio_anc_debug_tool.h"
 
 #if TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN
 #include "icsd_anc_v2_interactive.h"
@@ -280,11 +282,7 @@ __exit:	//处理启动异常的问题
 
     printf("fail process\n");
 #if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
-    audio_adaptive_eq_close();
-#endif
-
-#if TCFG_AUDIO_FIT_DET_ENABLE
-    audio_icsd_dot_close();
+    audio_real_time_adaptive_eq_close();
 #endif
 }
 
@@ -300,7 +298,7 @@ void audio_real_time_adaptive_app_close_demo(void)
     printf("%s\n", __func__);
 #if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
     //1. 关闭实时自适应EQ
-    audio_adaptive_eq_close();
+    audio_real_time_adaptive_eq_close();
 #endif
 
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
@@ -309,20 +307,68 @@ void audio_real_time_adaptive_app_close_demo(void)
 #endif
 }
 
-#if 0
+
+/*----------------------------------------------------------------*/
+/*                         Test demo Start                        */
+/*----------------------------------------------------------------*/
+
+#if AUDIO_ANC_DEBUG_CMD_RTANC_EN
+
+#include "icsd_anc_user.h"
+
+
 void audio_real_time_adaptive_app_ctr_demo(void)
 {
-
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
     static u8 flag = 0;
     flag ^= 1;
     if (flag) {
+        icsd_adt_tone_play(ICSD_ADT_TONE_NUM5);
         audio_real_time_adaptive_app_open_demo();
     } else {
+        icsd_adt_tone_play(ICSD_ADT_TONE_NUM5);
+        icsd_adt_tone_play(ICSD_ADT_TONE_NUM0);
         audio_real_time_adaptive_app_close_demo();
     }
-}
 #endif
+}
 
 
+void audio_anc_howl_det_toggle_demo()
+{
+#if ANC_HOWLING_DETECT_EN
+    void anc_howling_detect_toggle(u8 toggle);
+    static u8 flag = 0;
+    flag ^= 1;
+    anc_howling_detect_toggle(flag);
+    if (flag) {
+        icsd_adt_tone_play(ICSD_ADT_TONE_NUM2);
+    } else {
+        icsd_adt_tone_play(ICSD_ADT_TONE_NUM2);
+        icsd_adt_tone_play(ICSD_ADT_TONE_NUM0);
+    }
+#endif
+}
 
+void audio_anc_env_det_toggle_demo()
+{
+#if ANC_ADAPTIVE_EN
+    void audio_anc_power_adaptive_mode_set(u8 mode, u8 lvl);
+    static u8 flag = 0;
+    flag ^= 1;
+    if (flag) {
+        icsd_adt_tone_play(ICSD_ADT_TONE_NUM4);
+        audio_anc_power_adaptive_mode_set(ANC_ADAPTIVE_GAIN_MODE, 0);
+    } else {
+        icsd_adt_tone_play(ICSD_ADT_TONE_NUM4);
+        icsd_adt_tone_play(ICSD_ADT_TONE_NUM0);
+        audio_anc_power_adaptive_mode_set(ANC_ADAPTIVE_MANUAL_MODE, 0);
+    }
+#endif/*ANC_EAR_ADAPTIVE_EN*/
+}
+
+#endif
+/*----------------------------------------------------------------*/
+/*                         Test demo End                          */
+/*----------------------------------------------------------------*/
 #endif
