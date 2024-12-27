@@ -24,12 +24,14 @@
 	(((defined TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN) && TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN) || \
 	((defined TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE) && TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE) || \
 	((defined TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN) && TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN)))
+#include "icsd_adt_app.h"
 
 struct audio_mic_hdl {
     struct audio_adc_output_hdl adc_output;
     struct adc_mic_ch mic_ch;
     s16 *adc_buf;    //align 2Bytes
     u16 dump_packet;
+    u8 mic_ch_map;
 };
 static struct audio_mic_hdl *audio_mic = NULL;
 extern struct audio_dac_hdl dac_hdl;
@@ -53,6 +55,8 @@ int audio_mic_en(u8 en, audio_mic_param_t *mic_param,
 
         u16 mic_ch = mic_param->mic_ch_sel;
         u16 sr = mic_param->sample_rate;
+        audio_mic->mic_ch_map = mic_ch;
+
 
         u8 mic_num = 0;
         /*打开mic电压*/
@@ -103,7 +107,11 @@ int audio_mic_en(u8 en, audio_mic_param_t *mic_param,
                 audio_anc_mic_mana_fb_mult_set(1);
             }
 #endif
+#if ICSD_ADT_SHARE_ADC_ENABLE
+            audio_adc_mic_ch_close(&audio_mic->mic_ch, audio_mic->mic_ch_map);
+#else
             audio_adc_mic_close(&audio_mic->mic_ch);
+#endif
             audio_adc_del_output_handler(&adc_hdl, &audio_mic->adc_output);
             if (audio_mic->adc_buf) {
                 /* free(audio_mic->adc_buf);  */
@@ -321,6 +329,7 @@ u8 icsd_get_talk_mic_ch(void)
 
 u8 icsd_get_ref_mic_ch(void)
 {
+    printf("TCFG_AUDIO_ANCL_FF_MIC %d", TCFG_AUDIO_ANCL_FF_MIC);
     if (TCFG_AUDIO_ANCL_FF_MIC != MIC_NULL) {
         return BIT(TCFG_AUDIO_ANCL_FF_MIC);
     } else if (TCFG_AUDIO_ANCR_FF_MIC != MIC_NULL) {
@@ -332,6 +341,7 @@ u8 icsd_get_ref_mic_ch(void)
 
 u8 icsd_get_fb_mic_ch(void)
 {
+    printf("TCFG_AUDIO_ANCL_FB_MIC %d", TCFG_AUDIO_ANCL_FB_MIC);
     if (TCFG_AUDIO_ANCL_FB_MIC != MIC_NULL) {
         return BIT(TCFG_AUDIO_ANCL_FB_MIC);
     } else if (TCFG_AUDIO_ANCR_FB_MIC != MIC_NULL) {

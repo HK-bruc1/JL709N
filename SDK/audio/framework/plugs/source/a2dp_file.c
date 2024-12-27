@@ -703,6 +703,9 @@ static void a2dp_frame_pack_timestamp(struct a2dp_file_hdl *hdl, struct stream_f
     int frame_delay = (timestamp - (frame->timestamp * 625 * TIME_US_FACTOR)) / 1000 / TIME_US_FACTOR;
     /*int distance_time = (int)(timestamp - (frame->timestamp * 625 * TIME_US_FACTOR)) / 1000 / TIME_US_FACTOR - delay_time;*/
     int distance_time = frame_delay - delay_time;
+    if (frame->flags & FRAME_FLAG_FILL_PACKET) { /*补包数据不进行延时调整*/
+        distance_time = 0;
+    }
     a2dp_audio_delay_offset_update(hdl->ts_handle, distance_time);
     frame->flags |= (FRAME_FLAG_TIMESTAMP_ENABLE | FRAME_FLAG_UPDATE_TIMESTAMP | FRAME_FLAG_UPDATE_DRIFT_SAMPLE_RATE);
     a2dp_stream_mark_next_timestamp(hdl->stream_ctrl, timestamp + PCM_SAMPLE_TO_TIMESTAMP(pcm_frames, hdl->sample_rate));

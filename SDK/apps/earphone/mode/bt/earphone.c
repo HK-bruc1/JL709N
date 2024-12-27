@@ -108,11 +108,41 @@
 u16 disturb_scan_timer = 0xff;
 extern void dut_idle_run_slot(u16 slot);
 extern void clr_device_in_page_list();
-#define BT_RF_CURRENT_BALANCE_EN  0//回连电流平衡使能
 
-#define RF_RXTX_STATE_PROT IO_PORTB_08//rf rx pa口  br36:PC2  br28:PB8
+#if defined(CONFIG_CPU_BR28)||defined(CONFIG_CPU_BR36)/*JL700N\JL701N*/
+
+#define OPTIMIZATION_CONN_NOISE    0//回连噪声优化,根据样机实际情况来开 硬件需求短接io
+#define RF_RXTX_STATE_PROT   IO_PORTB_08//rf rx pa口
 #define EDGE_SLECT_PORART    PORTB
-#define EDGE_SLECT_POART_IO  PORT_PIN_5//PB边沿检测 br36:PC3  br28:PB5
+#define EDGE_SLECT_POART_IO  PORT_PIN_5//PB边沿检测
+#define BT_RF_CURRENT_BALANCE_SUPPORT_ONLY_ONE_PORT  0//单io, JL700N\JL701N not support
+
+#elif defined(CONFIG_CPU_BR50)/*JL708*/
+
+#define OPTIMIZATION_CONN_NOISE    1//回连噪声优化,默认开启
+#define BT_RF_CURRENT_BALANCE_SUPPORT_ONLY_ONE_PORT  1
+#define RF_RXTX_STATE_PROT   	IO_PORTC_07//default PC7 内邦，可以不用修改io口
+#define EDGE_SLECT_PORART    	PORTC
+#define EDGE_SLECT_POART_IO  	PORT_PIN_7//边沿检测 default PC7
+#define EDGE_SLECT_POART_OPEN  {JL_PORTC->DIR &= ~BIT(7);JL_PORTC->SPL |= BIT(7);}
+#define EDGE_SLECT_POART_CLOSE {JL_PORTC->DIR |= BIT(7);JL_PORTC->SPL &= ~BIT(7);}
+
+#elif defined(CONFIG_CPU_BR52)//JL709
+
+#define OPTIMIZATION_CONN_NOISE    1//回连噪声优化,默认开启
+#define RF_RXTX_STATE_PROT IO_PORTC_07//default PC7 内邦，可以不用修改io口
+#define EDGE_SLECT_PORART    	PORTC
+#define EDGE_SLECT_POART_IO  	PORT_PIN_7//边沿检测 default PC7
+#define BT_RF_CURRENT_BALANCE_SUPPORT_ONLY_ONE_PORT  1
+#define EDGE_SLECT_POART_OPEN  {JL_PORTC->DIR &= ~BIT(7);JL_PORTC->SPL |= BIT(7);}
+#define EDGE_SLECT_POART_CLOSE {JL_PORTC->DIR |= BIT(7);JL_PORTC->SPL &= ~BIT(7);}
+
+#else
+
+#define OPTIMIZATION_CONN_NOISE    0//回连噪声优化
+
+#endif
+
 
 void bredr_link_disturb_scan_timeout(void *priv)
 {
@@ -954,9 +984,9 @@ int bt_mode_init()
         play_tone_file_callback(get_tone_files()->bt_mode, NULL, tone_bt_mode_callback);
     }
 
-#if BT_RF_CURRENT_BALANCE_EN
+#if OPTIMIZATION_CONN_NOISE
     extern void bt_set_rxtx_status_io(u32 tx_pin, u32 rx_pin);
-    bt_set_rxtx_status_io(RF_RXTX_STATE_PROT, RF_RXTX_STATE_PROT);
+    bt_set_rxtx_status_io(BT_RF_CURRENT_BALANCE_SUPPORT_ONLY_ONE_PORT ? 0xffff : RF_RXTX_STATE_PROT, RF_RXTX_STATE_PROT);
 #endif
 
     g_bt_hdl.init_start = 1;//蓝牙协议栈已经开始初始化标志位
@@ -1227,7 +1257,7 @@ struct app_mode *app_enter_bt_mode(int arg)
 
     return next_mode;
 }
-#if BT_RF_CURRENT_BALANCE_EN
+#if OPTIMIZATION_CONN_NOISE
 
 extern void hw_ctl_open(void);
 extern void hw_ctl_close(void);
@@ -1270,16 +1300,23 @@ struct gpio_irq_config_st gpio_irq_config_rx_off = {
 void bt_user_page_enable(u8 enable, u8 type)
 {
     /* log_info("bt_user_page_enable=%d,type=%d", enable, type); */
-    /* if(type==1){ *///tws quick page no doning
-    /* return;	 */
-    /* } */
+    if (type == 1) { //tws quick page no doning
+        return;
+    }
     if (enable) {
+        gpio_irq_config(EDGE_SLECT_PORART, &gpio_irq_config_rx_off);
         hw_ctl_close();
         gpio_irq_config(EDGE_SLECT_PORART, &gpio_irq_config_rx);
+#if BT_RF_CURRENT_BALANCE_SUPPORT_ONLY_ONE_PORT
+        EDGE_SLECT_POART_OPEN
+#endif
         /* log_info("gpio_irq_config open-----+++++"); */
     } else {
         gpio_irq_config(EDGE_SLECT_PORART, &gpio_irq_config_rx_off);
         hw_ctl_open();
+#if BT_RF_CURRENT_BALANCE_SUPPORT_ONLY_ONE_PORT
+        EDGE_SLECT_POART_CLOSE
+#endif
         /* log_info("gpio_irq_config close-----+++++"); */
     }
 }

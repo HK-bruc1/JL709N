@@ -85,11 +85,9 @@ CFLAGS := \
 	-Wincompatible-pointer-types \
 	-Wreturn-type \
 	-Wimplicit-function-declaration \
-	-Werror \
 	-mllvm -pi32v2-large-program=true \
 	-fms-extensions \
 	-fdiscrete-bitfield-abi \
-	-w \
 
 
 # C++额外的编译参数
@@ -301,6 +299,7 @@ INCLUDES := \
 # 需要编译的 .c 文件
 c_SRC_FILES := \
 	apps/common/app_mode_manager/app_mode_manager.c \
+	apps/common/bt_common/bt_fre_offset_storage.c \
 	apps/common/cJSON/cJSON.c \
 	apps/common/clock_manager/clock_manager.c \
 	apps/common/config/app_config.c \

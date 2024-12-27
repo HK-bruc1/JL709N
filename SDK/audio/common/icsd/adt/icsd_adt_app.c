@@ -713,8 +713,11 @@ int audio_acoustic_detector_open()
     audio_dac_set_samplerate_callback_add(&dac_hdl, audio_icsd_adt_set_sample);
 
     icsd_acoustic_detector_get_libfmt(&hdl->libfmt, adt_function);
+#if ICSD_ADT_SHARE_ADC_ENABLE
+    int debug_adc_sr = 16000;
+#else
     int debug_adc_sr = 8000;
-    //int debug_adc_sr = 16000;
+#endif
     hdl->libfmt.adc_sr = debug_adc_sr;//Raymond MIC的采样率由外部决定，通过set函数通知ADT
 
 #if (ICSD_ADT_WIND_INFO_SPP_DEBUG_EN || ICSD_ADT_VOL_NOISE_LVL_SPP_DEBUG_EN)

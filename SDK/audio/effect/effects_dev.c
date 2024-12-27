@@ -111,11 +111,11 @@ void effect_dev_process(struct packet_ctrl *hdl, struct stream_iport *iport,  st
             hdl->effect_run(hdl->node_hdl, (s16 *)frame->data, (s16 *)out_frame->data, frame->len);
             out_frame->len = out_len;
             jlstream_push_frame(node->oport, out_frame);	//将数据推到oport
+            jlstream_free_frame(frame);	//释放iport资源
         } else {
             hdl->effect_run(hdl->node_hdl, (s16 *)frame->data, (s16 *)frame->data, frame->len);
             jlstream_push_frame(node->oport, frame);	//将数据推到oport
         }
-        jlstream_free_frame(frame);	//释放iport资源
     }
 }
 void effect_dev_close(struct packet_ctrl *hdl)

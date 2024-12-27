@@ -572,7 +572,7 @@ static int a2dp_app_msg_handler(int *msg)
             /* 后台设备a2dp有能量,转为前台播放,
              * 前台设备转为后台静音, 不做能量检测, 防止抖音这种无法暂停的播放器又抢回来
              */
-            void *device = btstack_get_device_mac_addr(addr);
+            void *device = btstack_get_conn_device(addr);
             if (device) {
                 btstack_device_control(device, USER_CTRL_AVCTP_OPID_PAUSE);
             }
@@ -602,7 +602,7 @@ static int a2dp_app_msg_handler(int *msg)
         if (tws_api_get_role() == TWS_ROLE_SLAVE) {
             break;
         }
-        void *device = btstack_get_device_mac_addr(bt_addr);
+        void *device = btstack_get_conn_device(bt_addr);
         if (device) {
             btstack_device_control(device, USER_CTRL_AVCTP_OPID_PLAY);
         }

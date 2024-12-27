@@ -25,11 +25,9 @@
 <Add option="-Wincompatible-pointer-types" />
 <Add option="-Wreturn-type" />
 <Add option="-Wimplicit-function-declaration" />
-<Add option="-Werror" />
 <Add option="-mllvm -pi32v2-large-program=true" />
 <Add option="-fms-extensions" />
 <Add option="-fdiscrete-bitfield-abi" />
-<Add option="-w" />
 <Add option="-DCONFIG_RELEASE_ENABLE" />
 <Add option="-DCONFIG_EARPHONE_CASE" />
 <Add option="-DCONFIG_CPU_BR52" />
@@ -371,6 +369,7 @@
 </Build>
 <Unit filename="apps/common/app_mode_manager/app_mode_manager.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/app_mode_manager/app_mode_manager.h" />
+<Unit filename="apps/common/bt_common/bt_fre_offset_storage.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/cJSON/cJSON.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/cJSON/cJSON.h" />
 <Unit filename="apps/common/clock_manager/clock_manager.c"><Option compilerVer="CC"/></Unit>

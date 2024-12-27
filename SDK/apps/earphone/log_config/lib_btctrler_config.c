@@ -72,6 +72,9 @@ const int config_force_bt_pwr_tab_using_normal_level  = 0;
 //配置BLE广播发射功率的等级:0-最大功率等级;1~10-固定发射功率等级
 const int config_ble_adv_tx_pwr_level  = 0;
 
+//only for br52 
+const u8 config_fre_offset_trim_mode = 0; //0:trim pll 1:trim osc 2:trim pll&osc
+
 const int CONFIG_BLE_SYNC_WORD_BIT = 30;
 const int CONFIG_LNA_CHECK_VAL = -80;
 

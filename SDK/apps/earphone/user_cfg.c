@@ -56,6 +56,10 @@ const struct btif_item btif_table[] = {
 // 	 	item id 		   	   len   	//
     {CFG_BT_MAC_ADDR, 			6 },
     {CFG_BT_FRE_OFFSET,   		6 },   //测试盒矫正频偏值
+    {CFG_BT_FRE_OFFSET1,   		6 },   //测试盒矫正频偏值
+    {CFG_BT_FRE_OFFSET2,   		6 },   //测试盒矫正频偏值
+    {CFG_BT_FRE_OFFSET3,   		6 },   //测试盒矫正频偏值
+    {CFG_BT_FRE_OFFSET4,   		6 },   //测试盒矫正频偏值
 #if TCFG_CHARGE_CALIBRATION_ENABLE
     {VM_CHARGE_CALIBRATION,     sizeof(calibration_result) },   //充电电流校准
 #endif

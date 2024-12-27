@@ -283,3 +283,8 @@ const char log_tag_const_d_GPADC  = CONFIG_DEBUG_LIB(FALSE);
 const char log_tag_const_w_GPADC  = CONFIG_DEBUG_LIB(FALSE);
 const char log_tag_const_e_GPADC  = CONFIG_DEBUG_LIB(TRUE);
 
+const char log_tag_const_v_EXTI  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_i_EXTI  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_d_EXTI  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_w_EXTI  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_e_EXTI  = CONFIG_DEBUG_LIB(TRUE);
