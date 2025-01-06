@@ -22,6 +22,7 @@
 #define ADT_RTANC_EN				BIT(4) //实时自适应ANC
 #define ADT_EIN_EN                  BIT(5) //入耳检测
 #define ADT_AVC_EN                  BIT(6) //自适应音量
+//#define ADT_RTANC_TIDY_EN                  BIT(7) //RTANC TIDY mode 占用
 
 #define ADT_PATH_3M_EN         		BIT(0)
 extern u8 ADT_PATH_CONFIG;
@@ -139,6 +140,8 @@ struct icsd_acoustic_detector_libfmt {
     int adc_sr;          //ADC 采样率
     int lib_alloc_size;  //算法ram需求大小
     u8 mic_num;			 //需要打开的mic个数
+
+    u8 rtanc_type;      //RTANC类型(传入参数)
 };
 
 typedef struct {

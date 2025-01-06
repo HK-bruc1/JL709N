@@ -4,9 +4,12 @@
 #include "typedef.h"
 #include "asm/anc.h"
 #include "anc_ext_tool.h"
+#include "icsd_adt_app.h"
 
 #define AUDIO_RT_ANC_PARAM_BY_TOOL_DEBUG		1		//RT ANC 参数使用工具debug 调试
 #define AUDIO_RT_ANC_EXPORT_TOOL_DATA_DEBUG		0		//支持导出数据
+
+#define AUDIO_RT_ANC_TIDY_MODE_ENABLE			0		//通话播歌使用轻量级的RTANC
 
 //RT ANC 状态
 enum {
@@ -34,6 +37,10 @@ u8 audio_rtanc_app_func_en_get(void);
 
 int audio_rtanc_adaptive_en(u8 en);
 
+int audio_rtanc_fade_gain_suspend(struct rt_anc_fade_gain_ctr *ctr);
+
+int audio_rtanc_fade_gain_resume(void);
+
 //对外API
 void audio_anc_real_time_adaptive_suspend(void);
 
@@ -53,9 +60,7 @@ int audio_anc_real_time_adaptive_tool_data_get(u8 **buf, u32 *len);
 
 int audio_anc_real_time_adaptive_suspend_get(void);
 
-int audio_rtanc_fade_gain_suspend(struct rt_anc_fade_gain_ctr *ctr);
-
-int audio_rtanc_fade_gain_resume(void);
+int audio_anc_real_time_adaptive_reset(int rtanc_mode);
 
 #endif
 

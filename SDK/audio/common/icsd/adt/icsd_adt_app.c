@@ -115,11 +115,13 @@ struct speak_to_chat_t {
 struct speak_to_chat_t *speak_to_chat_hdl = NULL;
 
 typedef struct {
+    u8 mode_switch_busy;
     u8 speak_to_chat_state;
     u8 adt_mode;
     u16 speak_to_chat_end_time; //免摘定时结束的时间，单位ms
 } adt_info_t;
 static adt_info_t adt_info = {
+    .mode_switch_busy = 0,
     .speak_to_chat_state = AUDIO_ADT_CLOSE,
     .adt_mode = ADT_MODE_CLOSE,
     .speak_to_chat_end_time = 5000,
@@ -707,18 +709,26 @@ int audio_acoustic_detector_open()
 
     /*修改了sniff的唤醒间隔*/
     icsd_set_tws_t_sniff(160);
+    //判定RTANC 模式
     int adt_function = adt_info.adt_mode;
 
+    if (adt_info.adt_mode & ADT_REAL_TIME_ADAPTIVE_ANC_TIDY_MODE) {
+        adt_function &= (~ADT_REAL_TIME_ADAPTIVE_ANC_TIDY_MODE);
+        adt_function |= ADT_REAL_TIME_ADAPTIVE_ANC_MODE;
+        hdl->libfmt.rtanc_type = tidy_rtanc;
+    } else {
+        hdl->libfmt.rtanc_type = norm_rtanc;
+    }
 
     audio_dac_set_samplerate_callback_add(&dac_hdl, audio_icsd_adt_set_sample);
 
-    icsd_acoustic_detector_get_libfmt(&hdl->libfmt, adt_function);
 #if ICSD_ADT_SHARE_ADC_ENABLE
     int debug_adc_sr = 16000;
 #else
     int debug_adc_sr = 8000;
 #endif
     hdl->libfmt.adc_sr = debug_adc_sr;//Raymond MIC的采样率由外部决定，通过set函数通知ADT
+    icsd_acoustic_detector_get_libfmt(&hdl->libfmt, adt_function);
 
 #if (ICSD_ADT_WIND_INFO_SPP_DEBUG_EN || ICSD_ADT_VOL_NOISE_LVL_SPP_DEBUG_EN)
     /*获取spp发送句柄*/
@@ -732,7 +742,9 @@ int audio_acoustic_detector_open()
     }
 #endif
 
-    printf("mode : %x, mic_num : %d, adc_len : %d, sr : %d, size : %d", adt_function, hdl->libfmt.mic_num, hdl->libfmt.adc_isr_len, hdl->libfmt.adc_sr, hdl->libfmt.lib_alloc_size);
+    g_printf("mode : %x, mic_num : %d, adc_len : %d, sr : %d, size : %d, rtanc_type %d", \
+             adt_function, hdl->libfmt.mic_num, hdl->libfmt.adc_isr_len, hdl->libfmt.adc_sr, \
+             hdl->libfmt.lib_alloc_size, hdl->libfmt.rtanc_type);
     if (hdl->libfmt.lib_alloc_size) {
         hdl->lib_alloc_ptr = zalloc(hdl->libfmt.lib_alloc_size);
     } else {
@@ -1228,6 +1240,17 @@ u8 get_icsd_adt_mode()
     return adt_info.adt_mode;
 }
 
+void icsd_adt_rt_anc_mode_set(int mode)
+{
+    adt_info.adt_mode |= mode;
+}
+
+/*获取ADT模式切换是否繁忙*/
+u8 get_icsd_adt_mode_switch_busy()
+{
+    return adt_info.mode_switch_busy;
+}
+
 /*获取进入免摘前anc的模式*/
 u8 get_icsd_adt_anc_mode()
 {
@@ -1523,11 +1546,15 @@ static void audio_icsd_adt_task(void *p)
                 break;
             case SYNC_ICSD_ADT_OPEN:
                 printf("SYNC_ICSD_ADT_OPEN");
+                adt_info.mode_switch_busy = 1;
                 audio_icsd_adt_open((u8)msg[2]);
+                adt_info.mode_switch_busy = 0;
                 break;
             case SYNC_ICSD_ADT_CLOSE:
                 printf("SYNC_ICSD_ADT_CLOSE");
+                adt_info.mode_switch_busy = 1;
                 audio_icsd_adt_res_close((u8)msg[2], (u8)msg[3]);
+                adt_info.mode_switch_busy = 0;
                 break;
             case SYNC_ICSD_ADT_SET_ANC_FADE_GAIN:
                 printf("set anc fade gain : %d", msg[2]);
@@ -2101,16 +2128,6 @@ void audio_wat_area_tap_event_handle(u8 wat_result)
 void audio_icsd_wind_detect_output_handle(u8 wind_lvl)
 {
     /* printf("%s, wind_lvl:%d", __func__, wind_lvl); */
-    static u8 wind_sus_rtanc = 0;
-    if (wind_lvl > 50) {
-        wind_sus_rtanc = 1;
-        icsd_adt_rtanc_suspend();
-    } else {
-        if (wind_sus_rtanc) {
-            wind_sus_rtanc = 0;
-            icsd_adt_rtanc_resume();
-        }
-    }
     /* audio_acoustic_detector_output_hdl(0, wind_lvl, 0); */
     struct speak_to_chat_t *hdl = speak_to_chat_hdl;
     u8 data[4] = {SYNC_ICSD_ADT_WIND_LVL_CMP, wind_lvl, 0, 0};

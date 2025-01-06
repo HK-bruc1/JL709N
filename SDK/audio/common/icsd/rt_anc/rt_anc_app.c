@@ -44,10 +44,12 @@ struct audio_rt_anc_hdl {
     u8 seq;
     u8 state;
     u8 run_busy;
+    u8 reset_busy;
     u8 app_func_en;
     u8 lff_iir_type[10];
     u8 rff_iir_type[10];
     u8 fade_gain_suspend;
+    int rtanc_mode;
     int suspend_cnt;
     audio_anc_t *param;
     float *debug_param;
@@ -98,6 +100,8 @@ void audio_anc_real_time_adaptive_init(audio_anc_t *param)
     hdl->fade_ctr.lfb_gain = 16384;
     hdl->fade_ctr.rff_gain = 16384;
     hdl->fade_ctr.rfb_gain = 16384;
+
+    hdl->rtanc_mode = ADT_REAL_TIME_ADAPTIVE_ANC_MODE;	//默认为正常模式
 
 #if AUDIO_RT_ANC_PARAM_BY_TOOL_DEBUG
     hdl->debug_param = rtanc_debug_param;
@@ -333,7 +337,9 @@ void audio_anc_real_time_adaptive_suspend(void)
         if ((hdl->suspend_cnt == 1) && (hdl->state == RT_ANC_STATE_OPEN)) {
             rtanc_log("RTANC_STATE:SUSPEND\n");
             hdl->state = RT_ANC_STATE_SUSPEND;
-            icsd_adt_rtanc_suspend();
+            if (hdl->reset_busy) {
+                icsd_adt_rtanc_suspend();
+            }
             rtanc_log("%s succ\n", __func__);
         }
     }
@@ -348,7 +354,9 @@ void audio_anc_real_time_adaptive_resume(void)
             if ((hdl->suspend_cnt == 0) && (hdl->state == RT_ANC_STATE_SUSPEND)) {
                 rtanc_log("RTANC_STATE:SUSPEND->OPEN\n");
                 hdl->state = RT_ANC_STATE_OPEN;
-                icsd_adt_rtanc_resume();
+                if (hdl->reset_busy) {
+                    icsd_adt_rtanc_resume();
+                }
                 rtanc_log("%s succ\n", __func__);
             }
         }
@@ -384,7 +392,7 @@ int audio_rtanc_adaptive_en(u8 en)
 #if ANC_EAR_ADAPTIVE_CMP_EN
         audio_anc_ear_adaptive_cmp_open();
 #endif
-        return audio_icsd_adt_sync_open(ADT_REAL_TIME_ADAPTIVE_ANC_MODE);
+        return audio_icsd_adt_sync_open(hdl->rtanc_mode);
 
     } else {
         if (audio_anc_real_time_adaptive_state_get() == 0) {
@@ -393,7 +401,7 @@ int audio_rtanc_adaptive_en(u8 en)
         rtanc_log("================rt_anc_close==================\n");
         rtanc_log("RTANC_STATE:CLOSE\n");
         hdl->state = RT_ANC_STATE_CLOSE;
-        audio_icsd_adt_sync_close(ADT_REAL_TIME_ADAPTIVE_ANC_MODE, 0);
+        audio_icsd_adt_sync_close(ADT_REAL_TIME_ADAPTIVE_ANC_MODE | ADT_REAL_TIME_ADAPTIVE_ANC_TIDY_MODE, 0);
         u8 wait_cnt = 100;
         while (hdl->run_busy && wait_cnt) {
             wait_cnt--;
@@ -433,8 +441,8 @@ int audio_anc_real_time_adaptive_close(void)
     //恢复默认ANC参数
     if (anc_mode_get() == ANC_ON) {
 #if ANC_MULT_ORDER_ENABLE
-        audio_anc_mult_scene_set(audio_anc_mult_scene_get());
-        audio_anc_mult_scene_update(1);
+        /* audio_anc_mult_scene_set(audio_anc_mult_scene_get()); */
+        audio_anc_mult_scene_update(audio_anc_mult_scene_get());
 #else
         audio_anc_db_cfg_read();
         audio_anc_coeff_smooth_update();
@@ -567,7 +575,7 @@ int audio_anc_real_time_adaptive_tool_data_get(u8 **buf, u32 *len)
 int audio_rtanc_fade_gain_suspend(struct rt_anc_fade_gain_ctr *fade_ctr)
 {
     g_printf("%s, state %d\n", __func__, audio_anc_real_time_adaptive_state_get());
-    if (!audio_anc_real_time_adaptive_state_get()) {
+    if ((!audio_anc_real_time_adaptive_state_get()) || hdl->reset_busy) {
         hdl->fade_ctr = *fade_ctr;
         return 0;
     }
@@ -627,6 +635,55 @@ REGISTER_LP_TARGET(RTANC_lp_target) = {
     .name       = "RTANC",
     .is_idle    = RTANC_idle_query,
 };
+
+//复位RTANC模式，阻塞处理
+int audio_anc_real_time_adaptive_reset(int rtanc_mode)
+{
+    int wait_cnt, switch_busy, mode_cmp, close_mode;
+    if (hdl->rtanc_mode == rtanc_mode) {
+        rtanc_log("Err:rtanc adaptive reset fail, same mode\n");
+        return -1;
+    }
+    hdl->rtanc_mode = rtanc_mode;
+    if (audio_anc_real_time_adaptive_state_get()) {
+        u32 last = jiffies_usec();
+        rtanc_log("%s, mode = %x start\n", __func__, rtanc_mode);
+        //挂起RTANC
+        audio_anc_real_time_adaptive_suspend();
+        hdl->reset_busy = 1;
+        //设置为默认参数, 但是不更新
+        /* audio_anc_mult_scene_update(audio_anc_mult_scene_get()); */
+        audio_anc_mult_scene_set(audio_anc_mult_scene_get());	//耗时30ms
+        //修改ADT MODE 目标模式
+        icsd_adt_rt_anc_mode_set(rtanc_mode);
+        //复位ADT
+        if (rtanc_mode == ADT_REAL_TIME_ADAPTIVE_ANC_TIDY_MODE) {
+            audio_icsd_adt_sync_close(ADT_REAL_TIME_ADAPTIVE_ANC_MODE, 0);
+            close_mode = ADT_REAL_TIME_ADAPTIVE_ANC_MODE;
+        } else {
+            audio_icsd_adt_sync_close(ADT_REAL_TIME_ADAPTIVE_ANC_TIDY_MODE, 0);
+            close_mode = ADT_REAL_TIME_ADAPTIVE_ANC_TIDY_MODE;
+        }
+        //等待切换完毕
+        wait_cnt = 200;
+        switch_busy = 1;
+        while (switch_busy && wait_cnt) {
+            mode_cmp = get_icsd_adt_mode() & close_mode;
+            switch_busy = get_icsd_adt_mode_switch_busy() | mode_cmp;
+            //rtanc_log("adt_mode 0x%x, close_mode %x, s_busy %d\n", get_icsd_adt_mode(), close_mode, get_icsd_adt_mode_switch_busy());
+            wait_cnt--;
+            os_time_dly(1);
+        }
+        if (!wait_cnt) {
+            rtanc_log("ERR: %s timeout err!!\n", __func__);
+        }
+        //恢复RTANC
+        hdl->reset_busy = 0;
+        audio_anc_real_time_adaptive_resume();
+        rtanc_log("%s, end, %d\n", __func__, jiffies_usec2offset(last, jiffies_usec()));
+    }
+    return 0;
+}
 
 //测试demo
 int audio_anc_real_time_adaptive_demo(void)

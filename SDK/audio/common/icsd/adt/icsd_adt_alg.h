@@ -38,8 +38,8 @@ typedef struct {
     float *szpz_out;
 } __adt_rtanc_part2_parm;
 
-int  icsd_adt_rtanc_get_libfmt();
-int  icsd_adt_rtanc_set_infmt(int _ram_addr, void *rtanc_tool);
+int  icsd_adt_rtanc_get_libfmt(u8 rtanc_type);
+int  icsd_adt_rtanc_set_infmt(int _ram_addr, void *rtanc_tool, u8 rtanc_type);
 void icsd_adt_alg_rtanc_run_part1(__adt_anc_part1_parm *_part1_parm);
 void icsd_adt_alg_rtanc_part2_parm_init();
 void icsd_adt_alg_rtanc_run_part2(__adt_rtanc_part2_parm *_part2_parm);

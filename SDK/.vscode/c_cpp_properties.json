@@ -140,6 +140,7 @@
                 "${workspaceFolder}/apps/common/third_party_profile/dma_protocol",
                 "${workspaceFolder}/apps/common/third_party_profile/gfps_protocol",
                 "${workspaceFolder}/apps/common/third_party_profile/custom_protocol_demo",
+                "${workspaceFolder}/apps/common/third_party_profile/ximalaya_protocol",
                 "${workspaceFolder}/apps/common/cJSON",
                 "${workspaceFolder}/interface/media/cpu/br52",
                 "${workspaceFolder}/interface/utils/ui/ui/cpu/br52",

@@ -126,7 +126,7 @@ int pdm_mic_file_param_init(PLNK_PARM *pdm_mic)
         printf("%s, read node data err\n", __FUNCTION__);
     }
     printf(" %s len %d, sizeof(cfg) %d\n", __func__,  len, (int)sizeof(pdm_cfg));
-#ifdef CONFIG_CPU_BR52
+#if ((defined PDM_VERSION) && (PDM_VERSION == AUDIO_PDM_V2))
     if (len == sizeof(pdm_cfg)) {
         pdm_mic->sclk_io = uuid2gpio(pdm_cfg.io_sclk_uuid);
         plnk_ch_num = pdm_cfg.plnk_ch_num;
@@ -185,7 +185,7 @@ int pdm_mic_file_param_init(PLNK_PARM *pdm_mic)
     if (pdm_mic->sclk_fre % pdm_mic->sr) {
         r_printf("[warn]SCLK/SR需为整数且在1-4096范围\n");
     }
-#ifdef CONFIG_CPU_BR52
+#if ((defined PDM_VERSION) && (PDM_VERSION == AUDIO_PDM_V2))
     if (plnk_ch_num & AUDIO_PDM_MIC_0) {
         pdm_mic->ch_cfg[0].en = 1;
         pdm_mic->ch_cfg[0].mode = DATA0_SCLK_RISING_EDGE;

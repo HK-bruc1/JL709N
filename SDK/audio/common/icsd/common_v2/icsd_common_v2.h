@@ -20,6 +20,11 @@
 unsigned long jiffies_usec(void);
 
 enum {
+    norm_rtanc = 0,	//正常模式
+    tidy_rtanc,		//轻量模式，节省RAM
+};
+
+enum {
     DEBUG_FUNCTION_PRINTF = 0,
     DEBUG_FUNCTION_ADT,
     DEBUG_FUNCTION_WIND,

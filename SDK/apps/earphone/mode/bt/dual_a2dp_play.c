@@ -334,6 +334,21 @@ void try_play_preempted_a2dp(void *p)
     }
 }
 
+static void a2dp_suspend_by_call(u8 *play_addr, void *play_device)
+{
+    if (tws_api_get_role() == TWS_ROLE_SLAVE) {
+        return;
+    }
+    if (play_addr && play_device && a2dp_player_is_playing(play_addr)) {
+        puts("--a2dp_mute\n");
+        put_buf(play_addr, 6);
+        memcpy(a2dp_preempted_addr, play_addr, 6);
+        memset(a2dp_energy_detect_addr, 0xff, 6);
+        btstack_device_control(play_device, USER_CTRL_AVCTP_OPID_PAUSE);
+        tws_a2dp_play_send_cmd(CMD_A2DP_MUTE_BY_CALL, play_addr, 6, 1);
+    }
+}
+
 static int a2dp_bt_status_event_handler(int *event)
 {
     int ret;
@@ -477,18 +492,9 @@ static int a2dp_bt_status_event_handler(int *event)
         }
         break;
     case BT_STATUS_SCO_CONNECTION_REQ:
-        puts("BT_STATUS_SCO_CONNECTION_REQ\n");
-        if (tws_api_get_role() == TWS_ROLE_SLAVE) {
-            break;
-        }
-        if (addr_b && device_b && a2dp_player_is_playing(addr_b)) {
-            puts("--a2dp_mute\n");
-            put_buf(addr_b, 6);
-            memcpy(a2dp_preempted_addr, addr_b, 6);
-            memset(a2dp_energy_detect_addr, 0xff, 6);
-            btstack_device_control(device_b, USER_CTRL_AVCTP_OPID_PAUSE);
-            tws_a2dp_play_send_cmd(CMD_A2DP_MUTE_BY_CALL, addr_b, 6, 1);
-        }
+        puts("A2DP BT_STATUS_SCO_CONNECTION_REQ\n");
+        put_buf(bt->args, 6);
+        a2dp_suspend_by_call(addr_b, device_b);
         break;
     case BT_STATUS_SCO_DISCON:
         puts("BT_STATUS_SCO_DISCON\n");
@@ -524,6 +530,13 @@ static int a2dp_bt_status_event_handler(int *event)
         if (memcmp(a2dp_preempted_addr, bt->args, 6) == 0) {
             puts("--a2dp_unmute-a\n");
             sys_timeout_add(NULL, try_play_preempted_a2dp, 500);
+        }
+        break;
+    case BT_STATUS_SCO_STATUS_CHANGE:
+        printf("A2DP BT_STATUS_SCO_STATUS_CHANGE len:%d, type:%d\n",
+               (bt->value >> 16), (bt->value & 0x0000ffff));
+        if (bt->value != 0xff) {
+            a2dp_suspend_by_call(addr_b, device_b);
         }
         break;
     case BT_STATUS_FIRST_CONNECTED:

@@ -91,7 +91,7 @@
 
 #if TCFG_APP_BT_EN
 
-#if (THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN))
+#if (THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN | XIMALAYA_EN))
 #include "multi_protocol_main.h"
 #endif
 
@@ -130,12 +130,7 @@ extern void clr_device_in_page_list();
 #elif defined(CONFIG_CPU_BR52)//JL709
 
 #define OPTIMIZATION_CONN_NOISE    1//回连噪声优化,默认开启
-#define RF_RXTX_STATE_PROT IO_PORTC_07//default PC7 内邦，可以不用修改io口
-#define EDGE_SLECT_PORART    	PORTC
-#define EDGE_SLECT_POART_IO  	PORT_PIN_7//边沿检测 default PC7
-#define BT_RF_CURRENT_BALANCE_SUPPORT_ONLY_ONE_PORT  1
-#define EDGE_SLECT_POART_OPEN  {JL_PORTC->DIR &= ~BIT(7);JL_PORTC->SPL |= BIT(7);}
-#define EDGE_SLECT_POART_CLOSE {JL_PORTC->DIR |= BIT(7);JL_PORTC->SPL &= ~BIT(7);}
+#define BT_RF_CURRENT_BALANCE_SUPPORT_NOT_PORT//不需要io
 
 #else
 
@@ -528,7 +523,7 @@ static int bt_connction_status_event_handler(struct bt_event *bt)
         }
 #endif
 
-#if (THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN))
+#if (THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN | XIMALAYA_EN))
         multi_protocol_bt_init();
 #endif
 
@@ -913,7 +908,7 @@ static void bt_no_background_exit_check(void *priv)
     bt_ble_exit();
 #endif
 
-#if (THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN))
+#if (THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN | XIMALAYA_EN))
     multi_protocol_bt_exit();
 #endif
 
@@ -985,8 +980,14 @@ int bt_mode_init()
     }
 
 #if OPTIMIZATION_CONN_NOISE
+#ifdef BT_RF_CURRENT_BALANCE_SUPPORT_NOT_PORT
+    if (JL_TIMER3->CON & 0b11) {
+        ASSERT(0, "bt_edge_TIMER use ing\n");
+    }
+#else
     extern void bt_set_rxtx_status_io(u32 tx_pin, u32 rx_pin);
     bt_set_rxtx_status_io(BT_RF_CURRENT_BALANCE_SUPPORT_ONLY_ONE_PORT ? 0xffff : RF_RXTX_STATE_PROT, RF_RXTX_STATE_PROT);
+#endif
 #endif
 
     g_bt_hdl.init_start = 1;//蓝牙协议栈已经开始初始化标志位
@@ -1269,7 +1270,58 @@ extern void tx_pwr_sel(u8 sel);
 
 extern void rx_st_ctl(void);
 extern void tx_st_ctl(void);
-
+#ifdef BT_RF_CURRENT_BALANCE_SUPPORT_NOT_PORT
+enum bb_irq_edge {
+    BB_IRQ_EDGE_FALL = 0,
+    BB_IRQ_EDGE_RISE = 1,
+    BB_IRQ_EDGE_DISABLE = 2,
+    WL_LNAE = 9,
+};
+___interrupt
+void bt_edge_isr()
+{
+    SFR(JL_TIMER3->CON, 14, 1, 1);  //clean pnding
+    if ((JL_TIMER3->CON & 0x3) == 0b10) { //rise edge mode
+        //raise edge
+        SFR(JL_TIMER3->CON, 0, 2, 0b11);  //fall edge capture
+        /* putchar('r'); */
+        rx_st_ctl();
+    } else {
+        //fall edge
+        SFR(JL_TIMER3->CON, 0, 2, 0b10);  //rise edge capture
+        /* putchar('R'); */
+        tx_st_ctl();
+    }
+}
+int btbb_irq_config(u8 btbb_sig, u8 irq_edge)//pa,pb,pc,pd,usb
+{
+    /* if (JL_TIMER3->CON & 0b11) { */
+    /* ASSERT(0, "bt_edge_TIMER use ing\n"); */
+    /* } */
+    //SFR(JL_IOMC->ICH_IOMC1,0,5,btbb_sig);      //set lna_en to tmr0_cap
+    SFR(JL_IOMC->ICH_IOMC1, 15, 5, btbb_sig);   //set lna_en to tmr3_cap
+    JL_TIMER3->CON              = (\
+                                   /* dual mode     */ (0 << 16) | \
+                                   /* clear pnd     */ (1 << 14) | \
+                                   /* pwm inv       */ (0 <<  9) | \
+                                   /* psel          */ (0 <<  8) | \
+                                   /* capture sel 2 */ (0 <<  2) | \
+                                   /* mode        2 */ (0 <<  0));
+    JL_TIMER3->CNT = 0x5555;
+    JL_TIMER3->PRD = 0;
+    if (irq_edge == 0) {                                //set tmr cap as fall edge
+        request_irq(IRQ_TIME3_IDX, 1, bt_edge_isr, 0);
+        SFR(JL_TIMER3->CON, 0, 2, 0b11);                //fall edge
+    } else if (irq_edge == 1) {                          //set tmr cap as rise edge
+        request_irq(IRQ_TIME3_IDX, 1, bt_edge_isr, 0);
+        SFR(JL_TIMER3->CON, 0, 2, 0b10);                //rise edge
+    } else {                                             //disable tmr cap
+        unrequest_irq(IRQ_TIME3_IDX);   // TODO
+        SFR(JL_TIMER3->CON, 0, 2, 0);  //fall edge
+    }
+    return 0;
+}
+#else
 void gpio_irq_callback_rxen_pa_ctl(enum gpio_port port, u32 pin, enum gpio_irq_edge edge)
 {
     if (edge == PORT_IRQ_EDGE_RISE) {
@@ -1296,6 +1348,7 @@ struct gpio_irq_config_st gpio_irq_config_rx_off = {
     .irq_edge = PORT_IRQ_DISABLE,
     .callback = gpio_irq_callback_rxen_pa_ctl
 };
+#endif
 
 void bt_user_page_enable(u8 enable, u8 type)
 {
@@ -1304,18 +1357,26 @@ void bt_user_page_enable(u8 enable, u8 type)
         return;
     }
     if (enable) {
+#ifdef BT_RF_CURRENT_BALANCE_SUPPORT_NOT_PORT
+        btbb_irq_config(WL_LNAE, BB_IRQ_EDGE_RISE);        //9 lna_en
+#else
         gpio_irq_config(EDGE_SLECT_PORART, &gpio_irq_config_rx_off);
         hw_ctl_close();
         gpio_irq_config(EDGE_SLECT_PORART, &gpio_irq_config_rx);
 #if BT_RF_CURRENT_BALANCE_SUPPORT_ONLY_ONE_PORT
         EDGE_SLECT_POART_OPEN
 #endif
+#endif
         /* log_info("gpio_irq_config open-----+++++"); */
     } else {
+#ifdef BT_RF_CURRENT_BALANCE_SUPPORT_NOT_PORT
+        btbb_irq_config(WL_LNAE, BB_IRQ_EDGE_DISABLE);    //9 lna_en
+#else
         gpio_irq_config(EDGE_SLECT_PORART, &gpio_irq_config_rx_off);
         hw_ctl_open();
 #if BT_RF_CURRENT_BALANCE_SUPPORT_ONLY_ONE_PORT
         EDGE_SLECT_POART_CLOSE
+#endif
 #endif
         /* log_info("gpio_irq_config close-----+++++"); */
     }

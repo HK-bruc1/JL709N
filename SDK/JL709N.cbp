@@ -160,6 +160,7 @@
 <Add directory="apps/common/third_party_profile/dma_protocol" />
 <Add directory="apps/common/third_party_profile/gfps_protocol" />
 <Add directory="apps/common/third_party_profile/custom_protocol_demo" />
+<Add directory="apps/common/third_party_profile/ximalaya_protocol" />
 <Add directory="apps/common/cJSON" />
 <Add directory="interface/media/cpu/br52" />
 <Add directory="interface/utils/ui/ui/cpu/br52" />
@@ -323,6 +324,7 @@
 <Add option="cpu/br52/liba/lib_icsd_envnl.a" />
 <Add option="cpu/br52/liba/lib_icsd_avc.a" />
 <Add option="cpu/br52/liba/lib_limiter.a" />
+<Add option="cpu/br52/liba/lib_iir_filter.a" />
 <Add option="cpu/br52/liba/le_audio_profile.a" />
 <Add option="cpu/br52/liba/jla_codec_lib.a" />
 <Add option="cpu/br52/liba/lib_lc3_codec.a" />
@@ -867,6 +869,11 @@
 <Unit filename="apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_utils.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/third_party_profile/tuya_protocol/tuya_ble_config.h" />
 <Unit filename="apps/common/third_party_profile/tuya_protocol/tuya_ble_sdk_version.h" />
+<Unit filename="apps/common/third_party_profile/ximalaya_protocol/xmly_config.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/third_party_profile/ximalaya_protocol/xmly_platform_api.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/third_party_profile/ximalaya_protocol/xmly_platform_api.h" />
+<Unit filename="apps/common/third_party_profile/ximalaya_protocol/xmly_protocol.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/third_party_profile/ximalaya_protocol/xmly_protocol.h" />
 <Unit filename="apps/common/ui/pwm_led/led_ui_api.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/ui/pwm_led/led_ui_api.h" />
 <Unit filename="apps/common/ui/pwm_led/led_ui_tws_sync.c"><Option compilerVer="CC"/></Unit>

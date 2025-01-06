@@ -13,6 +13,7 @@
  */
 
 #define HW_FFT_VERSION			FFT_EXT
+#define PDM_VERSION				AUDIO_PDM_V2
 
 
 

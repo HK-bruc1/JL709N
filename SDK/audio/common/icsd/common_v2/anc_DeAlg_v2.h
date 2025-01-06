@@ -12,15 +12,15 @@ struct icsd_anc_buf_v2 {
     float Wz_fd_init[DE_FLEN * 2];
     float Wz_fd_g[DE_FLEN * 2];
     float perfm[DE_FLEN];
-    float perfm2[DE_FLEN];
+//    float perfm2[DE_FLEN];
     float mse[DE_FLEN * 2];
     float fitness_sv[60];
     float biquad_coef_g[31];
     float biquad_coef_co_g[31];
     float biquad_coef_List_i[SWARM_NUM][31];
     float biquad_coef_best_de[31];
-    float mse_tmp[DE_FLEN];
-    float target_gain_db[FLEN_V2];
+//    float mse_tmp[DE_FLEN];
+//    float target_gain_db[FLEN_V2];
     float ff_wz[DE_FLEN];
     float fb_gz[DE_FLEN];
     float pz_fd[DE_FLEN];
@@ -28,6 +28,9 @@ struct icsd_anc_buf_v2 {
 
     float pzfd_gain;
     float szfd_gain;
+
+    float pz_cmp_en;
+    float *hp_cmp;
 };
 
 struct icsd_De_param_v2 {
@@ -37,8 +40,8 @@ struct icsd_De_param_v2 {
     float exp_w1[DE_FLEN * 2];
     float exp_w2[DE_FLEN * 2];
 
-    float exp_w1_ndsp[DE_FLEN * 2];
-    float exp_w2_ndsp[DE_FLEN * 2];
+//    float exp_w1_ndsp[DE_FLEN * 2];
+//    float exp_w2_ndsp[DE_FLEN * 2];
 
     float biquad_init_lcl[31];
     float biquad_init_fix[31];
@@ -58,7 +61,7 @@ struct icsd_De_param_v2 {
     int idx_200Hz;
     int De_fast_en;
     float freqz[DE_FLEN];
-    float freqz_ndsp[DE_FLEN];
+//  float freqz_ndsp[DE_FLEN];
     float gain_limit;
     float gain_limit_all;
     float over_mse_begin;

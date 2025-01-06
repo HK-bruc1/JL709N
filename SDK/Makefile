@@ -234,6 +234,7 @@ INCLUDES := \
 	-Iapps/common/third_party_profile/dma_protocol \
 	-Iapps/common/third_party_profile/gfps_protocol \
 	-Iapps/common/third_party_profile/custom_protocol_demo \
+	-Iapps/common/third_party_profile/ximalaya_protocol \
 	-Iapps/common/cJSON \
 	-Iinterface/media/cpu/br52 \
 	-Iinterface/utils/ui/ui/cpu/br52 \
@@ -559,6 +560,9 @@ c_SRC_FILES := \
 	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_storage.c \
 	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_unix_time.c \
 	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_utils.c \
+	apps/common/third_party_profile/ximalaya_protocol/xmly_config.c \
+	apps/common/third_party_profile/ximalaya_protocol/xmly_platform_api.c \
+	apps/common/third_party_profile/ximalaya_protocol/xmly_protocol.c \
 	apps/common/ui/pwm_led/led_ui_api.c \
 	apps/common/ui/pwm_led/led_ui_tws_sync.c \
 	apps/common/update/testbox_uart_update.c \
@@ -1027,6 +1031,7 @@ LFLAGS := \
 	cpu/br52/liba/lib_icsd_envnl.a \
 	cpu/br52/liba/lib_icsd_avc.a \
 	cpu/br52/liba/lib_limiter.a \
+	cpu/br52/liba/lib_iir_filter.a \
 	cpu/br52/liba/le_audio_profile.a \
 	cpu/br52/liba/jla_codec_lib.a \
 	cpu/br52/liba/lib_lc3_codec.a \

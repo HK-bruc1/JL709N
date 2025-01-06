@@ -97,6 +97,7 @@ enum {
 };
 
 typedef struct {
+    u8  anc_mode;
     u8	ff_yorder;
     u8  fb_yorder;
     u8  cmp_yorder;
@@ -183,6 +184,7 @@ struct icsd_rtanc_infmt {
     __rt_anc_param *anc_param_r;
     u8  ch_num;
     u8  ep_type;
+    u8  rtanc_type;
     struct icsd_rtanc_tool_data *rtanc_tool;
 };
 
@@ -190,6 +192,7 @@ struct icsd_rtanc_libfmt {
     //输出参数
     int lib_alloc_size;  //算法ram需求大小
     u8  ch_num;
+    u8  rtanc_type;
 };
 
 typedef struct {

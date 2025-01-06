@@ -260,26 +260,29 @@ int audio_anc_debug_user_cmd_process(u8 *data, int len)
         /* put_buf(data_p, data_len); */
         break;
 #if AUDIO_ANC_DEBUG_CMD_RTANC_EN	//测试用
+#if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
     case 0x1:
         //AEQ 0默认参数 1自适应参数
-#if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
         audio_adaptive_eq_eff_set(data[1]);
-#endif
         break;
+#endif
     case 0x2:
         //开关啸叫检测
         void audio_anc_howl_det_toggle_demo();
         audio_anc_howl_det_toggle_demo();
         break;
+#if TCFG_AUDIO_ANC_WIND_NOISE_DET_ENABLE
     case 0x3:
         //开关风噪检测
         audio_icsd_wind_detect_demo();
         break;
+#endif
     case 0x4:
         //开关环境自适应
         void audio_anc_env_det_toggle_demo();
         audio_anc_env_det_toggle_demo();
         break;
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
     case 0x5:
         //开关RTANC
         void audio_real_time_adaptive_app_ctr_demo(void);
@@ -301,6 +304,7 @@ int audio_anc_debug_user_cmd_process(u8 *data, int len)
             audio_anc_real_time_adaptive_suspend();
         }
         break;
+#endif
     case 0x7:
         printf("debug packet sel %d\n", data[1]);
         audio_anc_debug_packet_sel = data[1];

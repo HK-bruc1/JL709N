@@ -58,6 +58,7 @@ enum {
     ADT_REAL_TIME_ADAPTIVE_ANC_MODE = BIT(4), 	// RT_ANC
     ADT_EAR_IN_DETCET_MODE = BIT(5), 			// 入耳检测
     ADT_ADAPTIVE_VOLUME_MODE = BIT(6), 			// 自适应音量
+    ADT_REAL_TIME_ADAPTIVE_ANC_TIDY_MODE = BIT(7), 	// RT_ANC TIDY mode
 };
 
 #define ADT_ALL_FUNCTION_ENABLE		ADT_SPEAK_TO_CHAT_MODE | ADT_WIDE_AREA_TAP_MODE | \
@@ -200,6 +201,12 @@ u8 set_adt_switch_trans_state(u8 state);
 
 /*获取adt切换trans的状态*/
 u8 get_adt_switch_trans_state();
+
+/*获取ADT模式切换是否繁忙*/
+u8 get_icsd_adt_mode_switch_busy();
+
+/*设置RTANC的模式，在下一次开 or 关生效*/
+void icsd_adt_rt_anc_mode_set(int mode);
 
 void audio_acoustic_detector_output_hdl(u8 voice_state, u8 wind_lvl, u8 wat_result);
 

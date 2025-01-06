@@ -36,16 +36,6 @@ void icsd_WDT_output_demo(u8 wind_lvl)
     if (wind_lvl) {
         printf("--------------------------------WDT OUTPUT:%d---------------------\n", wind_lvl);
     }
-    static u8 wind_sus_rtanc = 0;
-    if (wind_lvl > 50) {
-        wind_sus_rtanc = 1;
-        icsd_adt_rtanc_suspend();
-    } else {
-        if (wind_sus_rtanc) {
-            wind_sus_rtanc = 0;
-            icsd_adt_rtanc_resume();
-        }
-    }
     audio_acoustic_detector_output_hdl(0, wind_lvl, 0);
 }
 

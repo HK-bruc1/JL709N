@@ -105,12 +105,13 @@ void icsd_adt_rtanc_alg_output(void *rt_param_l, void *rt_param_r)
 #endif
 }
 
-int icsd_adt_rtanc_get_libfmt()
+int icsd_adt_rtanc_get_libfmt(u8 rtanc_type)
 {
     int add_size = 0;
 #if ICSD_RTANC_LIB
     struct icsd_rtanc_libfmt rtanc_libfmt;
     rtanc_libfmt.ch_num = rt_anc_dma_ch_num;
+    rtanc_libfmt.rtanc_type = rtanc_type;
     icsd_rtanc_get_libfmt(&rtanc_libfmt);
     add_size = rtanc_libfmt.lib_alloc_size;
 #else
@@ -121,16 +122,17 @@ int icsd_adt_rtanc_get_libfmt()
     return add_size;
 }
 
-int icsd_adt_rtanc_set_infmt(int _ram_addr, void *rtanc_tool)
+int icsd_adt_rtanc_set_infmt(int _ram_addr, void *rtanc_tool, u8 rtanc_type)
 {
     int set_size = 0;
 #if ICSD_RTANC_LIB
-    struct icsd_rtanc_infmt rtanc_fmt;
     DeAlorithm_enable();
+    struct icsd_rtanc_infmt rtanc_fmt;
     rtanc_fmt.ep_type = ICSD_ADT_EP_TYPE;
     rtanc_fmt.ch_num = rt_anc_dma_ch_num;
     rtanc_fmt.alloc_ptr = (void *)_ram_addr;
     rtanc_fmt.rtanc_tool = rtanc_tool;
+    rtanc_fmt.rtanc_type = rtanc_type;
     icsd_rtanc_set_infmt(&rtanc_fmt);
     set_size = rtanc_fmt.lib_alloc_size;
     extern void icsd_adt_rtanc_set_ch_num(u8 ch_num);

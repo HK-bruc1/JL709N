@@ -28,6 +28,8 @@
 
 #define ANC_ADAPTIVE_CMP_RUN_TIME_DEBUG			0		//CMP 算法运行时间测试
 
+#define ANC_ADAPTIVE_CMP_OUTPUT_SIZE		((1 + 3 * ANC_ADAPTIVE_CMP_ORDER) * sizeof(float))
+
 struct icsd_cmp_param {
     _cmp_output *output;					//算法输出
     float gain;								//增益
@@ -50,16 +52,68 @@ struct icsd_cmp_hdl *cmp_hdl = NULL;
 
 static int audio_anc_ear_adaptive_cmp_close(void);
 
-void icsd_cmp_force_exit()
+void icsd_cmp_force_exit(void)
 {
     if (cmp_hdl) {
         DeAlorithm_disable();
     }
 }
 
+static int anc_ear_adaptive_cmp_run_ch(struct icsd_cmp_param *p, __afq_data *sz, u8 data_from)
+{
+    float *sz_tmp;
+    _cmp_output *output;
+    s8 sz_sign = anc_ext_ear_adaptive_sz_calr_sign_get();
+    cmp_log("sz_sign %d\n", sz_sign);
+    if (sz) {
+#if ANC_ADAPTIVE_CMP_RUN_TIME_DEBUG
+        u32 last = jiffies_usec();
+#endif
+        //CMP 算法要求输入SZ的符号必须为正，因此需要单独备份SZ的数据，以便修改
+        sz_tmp = (float *)zalloc(sz->len * sizeof(float));
+        memcpy((u8 *)sz_tmp, (u8 *)sz->out, sz->len * sizeof(float));
+        //CMP来自实时自适应时，SZ符合一定为正，不需要翻转符号
+        if ((sz_sign == -1) && (data_from != CMP_FROM_RTANC)) {
+            for (int j = 0; j < sz->len; j++) {
+                sz_tmp[j] = 0 -  sz_tmp[j];
+            }
+        }
+        output = icsd_cmp_run(sz_tmp);
+
+        g_printf("ANC_ADAPTIVE_CMP_OUTPUT_SIZE %d\n", ANC_ADAPTIVE_CMP_OUTPUT_SIZE);
+
+        p->output->state = output->state;
+        memcpy((u8 *)p->output->fgq, (u8 *)output->fgq, ANC_ADAPTIVE_CMP_OUTPUT_SIZE);
+
+        //CMP增益符号与SZ符号 负相关
+        p->output->fgq[0] = (abs(p->output->fgq[0])) * (sz_sign) * (-1);
+
+#if ANC_ADAPTIVE_CMP_RUN_TIME_DEBUG
+        cmp_log("ANC ADAPTIVE CMP RUN time: %d us\n", (int)(jiffies_usec2offset(last, jiffies_usec())));
+#endif
+
+#if 0	//CMP结果输出打印
+        float *fgq = p->output->fgq;
+        g_printf("Global %d/10000\n", (int)(fgq[0] * 10000));
+        for (int i = 0; i < ANC_ADAPTIVE_CMP_ORDER; i++) {
+            g_printf("SEG[%d]:Type %d, FGQ/10000:%d %d %d\n", i, icsd_cmp_type[i], \
+                     (int)(fgq[i * 3 + 1] * 10000), (int)(fgq[i * 3 + 2] * 10000), \
+                     (int)(fgq[i * 3 + 3] * 10000));
+        }
+#endif
+
+        free(sz_tmp);
+    }
+    return p->output->state;
+}
+
 int audio_anc_ear_adaptive_cmp_run(__afq_output *p, u8 data_from)
 {
     int ret = 0;
+    u8 l_state = 0, r_state = 0;
+    struct icsd_cmp_libfmt libfmt;
+    struct icsd_cmp_infmt  fmt;
+
     if (!cmp_hdl) {
         return -1;
     }
@@ -69,68 +123,32 @@ int audio_anc_ear_adaptive_cmp_run(__afq_output *p, u8 data_from)
         return 0;
     }
 #endif
-    if (cmp_hdl->state == ANC_EAR_ADAPTIVE_CMP_STATE_CLOSE) {
+    if ((cmp_hdl->state == ANC_EAR_ADAPTIVE_CMP_STATE_CLOSE) || cmp_hdl->busy) {
         return -1;
     }
     cmp_hdl->busy = 1;
     cmp_log("ICSD_CMP_STATE:RUN");
-    u8 l_state = 0, r_state = 0;
-    s8 sz_sign = anc_ext_ear_adaptive_sz_calr_sign_get();
-    cmp_log("sz_sign %d\n", sz_sign);
-    float *sz_l_tmp, sz_r_tmp;
-    if (p->sz_l) {
-#if ANC_ADAPTIVE_CMP_RUN_TIME_DEBUG
-        u32 last = jiffies_usec();
-#endif
-        //CMP 算法要求输入SZ的符号必须为正，因此需要单独备份SZ的数据，以便修改
-        sz_l_tmp = (float *)zalloc(p->sz_l->len * sizeof(float));
-        memcpy((u8 *)sz_l_tmp, (u8 *)p->sz_l->out, p->sz_l->len * sizeof(float));
-        //CMP来自实时自适应时，SZ符合一定为正，不需要翻转符号
-        if ((sz_sign == -1) && (data_from != CMP_FROM_RTANC)) {
-            for (int j = 0; j < p->sz_l->len; j++) {
-                sz_l_tmp[j] = 0 -  sz_l_tmp[j];
-            }
-        }
-        cmp_hdl->l_param.output = icsd_cmp_run(sz_l_tmp);
-        l_state = cmp_hdl->l_param.output->state;
-        //CMP增益符号与SZ符号 负相关
-        cmp_hdl->l_param.output->fgq[0] = (abs(cmp_hdl->l_param.output->fgq[0])) * (sz_sign) * (-1);
 
-#if ANC_ADAPTIVE_CMP_RUN_TIME_DEBUG
-        cmp_log("ANC ADAPTIVE CMP RUN time: %d us\n", (int)(jiffies_usec2offset(last, jiffies_usec())));
-#endif
+    //申请算法资源
+    icsd_cmp_get_libfmt(&libfmt);
+    cmp_log("CMP RAM SIZE:%d %d %d\n", libfmt.lib_alloc_size, cmp_IIR_NUM_FIX, cmp_IIR_NUM_FLEX);
+    cmp_hdl->lib_alloc_ptr = fmt.alloc_ptr = zalloc(libfmt.lib_alloc_size);
+    g_printf("%p--%x \n", cmp_hdl->lib_alloc_ptr, ((u32)cmp_hdl->lib_alloc_ptr) + libfmt.lib_alloc_size);
+    icsd_cmp_set_infmt(&fmt);
 
-#if 0	//CMP结果输出打印
-        float *fgq = cmp_hdl->l_param.output->fgq;
-        g_printf("Global %d/10000\n", (int)(fgq[0] * 10000));
-        for (int i = 0; i < ANC_ADAPTIVE_CMP_ORDER; i++) {
-            g_printf("SEG[%d]:Type %d, FGQ/10000:%d %d %d\n", i, icsd_cmp_type[i], \
-                     (int)(fgq[i * 3 + 1] * 10000), (int)(fgq[i * 3 + 2] * 10000), \
-                     (int)(fgq[i * 3 + 3] * 10000));
-        }
-#endif
-        free(sz_l_tmp);
-    }
+    l_state = anc_ear_adaptive_cmp_run_ch(&cmp_hdl->l_param, p->sz_l, data_from);
 #if ANC_CONFIG_RFB_EN
-    if (p->sz_r) {
-        sz_r_tmp = (float *)zalloc(p->sz_r->len * sizeof(float));
-        memcpy((u8 *)sz_r_tmp, (u8 *)p->sz_r->out, p->sz_r->len * sizeof(float));
-        if (sz_sign == -1) {
-            for (int j = 0; j < p->sz_r->len; j++) {
-                sz_r_tmp[j] = 0 -  sz_r_tmp[j];
-            }
-        }
-        cmp_hdl->r_param.output = icsd_cmp_run(sz_r_tmp);
-        r_state = cmp_hdl->r_param.output->state;
-        cmp_hdl->r_param.output->fgq[0] = (abs(cmp_hdl->r_param.output->fgq[0])) * (sz_sign) * (-1);
-        free(sz_r_tmp);
-    }
+    r_state = anc_ear_adaptive_cmp_run_ch(&cmp_hdl->r_param, p->sz_r, data_from);
 #endif
     if (l_state || r_state) {
         cmp_log("CMP OUTPUT ERR!! STATE : L %d, R %d\n", l_state, r_state);
         ret = -1;
     }
     cmp_hdl->busy = 0;
+
+    //释放算法资源
+    free(cmp_hdl->lib_alloc_ptr);
+
     cmp_log("ICSD_CMP_STATE:RUN FINISH");
     return ret;
 }
@@ -143,15 +161,16 @@ int audio_anc_ear_adaptive_cmp_open(void)
     cmp_hdl = zalloc(sizeof(struct icsd_cmp_hdl));
     enum audio_adaptive_fre_sel fre_sel = AUDIO_ADAPTIVE_FRE_SEL_ANC;
 
-    struct icsd_cmp_libfmt libfmt;
-    struct icsd_cmp_infmt  fmt;
     cmp_log("ICSD_CMP_STATE:OPEN");
     cmp_hdl->state = ANC_EAR_ADAPTIVE_CMP_STATE_OPEN;
-    icsd_cmp_get_libfmt(&libfmt);
-    mem_stats();
-    cmp_log("CMP RAM SIZE:%d %d %d\n", libfmt.lib_alloc_size, cmp_IIR_NUM_FIX, cmp_IIR_NUM_FLEX);
-    cmp_hdl->lib_alloc_ptr = fmt.alloc_ptr = zalloc(libfmt.lib_alloc_size);
-    icsd_cmp_set_infmt(&fmt);
+    cmp_hdl->l_param.output = malloc(sizeof(_cmp_output));
+    cmp_hdl->l_param.output->fgq = malloc(ANC_ADAPTIVE_CMP_OUTPUT_SIZE);
+    g_printf("%p %p\n", cmp_hdl->l_param.output, cmp_hdl->l_param.output->fgq);
+
+#if ANC_CONFIG_RFB_EN
+    cmp_hdl->r_param.output = malloc(sizeof(_cmp_output));
+    cmp_hdl->r_param.output->fgq = malloc(ANC_ADAPTIVE_CMP_OUTPUT_SIZE);
+#endif
     return 0;
 }
 
@@ -169,12 +188,19 @@ int audio_anc_ear_adaptive_cmp_close(void)
         if (cmp_hdl->l_param.coeff) {
             free(cmp_hdl->l_param.coeff);
         }
+        if (cmp_hdl->l_param.output) {
+            free(cmp_hdl->l_param.output);
+            free(cmp_hdl->l_param.output->fgq);
+        }
 #if ANC_CONFIG_RFB_EN
         if (cmp_hdl->r_param.coeff) {
             free(cmp_hdl->r_param.coeff);
         }
+        if (cmp_hdl->r_param.output) {
+            free(cmp_hdl->r_param.output);
+            free(cmp_hdl->r_param.output->fgq);
+        }
 #endif
-        free(cmp_hdl->lib_alloc_ptr);
         free(cmp_hdl);
         cmp_hdl = NULL;
         cmp_log("ICSD_CMP_STATE:CLOSE FINISH");

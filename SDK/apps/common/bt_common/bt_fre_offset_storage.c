@@ -109,12 +109,17 @@ static u8 bt_fre_offset_ex_write(u8 mode, u8 *offset, u8 len, u8 *once_trim_flag
             ret = (u8) - 2;
         }
 #else
-        memcpy(fre_offset_item.data, offset, item_len - 2);
-        fre_offset_item.crc = CRC16((u8 *)&fre_offset_item.data, item_len - 2);
-        int err = syscfg_write(fre_offset_store_id_tab[i], (u8 *)&fre_offset_item, item_len);
-        log_info("FRE OFFSET WRITE:%d %d\n", i,  *once_trim_flag);
-        if (err != item_len) {
-            ret = (u8) - 3;
+        if (0 == memcmp((u8 *)&fre_offset_item.data, offset, 4)) {
+            log_info("SAME VAL\n");
+            /* ret = (u8) - 2; */
+        } else {
+            memcpy(fre_offset_item.data, offset, item_len - 2);
+            fre_offset_item.crc = CRC16((u8 *)&fre_offset_item.data, item_len - 2);
+            int err = syscfg_write(fre_offset_store_id_tab[i], (u8 *)&fre_offset_item, item_len);
+            log_info("FRE OFFSET WRITE:%d %d\n", i,  *once_trim_flag);
+            if (err != item_len) {
+                ret = (u8) - 3;
+            }
         }
 #endif
         *once_trim_flag = (i == (tab_num - 1)) ? 1 : 0;
@@ -223,6 +228,8 @@ int bt_fre_offset_storage_init(void)
 
     return 0;
 }
+#ifdef CONFIG_CPU_BR52
+late_initcall(bt_fre_offset_storage_init);
+#endif
 
-//late_initcall(bt_fre_offset_storage_init);
 

@@ -81,10 +81,14 @@
  *						PDM Definitions
  *******************************************************************
  */
-#define AUDIO_PDM_MIC_0                      (1UL << 0)
-#define AUDIO_PDM_MIC_1                      (1UL << 1)
-#define AUDIO_PDM_MIC_2                      (1UL << 2)
-#define AUDIO_PDM_MIC_3                      (1UL << 3)
+//PDM Version definitions
+#define AUDIO_PDM_V1						(1UL << 0)
+#define AUDIO_PDM_V2						(1UL << 1)
+
+#define AUDIO_PDM_MIC_0						(1UL << 0)
+#define AUDIO_PDM_MIC_1                     (1UL << 1)
+#define AUDIO_PDM_MIC_2                     (1UL << 2)
+#define AUDIO_PDM_MIC_3                     (1UL << 3)
 
 /*
  *******************************************************************
