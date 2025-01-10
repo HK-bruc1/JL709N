@@ -60,7 +60,7 @@ int audio_anc_real_time_adaptive_tool_data_get(u8 **buf, u32 *len);
 
 int audio_anc_real_time_adaptive_suspend_get(void);
 
-int audio_anc_real_time_adaptive_reset(int rtanc_mode);
+int audio_anc_real_time_adaptive_reset(int rtanc_mode, u8 wind_close);
 
 #endif
 

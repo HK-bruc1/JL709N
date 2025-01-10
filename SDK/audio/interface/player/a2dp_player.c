@@ -249,7 +249,7 @@ int a2dp_player_open(u8 *btaddr)
 #endif
 
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE && AUDIO_RT_ANC_TIDY_MODE_ENABLE
-    audio_anc_real_time_adaptive_reset(ADT_REAL_TIME_ADAPTIVE_ANC_TIDY_MODE);
+    audio_anc_real_time_adaptive_reset(ADT_REAL_TIME_ADAPTIVE_ANC_TIDY_MODE, 0);
 #endif
 
     err = a2dp_player_create(btaddr);
@@ -393,7 +393,7 @@ void a2dp_player_close(u8 *btaddr)
 #endif
 
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE && AUDIO_RT_ANC_TIDY_MODE_ENABLE
-    audio_anc_real_time_adaptive_reset(ADT_REAL_TIME_ADAPTIVE_ANC_MODE);
+    audio_anc_real_time_adaptive_reset(ADT_REAL_TIME_ADAPTIVE_ANC_MODE, 0);
 #endif
 }
 

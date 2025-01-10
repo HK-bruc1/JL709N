@@ -7,7 +7,7 @@
 //-------------------------------------------------------------------
 /*config
  */
-#define CONFIG_UART_DEBUG_ENABLE	CONFIG_DEBUG_ENABLE
+#define CONFIG_UART_DEBUG_ENABLE    (CONFIG_DEBUG_ENABLE || CONFIG_DEBUG_LITE_ENABLE)
 #ifdef TCFG_DEBUG_UART_TX_PIN
 #define CONFIG_UART_DEBUG_PORT		TCFG_DEBUG_UART_TX_PIN
 #else

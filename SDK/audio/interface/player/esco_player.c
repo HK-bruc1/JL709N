@@ -71,7 +71,7 @@ int esco_player_open(u8 *bt_addr)
 
     //临时修改
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE && AUDIO_RT_ANC_TIDY_MODE_ENABLE
-    audio_anc_real_time_adaptive_reset(ADT_REAL_TIME_ADAPTIVE_ANC_TIDY_MODE);
+    audio_anc_real_time_adaptive_reset(ADT_REAL_TIME_ADAPTIVE_ANC_TIDY_MODE, 1);
 
 #elif TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
     /*通话前关闭adt*/
@@ -184,7 +184,7 @@ void esco_player_close()
 
     //临时修改
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE && AUDIO_RT_ANC_TIDY_MODE_ENABLE
-    audio_anc_real_time_adaptive_reset(ADT_REAL_TIME_ADAPTIVE_ANC_MODE);
+    audio_anc_real_time_adaptive_reset(ADT_REAL_TIME_ADAPTIVE_ANC_MODE, 1);
 
 #elif TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
     if (icsd_adt_state) {

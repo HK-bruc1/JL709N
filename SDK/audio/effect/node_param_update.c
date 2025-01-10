@@ -299,6 +299,9 @@ int eq_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
 
         //运行时，直接设置更新
         struct eq_adj eff = {0};
+        eff.type = EQ_IS_BYPASS_CMD;
+        eff.param.is_bypass = tab->is_bypass;
+        ret = jlstream_set_node_param(NODE_UUID_EQ, node_name, &eff, sizeof(eff)); //更新bypass 标志
         eff.type = EQ_GLOBAL_GAIN_CMD;
         eff.param.global_gain =  tab->global_gain;
         eff.fade_parm.fade_time = 1;        //en
@@ -317,10 +320,6 @@ int eq_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
             memcpy(&eff.param.seg, &tab->seg[i], sizeof(struct eq_seg_info));
             jlstream_set_node_param(NODE_UUID_EQ, node_name, &eff, sizeof(eff));//更新滤波器系数
         }
-
-        eff.type = EQ_IS_BYPASS_CMD;
-        eff.param.is_bypass = tab->is_bypass;
-        ret = jlstream_set_node_param(NODE_UUID_EQ, node_name, &eff, sizeof(eff));//更新bypass标志
 
         free(tab);
         return ret;
@@ -373,6 +372,9 @@ int sw_eq_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
 
         //运行时，直接设置更新
         struct eq_adj eff = {0};
+        eff.type = EQ_IS_BYPASS_CMD;
+        eff.param.is_bypass = tab->is_bypass;
+        ret = jlstream_set_node_param(NODE_UUID_SOF_EQ, node_name, &eff, sizeof(eff));//更新bypass标志
         eff.type = EQ_GLOBAL_GAIN_CMD;
         eff.param.global_gain =  tab->global_gain;
         eff.fade_parm.fade_time = 1;        //en
@@ -391,10 +393,6 @@ int sw_eq_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
             memcpy(&eff.param.seg, &tab->seg[i], sizeof(struct eq_seg_info));
             jlstream_set_node_param(NODE_UUID_SOF_EQ, node_name, &eff, sizeof(eff));//更新滤波器系数
         }
-
-        eff.type = EQ_IS_BYPASS_CMD;
-        eff.param.is_bypass = tab->is_bypass;
-        ret = jlstream_set_node_param(NODE_UUID_SOF_EQ, node_name, &eff, sizeof(eff));//更新bypass标志
 
         free(tab);
         return ret;

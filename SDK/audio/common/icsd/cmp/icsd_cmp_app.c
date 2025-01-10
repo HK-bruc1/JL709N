@@ -235,28 +235,28 @@ float *audio_anc_ear_adaptive_cmp_output_get(enum ANC_EAR_ADAPTIVE_CMP_CH ch)
     return NULL;
 }
 
-static void audio_rtanc_adaptive_cmp_data_format(struct icsd_cmp_param *p)
+static void audio_rtanc_adaptive_cmp_data_format(struct icsd_cmp_param *p, double *coeff)
 {
     u8 *cmp_dat = (u8 *)&p->gain;
     audio_anc_fr_format(cmp_dat, p->output->fgq, ANC_ADAPTIVE_CMP_ORDER, icsd_cmp_type);
-    if (p->coeff == NULL) {
-        p->coeff = malloc(ANC_ADAPTIVE_CMP_ORDER * sizeof(double) * 5);
-    }
+    /* if (p->coeff == NULL) { */
+    /* p->coeff = malloc(ANC_ADAPTIVE_CMP_ORDER * sizeof(double) * 5); */
+    /* } */
     int alogm = audio_anc_gains_alogm_get(ANC_CMP_TYPE);
-    audio_anc_biquad2ab_double(p->fr, p->coeff, ANC_ADAPTIVE_CMP_ORDER, alogm);
+    audio_anc_biquad2ab_double(p->fr, coeff, ANC_ADAPTIVE_CMP_ORDER, alogm);
 }
 
-//获取Total gain & IIR COEFF
+//获取Total gain & IIR COEFF, 外部传参准备好coeff 空间
 int audio_rtanc_adaptive_cmp_output_get(struct anc_cmp_param_output *output)
 {
     if (cmp_hdl) {
-        audio_rtanc_adaptive_cmp_data_format(&cmp_hdl->l_param);
+        audio_rtanc_adaptive_cmp_data_format(&cmp_hdl->l_param, output->l_coeff);
         output->l_gain = (cmp_hdl->l_param.gain < 0) ? (0 - cmp_hdl->l_param.gain) : cmp_hdl->l_param.gain;
-        output->l_coeff = cmp_hdl->l_param.coeff;
+        /* output->l_coeff = cmp_hdl->l_param.coeff; */
 #if ANC_CONFIG_RFB_EN
-        audio_rtanc_adaptive_cmp_data_format(&cmp_hdl->r_param);
+        audio_rtanc_adaptive_cmp_data_format(&cmp_hdl->r_param, output->r_coeff);
         output->r_gain = (cmp_hdl->r_param.gain < 0) ? (0 - cmp_hdl->r_param.gain) : cmp_hdl->r_param.gain;
-        output->r_coeff = cmp_hdl->r_param.coeff;
+        /* output->r_coeff = cmp_hdl->r_param.coeff; */
 #endif
     }
     return 0;

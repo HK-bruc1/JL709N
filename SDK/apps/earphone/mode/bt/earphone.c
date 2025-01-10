@@ -1357,11 +1357,11 @@ void bt_user_page_enable(u8 enable, u8 type)
         return;
     }
     if (enable) {
+        hw_ctl_close();
 #ifdef BT_RF_CURRENT_BALANCE_SUPPORT_NOT_PORT
         btbb_irq_config(WL_LNAE, BB_IRQ_EDGE_RISE);        //9 lna_en
 #else
         gpio_irq_config(EDGE_SLECT_PORART, &gpio_irq_config_rx_off);
-        hw_ctl_close();
         gpio_irq_config(EDGE_SLECT_PORART, &gpio_irq_config_rx);
 #if BT_RF_CURRENT_BALANCE_SUPPORT_ONLY_ONE_PORT
         EDGE_SLECT_POART_OPEN
@@ -1373,11 +1373,11 @@ void bt_user_page_enable(u8 enable, u8 type)
         btbb_irq_config(WL_LNAE, BB_IRQ_EDGE_DISABLE);    //9 lna_en
 #else
         gpio_irq_config(EDGE_SLECT_PORART, &gpio_irq_config_rx_off);
-        hw_ctl_open();
 #if BT_RF_CURRENT_BALANCE_SUPPORT_ONLY_ONE_PORT
         EDGE_SLECT_POART_CLOSE
 #endif
 #endif
+        hw_ctl_open();
         /* log_info("gpio_irq_config close-----+++++"); */
     }
 }

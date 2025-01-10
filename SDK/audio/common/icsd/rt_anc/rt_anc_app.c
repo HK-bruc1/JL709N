@@ -40,6 +40,17 @@
 #define rtanc_log(...)
 #endif/*log_en*/
 
+#define AUDIO_RTANC_COEFF_SIZE		40 // 5 * sizeof(double)
+
+//管理RTANC 滤波器输出:启动后RAM空间常驻
+struct audio_rt_anc_output {
+    double *lff_coeff;
+    double *lcmp_coeff;
+
+    double *rff_coeff;
+    double *rcmp_coeff;
+};
+
 struct audio_rt_anc_hdl {
     u8 seq;
     u8 state;
@@ -55,6 +66,7 @@ struct audio_rt_anc_hdl {
     float *debug_param;
     struct icsd_rtanc_tool_data *rtanc_tool;	//工具临时数据
     struct rt_anc_fade_gain_ctr fade_ctr;
+    struct audio_rt_anc_output out;				//RTANC/CMP IIR 滤波器输出
 };
 
 static void audio_anc_real_time_adaptive_data_packet(struct icsd_rtanc_tool_data *rtanc_tool);
@@ -232,32 +244,59 @@ static void audio_rt_anc_param_updata(void *rt_param_l, void *rt_param_r)
 
     audio_anc_t *param = hdl->param;
 
-#if ANC_EAR_ADAPTIVE_CMP_EN
-    struct anc_cmp_param_output cmp_p;
-    audio_rtanc_adaptive_cmp_output_get(&cmp_p);
-    param->gains.l_cmpgain = cmp_p.l_gain;
-    param->lcmp_coeff = cmp_p.l_coeff;
-    rtanc_log("updata gain = %d, coef = %d, ", (int)(param->gains.l_cmpgain * 100), (int)(param->lcmp_coeff[0] * 100));
-#endif
-
     __rt_anc_param *anc_param = (__rt_anc_param *)rt_param_l;
+    if (hdl->out.lff_coeff) {
+        free(hdl->out.lff_coeff);
+    }
+    hdl->out.lff_coeff = malloc(param->lff_yorder * AUDIO_RTANC_COEFF_SIZE);
+    memcpy(hdl->out.lff_coeff, anc_param->ff_coeff, param->lff_yorder * AUDIO_RTANC_COEFF_SIZE);
+
     param->gains.l_ffgain = anc_param->ffgain;
-    param->lff_coeff = anc_param->ff_coeff;
+    param->lff_coeff = hdl->out.lff_coeff;
     param->gains.l_fbgain = anc_param->fbgain;
 
     //param->lfb_coeff = &anc_param->lfb_coeff[0];
 #if ANC_CONFIG_RFB_EN
     if (rt_param_r) {
-        anc_param = (__rt_anc_param *)rt_param_r;
-        param->gains.r_ffgain = anc_param->ffgain;
-        param->rff_coeff = anc_param->ff_coeff;
-        param->gains.r_fbgain = anc_param->fbgain;
+        __rt_anc_param *anc_param_r = (__rt_anc_param *)rt_param_r;
+        if (hdl->out.rff_coeff) {
+            free(hdl->out.rff_coeff);
+        }
+        hdl->out.rff_coeff = malloc(param->rff_yorder * AUDIO_RTANC_COEFF_SIZE);
+        memcpy(hdl->out.rff_coeff, anc_param_r->ff_coeff, param->rff_yorder * AUDIO_RTANC_COEFF_SIZE);
+
+        param->gains.r_ffgain = anc_param_r->ffgain;
+        param->rff_coeff = hdl->out.rff_coeff;
+        param->gains.r_fbgain = anc_param_r->fbgain;
+
+    }
+#endif
 
 #if ANC_EAR_ADAPTIVE_CMP_EN
-        param->gains.r_cmpgain = cmp_p.r_gain;
-        param->rcmp_coeff = cmp_p.r_coeff;
-#endif
+    struct anc_cmp_param_output cmp_p;
+    if (hdl->out.lcmp_coeff) {
+        free(hdl->out.lcmp_coeff);
     }
+    hdl->out.lcmp_coeff = malloc(param->lcmp_yorder * AUDIO_RTANC_COEFF_SIZE);
+    cmp_p.l_coeff = hdl->out.lcmp_coeff;
+
+#if ANC_CONFIG_RFB_EN
+    if (hdl->out.rcmp_coeff) {
+        free(hdl->out.lcmp_coeff);
+    }
+    hdl->out.rcmp_coeff = malloc(param->rcmp_yorder * AUDIO_RTANC_COEFF_SIZE);
+    cmp_p.r_coeff = hdl->out.rcmp_coeff;
+#endif
+
+    audio_rtanc_adaptive_cmp_output_get(&cmp_p);
+    param->gains.l_cmpgain = cmp_p.l_gain;
+    param->lcmp_coeff = cmp_p.l_coeff;
+
+#if ANC_CONFIG_RFB_EN
+    param->gains.r_cmpgain = cmp_p.r_gain;
+    param->rcmp_coeff = cmp_p.r_coeff;
+#endif
+    rtanc_log("updata gain = %d, coef = %d, ", (int)(param->gains.l_cmpgain * 100), (int)(param->lcmp_coeff[0] * 100));
 #endif
 
     /* audio_anc_coeff_smooth_update(); */
@@ -575,7 +614,8 @@ int audio_anc_real_time_adaptive_tool_data_get(u8 **buf, u32 *len)
 int audio_rtanc_fade_gain_suspend(struct rt_anc_fade_gain_ctr *fade_ctr)
 {
     g_printf("%s, state %d\n", __func__, audio_anc_real_time_adaptive_state_get());
-    if ((!audio_anc_real_time_adaptive_state_get()) || hdl->reset_busy) {
+    if ((!audio_anc_real_time_adaptive_state_get()) || hdl->reset_busy || \
+        get_icsd_adt_mode_switch_busy()) {
         hdl->fade_ctr = *fade_ctr;
         return 0;
     }
@@ -637,13 +677,19 @@ REGISTER_LP_TARGET(RTANC_lp_target) = {
 };
 
 //复位RTANC模式，阻塞处理
-int audio_anc_real_time_adaptive_reset(int rtanc_mode)
+int audio_anc_real_time_adaptive_reset(int rtanc_mode, u8 wind_close)
 {
+    static u8 wind_flag = 0;
     int wait_cnt, switch_busy, mode_cmp, close_mode;
     if (hdl->rtanc_mode == rtanc_mode) {
         rtanc_log("Err:rtanc adaptive reset fail, same mode\n");
         return -1;
     }
+
+    if ((get_icsd_adt_mode() & ADT_WIND_NOISE_DET_MODE) && wind_close) {
+        wind_flag = 1;
+    }
+
     hdl->rtanc_mode = rtanc_mode;
     if (audio_anc_real_time_adaptive_state_get()) {
         u32 last = jiffies_usec();
@@ -653,16 +699,23 @@ int audio_anc_real_time_adaptive_reset(int rtanc_mode)
         hdl->reset_busy = 1;
         //设置为默认参数, 但是不更新
         /* audio_anc_mult_scene_update(audio_anc_mult_scene_get()); */
-        audio_anc_mult_scene_set(audio_anc_mult_scene_get());	//耗时30ms
+        /* audio_anc_mult_scene_set(audio_anc_mult_scene_get());	//耗时30ms */
         //修改ADT MODE 目标模式
+        if (rtanc_mode == ADT_REAL_TIME_ADAPTIVE_ANC_MODE && wind_close && wind_flag) {
+            wind_flag = 0;
+            rtanc_mode |= ADT_WIND_NOISE_DET_MODE;
+        }
         icsd_adt_rt_anc_mode_set(rtanc_mode);
         //复位ADT
         if (rtanc_mode == ADT_REAL_TIME_ADAPTIVE_ANC_TIDY_MODE) {
-            audio_icsd_adt_sync_close(ADT_REAL_TIME_ADAPTIVE_ANC_MODE, 0);
             close_mode = ADT_REAL_TIME_ADAPTIVE_ANC_MODE;
+            if (wind_flag) {
+                close_mode |= ADT_WIND_NOISE_DET_MODE;
+            }
+            audio_icsd_adt_sync_close(close_mode, 0);
         } else {
-            audio_icsd_adt_sync_close(ADT_REAL_TIME_ADAPTIVE_ANC_TIDY_MODE, 0);
             close_mode = ADT_REAL_TIME_ADAPTIVE_ANC_TIDY_MODE;
+            audio_icsd_adt_sync_close(close_mode, 0);
         }
         //等待切换完毕
         wait_cnt = 200;

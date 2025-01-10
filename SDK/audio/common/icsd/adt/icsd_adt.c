@@ -18,6 +18,7 @@
 #include "asm/audio_src.h"
 #include "audio_anc_debug_tool.h"
 #include "effects/convert_data.h"
+#include "asm/dac.h"
 
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
 #include "rt_anc_app.h"
@@ -375,32 +376,39 @@ void icsd_adt_tone_play_handler(u8 idx)
     }
 }
 
-extern int audio_dac_read_base(s16 points_offset, void *data, int len, u8 read_channel, u8 autocorrection);
-extern int audio_dac_read_reset(void);
+static struct dac_read_handle icsd_dac_read_hdl = {
+    .read_pos = DAC_READ_MAGIC,
+    .cur_dac_hrp = 0,
+    .last_dac_hrp = 0,
+    .dac_hrp_diff = 0,
+};
+
+extern int audio_dac_read_base(struct dac_read_handle *hdl, s16 points_offset, void *data, int len, u8 read_channel, u8 autocorrection);
+extern int audio_dac_read_base_reset(struct dac_read_handle *hdl);
 extern struct dac_platform_data dac_data;
 int audio_dac_read_anc(s16 points_offset, void *data, int len, u8 read_channel)
 {
     int rlen;
     if (dac_data.bit_width == DAC_BIT_WIDTH_24) {
         s32 *tmp_buf = zalloc(len * 2 * read_channel);
-        rlen = audio_dac_read_base(points_offset, tmp_buf, len * 2, read_channel, 0);
+        rlen = audio_dac_read_base(&icsd_dac_read_hdl, points_offset, tmp_buf, len * 2, read_channel, 0);
         if (rlen) {
             audio_convert_data_32bit_to_16bit_round((s32 *)tmp_buf, (s16 *)data, (len * 2 * read_channel) >> 2);
         }
         free(tmp_buf);
     } else {
-        rlen = audio_dac_read_base(points_offset, data, len, read_channel, 0);
+        rlen = audio_dac_read_base(&icsd_dac_read_hdl, points_offset, data, len, read_channel, 0);
     }
     return rlen;
 }
 
 int audio_dac_read_anc_reset(void)
 {
-    audio_dac_read_reset();
+    audio_dac_read_base_reset(&icsd_dac_read_hdl);
     if (dac_data.bit_width == DAC_BIT_WIDTH_24) {
-        audio_dac_read(0, 0, 124 * 2, 1);
+        audio_dac_read_base(&icsd_dac_read_hdl, 0, 0, 124 * 2, 1, 0);
     } else {
-        audio_dac_read(0, 0, 124, 1);
+        audio_dac_read_base(&icsd_dac_read_hdl, 0, 0, 124, 1, 0);
     }
     return 0;
 }

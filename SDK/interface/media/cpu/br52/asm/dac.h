@@ -290,6 +290,15 @@ enum DAC_PA_MODE{
 	DAC_PA_MODE_CLASSD,
 };
 
+#define DAC_FREE_CRITICAL	0//256	/*dac写fifo的时候预留不可写区间*/
+#define DAC_READ_MAGIC		0xAA55
+struct dac_read_handle {
+    u16 read_pos;
+    u16 cur_dac_hrp;
+    u16 last_dac_hrp;
+    int dac_hrp_diff;
+};
+
 /*
 *********************************************************************
 *              audio_dac_init

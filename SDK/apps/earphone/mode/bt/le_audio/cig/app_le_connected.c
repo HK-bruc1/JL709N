@@ -155,6 +155,10 @@ static int app_connected_conn_status_event_handler(int *msg)
     switch (event[0]) {
     case CIG_EVENT_PERIP_CONNECT:
         g_printf("CIG_EVENT_PERIP_CONNECT");
+#if TCFG_USER_TWS_ENABLE
+        tws_api_tx_unsniff_req();
+#endif
+        bt_cmd_prepare(USER_CTRL_ALL_SNIFF_EXIT, 0, NULL);
         //由于是异步操作需要加互斥量保护，避免connected_close的代码与其同时运行,添加的流程请放在互斥量保护区里面
         app_connected_mutex_pend(&mutex, __LINE__);
 

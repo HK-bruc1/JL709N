@@ -266,10 +266,11 @@ void setup_arch()
 
     power_early_flowing();
 
-    void mvbg_current_trim();        //pmu used
-    mvbg_current_trim();
-    void audio_vbg_current_trim();        //audio used
-    audio_vbg_current_trim();
+
+
+    extern void ic_vbg_current_trim();
+    ic_vbg_current_trim();
+
 
     //Register debugger interrupt
     request_irq(0, 2, exception_irq_handler, 0);

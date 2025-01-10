@@ -29,6 +29,7 @@ extern const int config_audio_dac_power_on_mode;
 extern const int config_audio_dac_power_off_lite;
 extern const int config_audio_dac_mix_enable;
 extern const int config_audio_dac_noisefloor_optimize_enable;
+extern const char config_audio_dac_offset_fade_enable;
 
 /*
  *******************************************************************

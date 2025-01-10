@@ -94,6 +94,7 @@ struct pc_mic_node_hdl {
     u8 iport_bit_width;     //保存输入节点的位宽
     u8 syncts_enabled;
     u8 start;
+    u8 force_write_slience_data_en;
     u8 force_write_slience_data;
     u8 reference_network;
 };
@@ -587,7 +588,7 @@ static int pcmic_adpater_detect_timestamp(struct pc_mic_node_hdl *hdl, struct st
         return 0;
     }
 
-    if (!(frame->flags & FRAME_FLAG_TIMESTAMP_ENABLE)) {
+    if (!(frame->flags & FRAME_FLAG_TIMESTAMP_ENABLE) || hdl->force_write_slience_data_en) {
         if (!hdl->force_write_slience_data) { //无播放同步时，强制填一段静音包
             hdl->force_write_slience_data = 1;
             int slience_time_us = (hdl->attr.protect_time ? hdl->attr.protect_time : 8) * 1000;
@@ -936,7 +937,9 @@ static int pc_mic_adapter_ioctl(struct stream_iport *iport, int cmd, int arg)
     case NODE_IOC_SET_PARAM:
         hdl->reference_network = arg;
         break;
-
+    case NODE_IOC_SET_PRIV_FMT: //手动控制是否预填静音包
+        hdl->force_write_slience_data_en = arg;
+        break;
     default:
         break;
     }
