@@ -131,11 +131,11 @@ void audio_digital_vol_cfg_init(dvol_handle *dvol, struct volume_cfg *vol_cfg) /
         if (dvol->vol_table_default) {
             extern const u16 default_dig_vol_table[];
             dvol->min_vol = default_dig_vol_table[0];
-            dvol->max_vol = default_dig_vol_table[dvol->vol_limit];
+            dvol->max_vol = default_dig_vol_table[dvol->vol_limit - 1];
         } else {
             if (dvol->vol_table) {
                 dvol->min_vol = 0;//(s16)(eq_db2mag(dvol->vol_table[0]) *  DVOL_MAX_FLOAT);//dB转换倍数
-                dvol->max_vol = (s16)(eq_db2mag(dvol->vol_table[dvol->vol_limit]) *  DVOL_MAX_FLOAT);
+                dvol->max_vol = (s16)(eq_db2mag(dvol->vol_table[dvol->vol_limit - 1]) *  DVOL_MAX_FLOAT);
             } else {
                 dvol->min_vol = 0;//(s16)(eq_db2mag(dvol->cfg_vol_min) *  DVOL_MAX_FLOAT);//dB转换倍数
                 dvol->max_vol = (s16)(eq_db2mag(dvol->cfg_vol_max) *  DVOL_MAX_FLOAT);

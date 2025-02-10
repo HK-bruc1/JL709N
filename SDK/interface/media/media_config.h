@@ -11,6 +11,7 @@ extern const int CONFIG_SEAMLESS_RECORDER_ENABLE;
 extern const int config_ch_adapter_32bit_enable;
 extern const int config_mixer_32bit_enable;
 extern const int config_jlstream_fade_32bit_enable;
+extern const int config_audio_eq_xfade_enable;
 
 extern const int CONFIG_MAX_ENC_DATA_CACHE_SIZE;
 extern const int CONFIG_LOG_OUTPUT_ENABLE;

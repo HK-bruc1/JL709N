@@ -127,12 +127,6 @@ SECTIONS
         *(.math_fast_funtion_code)
 
 		. = ALIGN(4);
-        _SPI_CODE_START = . ;
-        *(.spi_code)
-		. = ALIGN(4);
-        _SPI_CODE_END = . ;
-
-		. = ALIGN(4);
 	} > ram0
 
 	__report_overlay_begin = .;
@@ -332,6 +326,12 @@ SECTIONS
 		KEEP(*(.debug_record_handle_ops))
 		_record_handle_end = .;
 		PROVIDE(record_handle_end = .);
+
+		. = ALIGN(4);
+        _SPI_CODE_START = . ;
+        *(.spi_code)
+		. = ALIGN(4);
+        _SPI_CODE_END = . ;
 
 		. = ALIGN(32);
 	  } > code0

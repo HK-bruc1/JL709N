@@ -20,7 +20,7 @@
 const int config_printf_time         = 1;
 
 ///异常中断，asser打印开启
-#if CONFIG_DEBUG_ENABLE
+#if CONFIG_DEBUG_ENABLE || CONFIG_DEBUG_LITE_ENABLE
 const int config_asser          = TCFG_EXCEPTION_LOG_ENABLE;  // non 0:使能异常打印; BIT(1):使能当前CPU打印另一个CPU的寄存器信息; BIT(2):使能栈分析回溯函数调用
 const int config_exception_reset_enable = TCFG_EXCEPTION_RESET_ENABLE;
 const int CONFIG_LOG_OUTPUT_ENABLE = 1;
@@ -137,6 +137,16 @@ const int config_dlog_auto_flush_timeout = TCFG_DEBUG_DLOG_AUTO_FLUSH_TIMEOUT;
 const int config_dlog_enable = 0;
 const int config_dlog_reset_erase_enable = 0;
 const int config_dlog_auto_flush_timeout = 0;
+#endif
+
+//查找关中断时间过久函数功能
+//用于开启查找中断时间过久的函数功能,打印函数的rets和trance:"irq disable overlimit:"
+#if TCFG_IRQ_TIME_DEBUG_ENABLE
+const int config_irq_time_debug_enable = TCFG_IRQ_TIME_DEBUG_ENABLE;
+const int config_irq_time_debug_time = 10000;  //查找中断时间超过10000us的函数
+#else
+const int config_irq_time_debug_enable = 0;
+const int config_irq_time_debug_time = 0;
 #endif
 
 /**

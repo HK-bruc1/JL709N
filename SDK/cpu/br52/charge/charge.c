@@ -19,6 +19,10 @@
 #if TCFG_CHARGE_CALIBRATION_ENABLE
 #include "asm/charge_calibration.h"
 #endif
+#if TCFG_BURNER_CURRENT_CALIBRATION
+#include "device/inside_flash.h"
+#include "syscfg_id.h"
+#endif
 
 #define LOG_TAG_CONST   CHARGE
 #define LOG_TAG         "[CHARGE]"
@@ -550,6 +554,10 @@ void set_charge_mA(u16 charge_mA)
     u16 chgi;
     u16 min_chgi;
     float temp, min_div;
+#if TCFG_BURNER_CURRENT_CALIBRATION
+    int ret;
+    u8 charge_curr_cali_value = 0;
+#endif
 
     type = (charge_mA & TRICKLE_EN_FLAG) ? 1 : 0;
     charge_mA &= ~TRICKLE_EN_FLAG;
@@ -561,7 +569,15 @@ void set_charge_mA(u16 charge_mA)
             ASSERT(0, "Constant_charge_mA cann't < 15mA");
         }
     }
-
+#if TCFG_BURNER_CURRENT_CALIBRATION
+    if ((type == 0) && (charge_mA == TCFG_CHARGE_MA)) {
+        ret = syscfg_read_otp(CFG_CONSTANT_CURRENT_CALI, &charge_curr_cali_value, 4);
+        if (ret == 4) {
+            charge_mA = charge_curr_cali_value;
+            log_info("cali_charge_mA: %d", charge_mA);
+        }
+    }
+#endif
     min_chgi = 0;
     min_div = 2000.0f;
     for (chgi = 0; chgi < 1024; chgi++) {
@@ -647,10 +663,6 @@ static void charge_config(void)
 
     //电流校准
     charge_curr_trim = efuse_get_charge_cur_trim();
-    if (charge_curr_trim == 0xf) {
-        log_info("charge curr not trim, use default config!!!!!!");
-        charge_curr_trim = 8;
-    }
     log_info("charge curr set value = %d\n", charge_curr_trim);
 
     CHGI_TRIM_SEL(charge_curr_trim);

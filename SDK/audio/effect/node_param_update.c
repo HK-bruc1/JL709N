@@ -420,6 +420,16 @@ int multiband_drc_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
     free(data_buf);
     multiband_drc_param_debug(mdrc_parm);
 
+    //common_parm 更新
+    struct mdrc_common_param_update {
+        int type;
+        struct mdrc_common_param data;
+    };
+    struct mdrc_common_param_update *common_parm = zalloc(sizeof(struct mdrc_common_param_update));
+    common_parm->type = COMMON_PARM;
+    memcpy(&common_parm->data, &mdrc_parm->common_param, sizeof(struct mdrc_common_param));
+    ret = jlstream_set_node_param(NODE_UUID_MDRC, node_name, common_parm, sizeof(struct mdrc_common_param_update));
+
     //drc更新
     struct mdrc_drc_param_update {
         int type;
@@ -434,16 +444,6 @@ int multiband_drc_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
         memcpy(drc_parm->data, mdrc_parm->drc_param[i], drc_parm->len);
         jlstream_set_node_param(NODE_UUID_MDRC, node_name, drc_parm, drc_parm->len + sizeof(int) * 2);
     }
-
-    //common_parm 更新
-    struct mdrc_common_param_update {
-        int type;
-        struct mdrc_common_param data;
-    };
-    struct mdrc_common_param_update *common_parm = zalloc(sizeof(struct mdrc_common_param_update));
-    common_parm->type = COMMON_PARM;
-    memcpy(&common_parm->data, &mdrc_parm->common_param, sizeof(struct mdrc_common_param));
-    ret = jlstream_set_node_param(NODE_UUID_MDRC, node_name, common_parm, sizeof(struct mdrc_common_param_update));
 
     multiband_drc_param_free(mdrc_parm);
     free(mdrc_parm);

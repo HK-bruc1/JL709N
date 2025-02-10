@@ -54,22 +54,22 @@ enum {
 };
 
 typedef struct {
-    u16 cis_hdl;
-    u16 acl_hdl;
+    u16 cis_hdl;								// cis连接句柄
+    u16 acl_hdl;								// acl连接句柄
     u8 flush_timeout;
     u32 isoIntervalUs;
-    void *recorder;
-    struct connected_rx_audio_hdl rx_player;
+    void *recorder;								// 编码器
+    struct connected_rx_audio_hdl rx_player;	// 解码器
 } cis_hdl_info_t;
 
 /*! \brief 广播结构体 */
 struct connected_hdl {
     struct list_head entry; /*!< cig链表项，用于多cig管理 */
-    u8 del;
-    u8 cig_hdl;
-    cis_hdl_info_t cis_hdl_info[CIG_MAX_CIS_NUMS];
+    u8 del;											// 是否已删除
+    u8 cig_hdl;										// cig句柄
+    cis_hdl_info_t cis_hdl_info[CIG_MAX_CIS_NUMS];	// cis句柄
     u32 cig_sync_delay;
-    const char *role_name;
+    const char *role_name;							// 同步名称
 };
 
 /**************************************************************************************************
@@ -89,13 +89,11 @@ static u8 connected_role;   /*!< 记录当前广播为接收端还是发送端 *
 static u8 connected_init_flag;  /*!< 广播初始化标志 */
 static u8 g_cig_hdl;        /*!< 用于cig_hdl获取 */
 static u8 connected_num;    /*!< 记录当前开启了多少个cig广播 */
-static u8 bredr_close_flag = 0;
 static u8 *transmit_buf;    /*!< 用于发送端发数 */
-static u8 cur_audio_mode = 0;
-static struct list_head connected_list_head = LIST_HEAD_INIT(connected_list_head);
+static struct list_head connected_list_head = LIST_HEAD_INIT(connected_list_head);	// cis链表
 static struct le_audio_mode_ops *le_audio_switch_ops = NULL; /*!< 广播音频和本地音频切换回调接口指针 */
 #if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
-u8 cig_peripheral_support_lea_profile  = 0;
+u8 cig_peripheral_support_lea_profile  = 0;			// 是否支持公有的cis协议
 #else
 u8 cig_peripheral_support_lea_profile  = 1;
 #endif
@@ -134,6 +132,13 @@ static inline void connected_mutex_post(OS_MUTEX *mutex, u32 line)
     }
 }
 
+/**
+ * @brief cig事件发送到用户线程
+ *
+ * @param event 事件类型
+ * @param value 事件消息
+ * @param len 	事件消息长度
+ */
 int cig_event_to_user(int event, void *value, u32 len)
 {
     int *evt = zalloc(sizeof(int) + len);
@@ -145,6 +150,12 @@ int cig_event_to_user(int event, void *value, u32 len)
     return 0;
 }
 
+/**
+ *	@brief 获取cig句柄
+ *
+ *	@param id cig句柄id
+ *	@param head cig链表头
+ */
 static u16 get_available_cig_hdl(u8 id, struct list_head *head)
 {
     struct connected_hdl *p;
@@ -375,7 +386,6 @@ int connected_perip_connect_deal(void *priv)
         }
         params.service_type = LEA_SERVICE_CALL;
         if (!connected_hdl->cis_hdl_info[index].recorder) {
-            //TODO:打开recorder
 #if TCFG_AUDIO_BIT_WIDTH
             params.latency = 80 * 1000;//tx延时暂时先设置 50ms
 #else
@@ -403,6 +413,13 @@ int connected_perip_connect_deal(void *priv)
 
     return 0;
 }
+
+/**
+ * @brief 私有cis命令开启或者关闭解码器
+ *
+ * @param en 开启/关闭解码器
+ * @param acl_hdl acl链路句柄
+ */
 void connected_perip_connect_recoder(u8 en, u16 acl_hdl)
 {
     int i;
@@ -561,6 +578,11 @@ int connected_perip_disconnect_deal(void *priv)
     return 0;
 }
 
+/**
+ *	@brief 蓝牙取数回调接口
+ *
+ *	@param cig_hdl cig句柄
+ */
 static int connected_tx_align_data_handler(u8 cig_hdl)
 {
     struct connected_hdl *connected_hdl = 0;
@@ -616,17 +638,22 @@ static int connected_tx_align_data_handler(u8 cig_hdl)
 
     return 0;
 }
+
 void le_audio_phone_connect_profile_begin(uint16_t con_handle)
 {
     r_printf("le_audio_phone_connect_profile_begin");
     cig_event_to_user(CIG_EVENT_PHONE_CONNECT, (void *)&con_handle, 2);
 }
+
 void le_audio_phone_connect_profile_disconnect(uint16_t con_handle)
 {
     r_printf("le_audio_phone_connect_profile_disconnect");
     cig_event_to_user(CIG_EVENT_PHONE_DISCONNECT, (void *)&con_handle, 2);
 }
 
+/**
+ *	cis事件回调
+ */
 static void connected_perip_event_callback(const CIG_EVENT event, void *priv)
 {
     /* log_info("--func=%s, %d", __FUNCTION__, event); */
@@ -853,6 +880,12 @@ static void connected_free_cig_hdl(u8 cig_hdl)
     spin_unlock(&connected_lock);
     connected_mutex_post(&connected_mutex, __LINE__);
 }
+
+/**
+ * @brief 关闭对应cig_hdl的CIG连接
+ *
+ * @param cig_hdl:需要关闭的CIG连接的cig_hdl
+ */
 void connected_close(u8 cig_hdl)
 {
     int player_status = 0;

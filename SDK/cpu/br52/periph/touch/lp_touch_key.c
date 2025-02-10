@@ -44,6 +44,8 @@ static volatile u8 touch_irq_before_init = 0;
 static struct lp_touch_key_config_data lp_touch_key_cfg_data;
 #define __this (&lp_touch_key_cfg_data)
 
+static u16 touch_key_ref_trim = 0;
+
 
 #if TCFG_LP_TOUCH_KEY_BT_TOOL_ENABLE
 
@@ -126,12 +128,20 @@ static u32 lp_touch_key_check_long_click_by_ctmu_res(u32 ch_idx)
         u32 diff = arg->falling_res_avg - arg->long_event_res_avg;
         if (diff < (cfg2 / 2)) {
             log_debug("long event return ! diff: %d  <  cfg2/2: %d\n", diff, (cfg2 / 2));
-            lpctmu_send_m2p_cmd(RESET_IDENTIFY_ALGO);
+            if (touch_key_ref_trim) {
+                lpctmu_send_m2p_cmd(RESET_IDENTIFY_ALGO_WITH_TRIM);
+            } else {
+                lpctmu_send_m2p_cmd(RESET_IDENTIFY_ALGO);
+            }
             return 1;
         }
     } else {
         log_debug("long event return ! falling_res_avg < long_event_res_avg\n");
-        lpctmu_send_m2p_cmd(RESET_IDENTIFY_ALGO);
+        if (touch_key_ref_trim) {
+            lpctmu_send_m2p_cmd(RESET_IDENTIFY_ALGO_WITH_TRIM);
+        } else {
+            lpctmu_send_m2p_cmd(RESET_IDENTIFY_ALGO);
+        }
         return 1;
     }
 #endif
@@ -170,18 +180,27 @@ u32 lp_touch_key_alog_range_display(u8 *display_buf)
 
 static void lp_touch_key_identify_algorithm_init(void)
 {
-    lpctmu_send_m2p_cmd(RESET_IDENTIFY_ALGO);
+    if (touch_key_ref_trim) {
+        lpctmu_send_m2p_cmd(RESET_IDENTIFY_ALGO_WITH_TRIM);
+    } else {
+        lpctmu_send_m2p_cmd(RESET_IDENTIFY_ALGO);
+    }
 }
 
 static void lp_touch_key_identify_algo_set_edge_down_th(u32 ch_idx, u32 cfg2_new)
 {
-    u32 ch = __this->pdata->key_cfg[ch_idx].key_ch;
+    const struct touch_key_cfg *key_cfg = &(__this->pdata->key_cfg[ch_idx]);
+    const struct touch_key_algo_cfg *algo_cfg = &(key_cfg->algo_cfg[key_cfg->index]);
+    u32 ch = key_cfg->key_ch;
 
     u16 cfg0 = (M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG0H + ch * 8) << 8) | M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG0L + ch * 8);
     u16 cfg1 = (M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG1H + ch * 8) << 8) | M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG1L + ch * 8);
     u16 cfg2 = (M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG2H + ch * 8) << 8) | M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG2L + ch * 8);
-    if (cfg2_new < (3 * cfg0)) {
-        cfg2_new = (3 * cfg0);
+    if (cfg0 == cfg1) {
+        log_debug("touch algo reseting ...\n");
+    }
+    if (cfg2_new < (3 * algo_cfg->algo_cfg0)) {
+        cfg2_new = (3 * algo_cfg->algo_cfg0);
     }
     if (cfg2 != cfg2_new) {
         log_debug("ctmu ch%d cfg2_old = %d  cfg2_new = %d\n", ch, cfg2, cfg2_new);
@@ -394,6 +413,10 @@ void lp_touch_key_init(const struct lp_touch_key_platform_data *pdata)
         __this->lpctmu_cfg.softoff_wakeup_cfg = LPCTMU_WAKEUP_DISABLE;
     }
 
+    touch_key_ref_trim = (__this->lpctmu_cfg.pdata->aim_charge_khz) * (__this->lpctmu_cfg.pdata->sample_window_time);
+    if (__this->lpctmu_cfg.pdata->aim_charge_khz < 8) {
+        touch_key_ref_trim = 0;
+    }
 
     M2P_CTMU_CMD = 0;
     M2P_CTMU_CH_DEBUG = 0;
@@ -422,6 +445,10 @@ void lp_touch_key_init(const struct lp_touch_key_platform_data *pdata)
         M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG0H + ch * 8) = (algo_cfg->algo_cfg0 >> 8) & 0xff;
         M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG1L + ch * 8) = ((algo_cfg->algo_cfg0 +  5) >> 0) & 0xff;
         M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG1H + ch * 8) = ((algo_cfg->algo_cfg0 +  5) >> 8) & 0xff;
+        if (touch_key_ref_trim) {
+            M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG1L + ch * 8) = (touch_key_ref_trim >> 0) & 0xff;
+            M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG1H + ch * 8) = (touch_key_ref_trim >> 8) & 0xff;
+        }
         M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG2L + ch * 8) = (algo_cfg->algo_cfg2 >> 0) & 0xff;
         M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG2H + ch * 8) = (algo_cfg->algo_cfg2 >> 8) & 0xff;
         log_debug("M2P_CTMU_CH%d_CFG0L = 0x%x", ch, M2P_MESSAGE_ACCESS(M2P_MASSAGE_CTMU_CH0_CFG0L + ch * 8));
@@ -713,6 +740,15 @@ void lp_touch_key_charge_mode_enter()
     }
 
     if (__this->pdata->charge_mode_keep_touch) {
+        if (__this->pdata->charge_enter_algo_reset) {
+            if (touch_key_ref_trim) {
+                lpctmu_send_m2p_cmd(REQUEST_LPCTMU_RES_TRIM);
+            }
+        } else if (touch_key_ref_trim) {
+            lpctmu_send_m2p_cmd(RESET_IDENTIFY_ALGO_WITH_TRIM);
+        } else {
+            lpctmu_send_m2p_cmd(RESET_IDENTIFY_ALGO);
+        }
         return;
     }
 
@@ -731,7 +767,11 @@ void lp_touch_key_charge_mode_exit()
 
     //复位算法
     if (__this->pdata->charge_exit_algo_reset) {
-        lpctmu_send_m2p_cmd(RESET_IDENTIFY_ALGO);
+        if (touch_key_ref_trim) {
+            lpctmu_send_m2p_cmd(RESET_IDENTIFY_ALGO_WITH_TRIM);
+        } else {
+            lpctmu_send_m2p_cmd(RESET_IDENTIFY_ALGO);
+        }
     }
 
     if (__this->pdata->charge_mode_keep_touch) {

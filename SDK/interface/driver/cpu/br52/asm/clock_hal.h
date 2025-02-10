@@ -118,6 +118,12 @@ void ic_btosc_init(void);
 u32 ic_pll_init(u32 osc_freq);
 
 
+u32 __get_lrc_avg_hz();
+u32 __get_lrc_latest_hz();
+u32 __get_lrc_drift();
+u32 __get_lrc_high_hz();
+u32 __get_lrc_low_hz();
+
 //for bt
 void clk_set_osc_cap(u8 sel_l, u8 sel_r);
 u32 clk_get_osc_cap();

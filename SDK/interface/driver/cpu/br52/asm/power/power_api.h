@@ -117,8 +117,9 @@ u32 power_control(enum PCONTROL_CMD cmd, u32 arg);
 
 void dvdd2_bypass_en(u8 mode);
 
-
 void pmu_trim(u32 force_trim, u32 vddio_tieup_vbat);
+
+extern const u32 dvdd_cap_en;
 
 //
 //

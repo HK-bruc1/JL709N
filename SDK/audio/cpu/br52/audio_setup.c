@@ -209,6 +209,7 @@ void audio_dac_initcall(void)
                 dac_trim.left = 0;
                 dac_trim.right = 0;
             }
+            audio_dac_close(&dac_hdl);
         }
         audio_dac_set_trim_value(&dac_hdl, &dac_trim);
     }

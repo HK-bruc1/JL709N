@@ -22,6 +22,13 @@
 #define CONFIG_DEBUG_LITE_ENABLE    0//轻量级打印开关, 默认关闭
 #endif
 
+#if CONFIG_DEBUG_LITE_ENABLE   //轻量级打印配置
+#define TCFG_DEBUG_UART_TX_PIN IO_PORT_DP // 输出IO
+#define TCFG_DEBUG_UART_BAUDRATE 2000000 // 波特率
+#define TCFG_EXCEPTION_LOG_ENABLE 1 // 打印异常信息
+#define TCFG_EXCEPTION_RESET_ENABLE 1 // 异常自动复位
+#endif
+
 #define CONFIG_KEY_SCENE_ENABLE  				  			1      //情景配置中的按键功能配置是否使能
 
 
@@ -964,6 +971,10 @@
 #define TCFG_DEBUG_DLOG_AUTO_FLUSH_TIMEOUT (30)   // 主动刷新的超时时间(当指定时间没有刷新过缓存数据到flash, 则主动刷新)(单位秒)
 // #endif
 
+//*********************************************************************************//
+//                    关中断时间过长函数追踪配置                                      //
+//*********************************************************************************//
+#define TCFG_IRQ_TIME_DEBUG_ENABLE  0  //用于开启查找中断时间过久的函数功能,打印函数的rets和trance:"irq disable overlimit:"
 
 #ifndef __LD__
 #include "bt_profile_cfg.h"

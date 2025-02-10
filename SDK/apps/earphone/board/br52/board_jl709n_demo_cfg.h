@@ -475,7 +475,8 @@
 //#define TCFG_CHARGE_TRICKLE_MA              CHARGE_mA_10
 /*充电电流校准特殊方案才可以开请联系原厂*/
 #define TCFG_CHARGE_CALIBRATION_ENABLE          TCFG_CHARGE_ENABLE && DISABLE
-
+/*烧写器电流校准方案开启联系原厂*/
+#define TCFG_BURNER_CURRENT_CALIBRATION         TCFG_CHARGE_ENABLE && DISABLE
 //*********************************************************************************//
 //                                  LED 配置                                       //
 //*********************************************************************************//

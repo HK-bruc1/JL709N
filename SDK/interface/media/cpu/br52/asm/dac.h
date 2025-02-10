@@ -253,6 +253,7 @@ struct audio_dac_hdl {
 
     u8 anc_dac_open;
 
+    u16 set_analog_gain_timer;
     u8 dac_read_flag;	//AEC可读取DAC参考数据的标志
 
     u8 fifo_state;

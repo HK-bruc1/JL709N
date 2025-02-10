@@ -21,6 +21,7 @@
 #define TCFG_LOWPOWER_VDDIO_KEEP 1 // 关机保持VDDIO
 #define TCFG_LOWPOWER_LOWPOWER_SEL 1 // 低功耗模式
 #define TCFG_AUTO_POWERON_ENABLE 1 // 上电自动开机
+#define TCFG_DVDD_CAP_EN 1 // DVDD外挂电容
 
 #define TCFG_CHARGESTORE_ENABLE 0 // 智能仓
 
