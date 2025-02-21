@@ -526,7 +526,10 @@ int bt_phone_esco_play(u8 *bt_addr)
         log_info("dec_begin,dump_packet clear\n");
         esco_dump_packet = ESCO_DUMP_PACKET_DEFAULT;
     }
-
+#if TCFG_BT_PHONE_NUMBER_ENABLE
+    y_printf("play the calling number\n");
+    phone_income_num_check(NULL);
+#endif
     tws_page_scan_deal_by_esco(1);
     pbg_user_mic_fixed_deal(1);
     return 0;
@@ -569,10 +572,6 @@ int bt_phone_esco_stop(u8 *bt_addr)
     if (app_var.goto_poweroff_flag) {
         return 0;
     }
-#if TCFG_BT_PHONE_NUMBER_ENABLE
-    y_printf("play the calling number\n");
-    phone_income_num_check(NULL);
-#endif
     tws_page_scan_deal_by_esco(0);
     pbg_user_mic_fixed_deal(0);
     return 0;

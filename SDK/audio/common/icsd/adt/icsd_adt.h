@@ -23,6 +23,8 @@
 #define ADT_EIN_EN                  BIT(5) //入耳检测
 #define ADT_AVC_EN                  BIT(6) //自适应音量
 //#define ADT_RTANC_TIDY_EN                  BIT(7) //RTANC TIDY mode 占用
+#define ADT_ADJDCC_EN               BIT(8) //
+#define ADT_HOWL_EN                 BIT(9) //防啸叫
 
 #define ADT_PATH_3M_EN         		BIT(0)
 extern u8 ADT_PATH_CONFIG;
@@ -91,10 +93,13 @@ struct adt_function {
     void (*icsd_EIN_output)(u8 ein_state);
     void (*icsd_AVC_output)(__adt_avc_output *_output);
     void (*icsd_RTANC_output)(void *rt_param_l, void *rt_param_r);
+    void (*icsd_ADJDCC_output)(u8 result);
+    void (*icsd_HOWL_output)(u8 result);
 };
 extern struct adt_function	*ADT_FUNC;
 
 struct icsd_acoustic_detector_infmt {
+    u8 TOOL_FUNCTION;
     void *param;
     u16 sample_rate;     //当前播放采样率
     u16 adc_sr;           //MIC数据采样率
@@ -188,6 +193,7 @@ extern const u8 ICSD_AVC_EN;
 extern const u8 ICSD_RTANC_EN;
 extern const u8 ICSD_RTAEQ_EN;
 extern const u8 ICSD_46KOUT_EN;
+extern const u8 ICSD_ADJDCC_EN;
 
 extern s16 *adt_dac_loopbuf;
 extern int (*adt_printf)(const char *format, ...);
@@ -215,8 +221,6 @@ void icsd_adt_dma_done();
 void icsd_adt_set_audio_sample_rate(u16 sample_rate);
 void icsd_adt_dac_loopbuf_malloc(u16 points);
 void icsd_adt_dac_loopbuf_free();
-//init
-void adt_function_init();
 //APP调用的LIB函数
 void icsd_acoustic_detector_get_libfmt(struct icsd_acoustic_detector_libfmt *libfmt, int function);
 void icsd_acoustic_detector_set_infmt(struct icsd_acoustic_detector_infmt *fmt);
@@ -239,12 +243,20 @@ void icsd_WAT_output_demo(u8 wat_result);
 void icsd_VDT_output_demo(u8 vdt_result);
 void icsd_EIN_output_demo(u8 ein_state);
 void icsd_AVC_output_demo(__adt_avc_output *_output);
+void icsd_RTANC_output_demo(void *rt_param_l, void *rt_param_r);
+void icsd_ADJDCC_output_demo(u8 result);
+//RTANC
+void icsd_adt_rtanc_fadegain_update(void *param);//使用该函数过程中需要锁住，确保调用过程中ADT空间不会被释放
+//AVC
+void icsd_adt_avc_config_update(void *_config);
+void icsd_HOWL_output_demo(u8 result);
 
 void icsd_adt_tone_play_handler(u8 idx);
 u8 	 icsd_adt_get_wind_lvl();
+u8 icsd_adt_get_adjdcc_result();
 
 extern const u8 rt_anc_dac_en;
 extern const u8 mic_input_v2;
 extern const u8 RTANC_ALG_DEBUG;
-
+extern const u8 ICSD_WDT_V2;
 #endif

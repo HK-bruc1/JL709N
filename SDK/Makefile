@@ -264,6 +264,7 @@ INCLUDES := \
 	-Iaudio/framework/plugs/source \
 	-Iaudio/CVP \
 	-Iaudio/test_tools \
+	-Iaudio/common/icsd/adjdcc \
 	-Iaudio/common/icsd/adt \
 	-Iaudio/common/icsd/anc \
 	-Iaudio/common/icsd/common \
@@ -282,6 +283,7 @@ INCLUDES := \
 	-Iaudio/common/icsd/vdt \
 	-Iaudio/common/icsd/wat \
 	-Iaudio/common/icsd/ein \
+	-Iaudio/common/icsd/howl \
 	-Iaudio/common/power \
 	-Iaudio/anc \
 	-Iaudio/cpu/br52/audio_dai \
@@ -696,6 +698,7 @@ c_SRC_FILES := \
 	audio/common/demo/codec_demo/audio_file_dec_demo.c \
 	audio/common/demo/codec_demo/audio_frame_codec_demo.c \
 	audio/common/frame_length_adaptive.c \
+	audio/common/icsd/adjdcc/icsd_adjdcc_config.c \
 	audio/common/icsd/adt/icsd_adt.c \
 	audio/common/icsd/adt/icsd_adt_alg.c \
 	audio/common/icsd/adt/icsd_adt_app.c \
@@ -714,24 +717,32 @@ c_SRC_FILES := \
 	audio/common/icsd/anc_v2/icsd_anc_v2.c \
 	audio/common/icsd/anc_v2/icsd_anc_v2_app.c \
 	audio/common/icsd/anc_v2/icsd_anc_v2_interactive.c \
+	audio/common/icsd/avc/icsd_avc_app.c \
 	audio/common/icsd/avc/icsd_avc_config.c \
 	audio/common/icsd/cmp/icsd_cmp_app.c \
-	audio/common/icsd/cmp/icsd_cmp_config.c \
 	audio/common/icsd/common/icsd_common.c \
 	audio/common/icsd/common_v2/icsd_common_v2.c \
 	audio/common/icsd/common_v2/icsd_common_v2_app.c \
 	audio/common/icsd/config/icsd_anc_v2_config.c \
+	audio/common/icsd/config/icsd_cmp_config.c \
 	audio/common/icsd/demo/icsd_demo.c \
 	audio/common/icsd/dot/icsd_dot.c \
 	audio/common/icsd/dot/icsd_dot_app.c \
 	audio/common/icsd/ein/icsd_ein_config.c \
+	audio/common/icsd/env_noise_det/icsd_env_noise_det_app.c \
+	audio/common/icsd/howl/icsd_howl_app.c \
+	audio/common/icsd/howl/icsd_howl_config.c \
 	audio/common/icsd/rt_anc/rt_anc.c \
 	audio/common/icsd/rt_anc/rt_anc_app.c \
 	audio/common/icsd/rt_anc/rt_anc_config.c \
 	audio/common/icsd/tool/anc_ext_tool.c \
 	audio/common/icsd/tool/anc_ext_tool_file.c \
+	audio/common/icsd/vdt/icsd_vdt_app.c \
 	audio/common/icsd/vdt/icsd_vdt_config.c \
+	audio/common/icsd/wat/icsd_wat_app.c \
 	audio/common/icsd/wat/icsd_wat_config.c \
+	audio/common/icsd/wind/cvp_wind_app.c \
+	audio/common/icsd/wind/icsd_wind_app.c \
 	audio/common/icsd/wind/icsd_wind_config.c \
 	audio/common/online_debug/aud_data_export.c \
 	audio/common/online_debug/aud_mic_dut.c \
@@ -1033,6 +1044,7 @@ LFLAGS := \
 	cpu/br52/liba/lib_icsd_ein.a \
 	cpu/br52/liba/lib_icsd_envnl.a \
 	cpu/br52/liba/lib_icsd_avc.a \
+	cpu/br52/liba/lib_icsd_adjdcc.a \
 	cpu/br52/liba/lib_limiter.a \
 	cpu/br52/liba/lib_iir_filter.a \
 	cpu/br52/liba/le_audio_profile.a \

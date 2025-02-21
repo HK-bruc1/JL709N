@@ -91,7 +91,7 @@ static void audio_icsd_dot_mutex_resume(void)
 int audio_icsd_dot_permit(void)
 {
     if (dot_hdl) {	//禁止重入
-        return 1;
+        return ANC_EXT_OPEN_FAIL_REENTRY;
     }
     return 0;
 }
@@ -101,9 +101,10 @@ int audio_icsd_dot_open(enum audio_adaptive_fre_sel fre_sel, void (*result_cb)(i
     struct icsd_dot_libfmt libfmt;
     struct icsd_dot_infmt  infmt;
 
-    if (audio_icsd_dot_permit()) {
+    int ret = audio_icsd_dot_permit();
+    if (ret) {
         dot_log("icsd_dot_permit, open fail\n");
-        return 1;
+        return ret;
     }
 
     dot_log("===================icsd_dot_init===================\n");

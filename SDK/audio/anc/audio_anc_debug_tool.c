@@ -77,10 +77,6 @@ enum anc_debug_tool_cmd_t {
 
 static struct anc_debug_tool_t *debug_hdl = NULL;
 
-#if AUDIO_ANC_DEBUG_CMD_RTANC_EN
-u8 audio_anc_debug_packet_sel = 2;	//0 ear anc; 1 aeq; 2 rtanc
-#endif
-
 static void audio_anc_debug_spp_send(u8 *buf, int len)
 {
     int tmp_len = 512;
@@ -251,84 +247,59 @@ int audio_anc_debug_user_cmd_process(u8 *data, int len)
     put_buf(data_p, data_len);
 
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE && AUDIO_RT_ANC_PARAM_BY_TOOL_DEBUG
-    //暂时屏蔽
-    /* audio_rtanc_debug_param_set(cmd, f_param); */
+    audio_rtanc_debug_param_set(cmd, f_param);
 #endif
 
+#if 1
     switch (cmd) {
     case CMD_DEFAULT:
         /* put_buf(data_p, data_len); */
         break;
-#if AUDIO_ANC_DEBUG_CMD_RTANC_EN	//测试用
-#if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
-    case 0x1:
-        //AEQ 0默认参数 1自适应参数
-        audio_adaptive_eq_eff_set(data[1]);
-        break;
-#endif
-    case 0x2:
+
+    case 11:
         //开关啸叫检测
         void audio_anc_howl_det_toggle_demo();
         audio_anc_howl_det_toggle_demo();
         break;
-#if TCFG_AUDIO_ANC_WIND_NOISE_DET_ENABLE
-    case 0x3:
-        //开关风噪检测
-        audio_icsd_wind_detect_demo();
-        break;
-#endif
-    case 0x4:
+#if TCFG_AUDIO_ANC_ENV_NOISE_DET_ENABLE
+    case 12:
         //开关环境自适应
-        void audio_anc_env_det_toggle_demo();
-        audio_anc_env_det_toggle_demo();
-        break;
-#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
-    case 0x5:
-        //开关RTANC
-        void audio_real_time_adaptive_app_ctr_demo(void);
-        audio_real_time_adaptive_app_ctr_demo();
-        break;
-    case 0x6:
-        //RT ANC suspend 0 挂起 1 恢复
-        void audio_anc_real_time_adaptive_suspend(void);
-        void audio_anc_real_time_adaptive_resume(void);
-        static u8 suspend = 0;
-        printf("suspend %d data %d\n", suspend, data[1]);
-        if (suspend && data[1]) {
-            printf("-----------resume\n");
-            suspend = 0;
-            audio_anc_real_time_adaptive_resume();
-        } else if (!(suspend || data[1])) {
-            suspend = 1;
-            printf("------------suspend\n");
-            audio_anc_real_time_adaptive_suspend();
-        }
+        /* void audio_anc_env_det_toggle_demo(); */
+        /* audio_anc_env_det_toggle_demo(); */
+        void audio_anc_env_adaptive_gain_demo();
+        audio_anc_env_adaptive_gain_demo();
         break;
 #endif
-    case 0x7:
-        printf("debug packet sel %d\n", data[1]);
-        audio_anc_debug_packet_sel = data[1];
-        break;
-    case 0x8:
+    case 13:
         if (data_len == 4) {
             audio_anc_fade_ctr_set(ANC_FADE_MODE_USER, AUDIO_ANC_FDAE_CH_FF, (u16)f_param);
         }
+        break;
+#if TCFG_AUDIO_ANC_ENV_NOISE_DET_ENABLE
+    case 14:
+        extern float avc_alpha_db;
+        avc_alpha_db = f_param;
         break;
 #endif
     default:
         break;
     }
+#endif
 
     audio_anc_debug_user_cmd_ack(cmd, TRUE, 0);
     return 0;
 }
 
-#if AUDIO_ANC_DEBUG_CMD_RTANC_EN	//测试用
-int audio_anc_debug_cmd_packet_sel(void)
+void audio_anc_debug_app_send_data(u8 cmd, u8 cmd_2nd, u8 *buf, int len)
 {
-    return audio_anc_debug_packet_sel;
+    u8 *send_buf = malloc(len + 3);
+    send_buf[0] = 0x1;
+    send_buf[1] = cmd;
+    send_buf[2] = cmd_2nd;
+    memcpy(send_buf + 3, buf, len);
+    audio_anc_debug_send_data(send_buf, len + 3);
+    free(send_buf);
 }
-#endif
 
 #if 0
 void audio_anc_debug_test(void)

@@ -471,3 +471,115 @@ void audio_anc_power_adaptive_resume(void)
 }
 
 #endif
+
+#if ANC_DUT_MIC_CMP_GAIN_ENABLE
+
+static struct anc_mic_gain_cmp_cfg *anc_dut_mic_cmp;
+
+enum {
+    CMD_MIC_CMP_GAIN_EN = 0X5F,		//FF/FB 增益补偿使能
+    CMD_MIC_CMP_GAIN_SET = 0X60,	//FF/FB 增益补偿设置
+    CMD_MIC_CMP_GAIN_GET = 0X61,	//FF/FB 增益补偿读取
+    CMD_MIC_CMP_GAIN_CLEAN = 0X62,	//FF/FB 增益补偿清0
+    CMD_MIC_CMP_GAIN_SAVE = 0X63,	//FF/FB 增益补偿保存
+};
+
+//ANC MIC补偿值初始化
+void audio_anc_mic_gain_cmp_init(void *mic_cmp)
+{
+    if (mic_cmp) {
+        anc_dut_mic_cmp = (struct anc_mic_gain_cmp_cfg *)mic_cmp;
+        int ret = syscfg_read(CFG_ANC_MIC_CMP_GAIN, mic_cmp, sizeof(struct anc_mic_gain_cmp_cfg));
+        if (ret != sizeof(struct anc_mic_gain_cmp_cfg)) {
+            printf("anc_mic_cmp cap vm read fail !!!");
+            anc_dut_mic_cmp->en = 1;
+            anc_dut_mic_cmp->lff_gain = 1.0f;
+            anc_dut_mic_cmp->lfb_gain = 1.0f;
+            anc_dut_mic_cmp->rff_gain = 1.0f;
+            anc_dut_mic_cmp->rfb_gain = 1.0f;
+        } else {
+            printf("anc_mic_cmp cap vm read succ !!!");
+        }
+    }
+}
+
+float audio_anc_mic_gain_cmp_get(u8 id)
+{
+    if (!anc_dut_mic_cmp) {
+        return 1.0f;
+    }
+    switch (id) {
+    case ANC_L_FFMIC_CMP_GAIN_SET:
+        return anc_dut_mic_cmp->lff_gain;
+    case ANC_L_FBMIC_CMP_GAIN_SET:
+        return anc_dut_mic_cmp->lfb_gain;
+    case ANC_R_FFMIC_CMP_GAIN_SET:
+        return anc_dut_mic_cmp->rff_gain;
+    case ANC_R_FBMIC_CMP_GAIN_SET:
+        return anc_dut_mic_cmp->rfb_gain;
+    }
+    return 1.0f;
+}
+
+//补偿命令处理函数
+int audio_anc_mic_gain_cmp_cmd_process(u8 cmd, u8 *buf, int len)
+{
+    put_buf(buf, len);
+    float gain;
+    switch (cmd) {
+    case CMD_MIC_CMP_GAIN_EN:
+        anc_plug_log("CMD_MIC_CMP_GAIN_EN\n");
+        anc_dut_mic_cmp->en = buf[0];
+#if ANC_MULT_ORDER_ENABLE
+        audio_anc_mult_scene_update(audio_anc_mult_scene_get());
+#endif
+        break;
+    case CMD_MIC_CMP_GAIN_SET:
+        if (len != 5) {	//cmd + sizeof(float)
+            return 1;
+        }
+        memcpy((u8 *)&gain, buf + 1, 4);
+        anc_plug_log("CMD_MIC_CMP_GAIN_SET %d/100\n", (int)(gain * 100.0f));
+        switch (buf[0]) {
+        case ANC_L_FFMIC_CMP_GAIN_SET:
+            anc_dut_mic_cmp->lff_gain = gain;
+            break;
+        case ANC_L_FBMIC_CMP_GAIN_SET:
+            anc_dut_mic_cmp->lfb_gain = gain;
+            break;
+        case ANC_R_FFMIC_CMP_GAIN_SET:
+            anc_dut_mic_cmp->rff_gain = gain;
+            break;
+        case ANC_R_FBMIC_CMP_GAIN_SET:
+            anc_dut_mic_cmp->rfb_gain = gain;
+            break;
+        }
+#if ANC_MULT_ORDER_ENABLE
+        audio_anc_mult_scene_update(audio_anc_mult_scene_get());
+#endif
+        break;
+    case CMD_MIC_CMP_GAIN_CLEAN:
+        anc_plug_log("CMD_MIC_CMP_GAIN_CLEAN\n");
+        anc_dut_mic_cmp->lff_gain = 1.0f;
+        anc_dut_mic_cmp->lfb_gain = 1.0f;
+        anc_dut_mic_cmp->rff_gain = 1.0f;
+        anc_dut_mic_cmp->rfb_gain = 1.0f;
+#if ANC_MULT_ORDER_ENABLE
+        audio_anc_mult_scene_update(audio_anc_mult_scene_get());
+#endif
+        break;
+    case CMD_MIC_CMP_GAIN_SAVE:
+        anc_plug_log("CMD_MIC_CMP_GAIN_SAVE\n");
+        int wlen = syscfg_write(CFG_ANC_MIC_CMP_GAIN, (u8 *)anc_dut_mic_cmp, sizeof(struct anc_mic_gain_cmp_cfg));
+        if (wlen != sizeof(struct anc_mic_gain_cmp_cfg)) {
+            printf("anc_mic_cmp cap vm write fail !!!");
+            return 1;
+        }
+        break;
+    }
+    return 0;
+}
+
+#endif
+
+

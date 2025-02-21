@@ -43,5 +43,15 @@ void audio_anc_power_adaptive_suspend(void);
 void audio_anc_power_adaptive_resume(void);
 
 
+/********************************************************
+  		   			产测ANC MIC增益补偿
+********************************************************/
+void audio_anc_mic_gain_cmp_init(void *mic_cmp);
+
+int audio_anc_mic_gain_cmp_cmd_process(u8 cmd, u8 *buf, int len);
+
+float audio_anc_mic_gain_cmp_get(u8 id);
+
+
 #endif/*_AUDIO_ANC_COMMON_PLUG_H_*/
 

@@ -50,7 +50,7 @@ int esco_player_open(u8 *bt_addr)
         return -EFAULT;
     }
 
-    player = malloc(sizeof(*player));
+    player = zalloc(sizeof(*player));
     if (!player) {
         return -ENOMEM;
     }
@@ -69,16 +69,19 @@ int esco_player_open(u8 *bt_addr)
 #endif
 
 
-    //临时修改
+#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE && AUDIO_RT_ANC_TIDY_MODE_ENABLE
-    audio_anc_real_time_adaptive_reset(ADT_REAL_TIME_ADAPTIVE_ANC_TIDY_MODE, 1);
-
-#elif TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
-    /*通话前关闭adt*/
-    player->icsd_adt_state = audio_icsd_adt_is_running();
-    if (player->icsd_adt_state) {
-        audio_icsd_adt_close(0, 1);
+    if (audio_anc_real_time_adaptive_reset(ADT_REAL_TIME_ADAPTIVE_ANC_TIDY_MODE, 1) && !audio_anc_real_time_adaptive_state_get())
+#endif
+    {
+        /*通话前关闭adt*/
+        player->icsd_adt_state = audio_icsd_adt_is_running();
+        if (player->icsd_adt_state) {
+            audio_icsd_adt_close(0, 1);
+        }
     }
+    printf("esco_player_open, icsd_adt_state %d", player->icsd_adt_state);
+
 #endif
 
 #if TCFG_ESCO_DL_CVSD_SR_USE_16K
@@ -182,13 +185,15 @@ void esco_player_close()
     }
 #endif
 
-    //临时修改
+#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE && AUDIO_RT_ANC_TIDY_MODE_ENABLE
-    audio_anc_real_time_adaptive_reset(ADT_REAL_TIME_ADAPTIVE_ANC_MODE, 1);
-
-#elif TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
-    if (icsd_adt_state) {
-        audio_icsd_adt_open(0);
+    if (audio_anc_real_time_adaptive_reset(ADT_REAL_TIME_ADAPTIVE_ANC_MODE, 1) && !audio_anc_real_time_adaptive_state_get())
+#endif
+    {
+        printf("esco_player_close, icsd_adt_state %d", icsd_adt_state);
+        if (icsd_adt_state) {
+            audio_icsd_adt_open(0);
+        }
     }
 #endif
 

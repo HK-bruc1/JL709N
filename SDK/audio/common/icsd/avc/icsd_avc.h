@@ -26,7 +26,8 @@ struct icsd_avc_infmt {
 };
 
 typedef struct {
-    int test;
+    float alpha_db;
+    float db_cali;
 } __avc_config;
 
 struct avc_function {
@@ -50,8 +51,7 @@ void icsd_avc_get_libfmt(struct icsd_avc_libfmt *libfmt);
 void icsd_avc_set_infmt(struct icsd_avc_infmt *fmt);
 void icsd_alg_avc_run(__icsd_avc_run_parm *run_parm, __icsd_avc_output *output);
 void icsd_avc_ram_clean();
-void avc_function_init();
 void icsd_avc_run(__icsd_avc_run_parm *_run_parm, __icsd_avc_output *_output);
-
+void avc_config_update(__avc_config *_avc_config);
 
 #endif

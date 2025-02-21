@@ -9,12 +9,11 @@
 #include "effects/eq_config.h"
 #include "icsd_common_v2_app.h"
 
-#define ADPTIVE_EQ_TOOL_BETA_ENABLE			0	//自适应EQ (实验版本)工具调试使能，复用耳道自适应的流程
+#define ADAPTIVE_EQ_TARGET_NODE_NAME 			"AEQ"			//自适应EQ目标节点名称
+#define ADAPTIVE_EQ_VOLUME_NODE_NAME			"Vol_BtmMusic"	//自适应EQ依赖音量节点名称
+#define ADAPTIVE_EQ_ORDER						10
 
-#define ADAPTIVE_EQ_TARGET_NODE_NAME 		"AEQ"			//自适应EQ目标节点名称
-#define ADAPTIVE_EQ_VOLUME_NODE_NAME		"Vol_BtmMusic"	//自适应EQ依赖音量节点名称
-
-#define ADAPTIVE_EQ_TARGET_DEFAULT_CFG_READ	0				//自适应EQ读取目标节点参数使能，如果AEQ没有独立节点，则必须读取
+#define ADAPTIVE_EQ_TARGET_DEFAULT_CFG_READ		0				//自适应EQ读取目标节点参数使能，如果AEQ没有独立节点，则必须读取
 
 #define ADAPTIVE_EQ_VOLUME_GRADE_EN				1			//根据音量分档使能
 #define ADAPTIVE_EQ_TIGHTNESS_GRADE_EN			1			//根据佩戴松紧度分档使能
@@ -83,6 +82,8 @@ int audio_adaptive_eq_process(void);
 int audio_adaptive_eq_force_exit(void);
 
 int audio_adaptive_eq_tool_data_get(u8 **buf, u32 *len);
+
+int audio_adaptive_eq_tool_sz_data_get(u8 **buf, u32 *len);
 
 #endif/*__ICSD_AEQ_APP_H_*/
 

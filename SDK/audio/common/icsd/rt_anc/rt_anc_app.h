@@ -7,9 +7,12 @@
 #include "icsd_adt_app.h"
 
 #define AUDIO_RT_ANC_PARAM_BY_TOOL_DEBUG		1		//RT ANC 参数使用工具debug 调试
-#define AUDIO_RT_ANC_EXPORT_TOOL_DATA_DEBUG		0		//支持导出数据
+#define AUDIO_RT_ANC_EXPORT_TOOL_DATA_DEBUG		1		//支持导出工具debug数据
+#define AUDIO_RT_ANC_SZ_PZ_CMP_EN				1		//RTANC SZ/PZ补偿使能
 
-#define AUDIO_RT_ANC_TIDY_MODE_ENABLE			0		//通话播歌使用轻量级的RTANC
+#define AUDIO_RT_ANC_TIDY_MODE_ENABLE			1		//通话播歌使用轻量级的RTANC
+#define AUDIO_RT_ANC_EVERY_TIME					0		//每次切ANC都进行RTANC
+#define AUDIO_RT_ANC_SELF_TALK_FLAG				0		//输出自讲标志
 
 //RT ANC 状态
 enum {
@@ -25,7 +28,6 @@ struct rt_anc_fade_gain_ctr {
     u16 rfb_gain;
 };
 
-void rt_anc_function_init(void);
 
 int audio_adt_rtanc_set_infmt(void *rtanc_tool);
 
@@ -61,6 +63,16 @@ int audio_anc_real_time_adaptive_tool_data_get(u8 **buf, u32 *len);
 int audio_anc_real_time_adaptive_suspend_get(void);
 
 int audio_anc_real_time_adaptive_reset(int rtanc_mode, u8 wind_close);
+
+float *audio_rtanc_pz_cmp_get(void);
+
+float *audio_rtanc_sz_cmp_get(void);
+
+int audio_rtanc_init_prepare(u8 sync_mode);
+
+void audio_real_time_adaptive_ignore_switch_lock(void);
+
+void audio_rtanc_self_talk_output(u8 flag);
 
 #endif
 

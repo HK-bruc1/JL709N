@@ -17,6 +17,8 @@
 
 #include "icsd_adt.h"
 #include "icsd_adt_app.h"
+#include "audio_anc_common_plug.h"
+#include "audio_anc_debug_tool.h"
 
 #if TCFG_USER_TWS_ENABLE
 #include "bt_tws.h"
@@ -32,6 +34,10 @@
 
 #if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
 #include "icsd_aeq_app.h"
+#endif
+
+#if TCFG_SPEAKER_EQ_NODE_ENABLE
+#include "effects/audio_spk_eq.h"
 #endif
 
 #if 1
@@ -57,6 +63,7 @@ struct audio_rt_anc_hdl {
     u8 run_busy;
     u8 reset_busy;
     u8 app_func_en;
+    u8 ignore_switch_lock;
     u8 lff_iir_type[10];
     u8 rff_iir_type[10];
     u8 fade_gain_suspend;
@@ -64,12 +71,22 @@ struct audio_rt_anc_hdl {
     int suspend_cnt;
     audio_anc_t *param;
     float *debug_param;
+    float *pz_cmp;
+    float *sz_cmp;
     struct icsd_rtanc_tool_data *rtanc_tool;	//工具临时数据
     struct rt_anc_fade_gain_ctr fade_ctr;
     struct audio_rt_anc_output out;				//RTANC/CMP IIR 滤波器输出
+#if TCFG_SPEAKER_EQ_NODE_ENABLE
+    struct eq_default_seg_tab spk_eq_tab_l;
+    struct eq_default_seg_tab spk_eq_tab_r;
+#endif
+#if ANC_DUT_MIC_CMP_GAIN_ENABLE
+    struct anc_mic_gain_cmp_cfg *mic_cmp;
+#endif
 };
 
 static void audio_anc_real_time_adaptive_data_packet(struct icsd_rtanc_tool_data *rtanc_tool);
+static void audio_rtanc_sz_pz_cmp_process(void);
 
 static struct audio_rt_anc_hdl	*hdl = NULL;
 
@@ -121,23 +138,24 @@ void audio_anc_real_time_adaptive_init(audio_anc_t *param)
 }
 
 /* Real Time ANC 自适应启动限制 */
-int audio_rtanc_permit(void)
+int audio_rtanc_permit(u8 sync_mode)
 {
     if (anc_ext_ear_adaptive_param_check()) { //没有自适应参数
-        return 1;
+        return ANC_EXT_OPEN_FAIL_CFG_MISS;
     }
-    if (hdl->param->mode != ANC_ON) {	//非ANC模式
-        return 2;
+    if ((hdl->param->mode != ANC_ON) && (!sync_mode)) {	//非ANC模式
+        return ANC_EXT_OPEN_FAIL_FUNC_CONFLICT;
     }
     if (audio_anc_real_time_adaptive_state_get()) { //重入保护
-        return 3;
+        return ANC_EXT_OPEN_FAIL_REENTRY;
     }
-    if (anc_mode_switch_lock_get()) { //其他切模式过程不支持
-        return 4;
+    if (anc_mode_switch_lock_get() && (!hdl->ignore_switch_lock) && (!sync_mode)) { //其他切模式过程不支持
+        return ANC_EXT_OPEN_FAIL_FUNC_CONFLICT;
     }
+    hdl->ignore_switch_lock = 0;
 #if TCFG_AUDIO_FREQUENCY_GET_ENABLE
     if (audio_icsd_afq_is_running()) {	//AFQ 运行过程中不支持
-        return 5;
+        return ANC_EXT_OPEN_FAIL_FUNC_CONFLICT;
     }
 #endif
     if (hdl->param->lff_yorder > RT_ANC_MAX_ORDER || \
@@ -146,7 +164,10 @@ int audio_rtanc_permit(void)
         hdl->param->rff_yorder > RT_ANC_MAX_ORDER || \
         hdl->param->rfb_yorder > RT_ANC_MAX_ORDER || \
         hdl->param->rcmp_yorder > RT_ANC_MAX_ORDER) {
-        return 6;						//最大滤波器个数限制
+        return ANC_EXT_OPEN_FAIL_CFG_MISS;		//最大滤波器个数限制
+    }
+    if (!anc_ext_rtanc_adaptive_cfg_get()) {	//没有RTANC参数
+        return ANC_EXT_OPEN_FAIL_CFG_MISS;
     }
     return 0;
 }
@@ -158,20 +179,37 @@ void rt_anc_get_param(__rt_anc_param *rt_param_l, __rt_anc_param *rt_param_r)
 
     int yorder_size = 5 * sizeof(double);
     audio_anc_t *param = hdl->param;
+    //ANC 0, 通透 1(通透只在DAC出声的时候更新)
+    /* int anc_mode = (param->mode == ANC_ON) ? 0 : 1; */
+    int anc_mode = 0;	//gali test
 
     if (rt_param_l) {
-        rt_param_l->ff_yorder = param->lff_yorder;
-        rt_param_l->fb_yorder = param->lfb_yorder;
-        rt_param_l->cmp_yorder = param->lcmp_yorder;
-        rt_param_l->ffgain = param->gains.l_ffgain;
-        rt_param_l->fbgain = param->gains.l_fbgain;
-        rt_param_l->cmpgain = param->gains.l_cmpgain;
+        if (anc_mode) {
+            rt_param_l->ff_yorder = param->ltrans_yorder;
+            rt_param_l->fb_yorder = param->ltrans_fb_yorder;
+            rt_param_l->cmp_yorder = param->ltrans_cmp_yorder;
+            rt_param_l->ffgain = param->gains.l_transgain;
+            rt_param_l->fbgain = param->ltrans_fbgain;
+            rt_param_l->cmpgain = param->ltrans_cmpgain;
+
+            memcpy(rt_param_l->ff_coeff, param->ltrans_coeff, rt_param_l->ff_yorder * yorder_size);
+            memcpy(rt_param_l->fb_coeff, param->ltrans_fb_coeff, rt_param_l->fb_yorder * yorder_size);
+            memcpy(rt_param_l->cmp_coeff, param->ltrans_cmp_coeff, rt_param_l->cmp_yorder * yorder_size);
+        } else {
+            rt_param_l->ff_yorder = param->lff_yorder;
+            rt_param_l->fb_yorder = param->lfb_yorder;
+            rt_param_l->cmp_yorder = param->lcmp_yorder;
+            rt_param_l->ffgain = param->gains.l_ffgain;
+            rt_param_l->fbgain = param->gains.l_fbgain;
+            rt_param_l->cmpgain = param->gains.l_cmpgain;
+
+            memcpy(rt_param_l->ff_coeff, param->lff_coeff, rt_param_l->ff_yorder * yorder_size);
+            memcpy(rt_param_l->fb_coeff, param->lfb_coeff, rt_param_l->fb_yorder * yorder_size);
+            memcpy(rt_param_l->cmp_coeff, param->lcmp_coeff, rt_param_l->cmp_yorder * yorder_size);
+        }
         rt_param_l->ff_fade_gain = ((float)hdl->fade_ctr.lff_gain) / 16384.0f;
         rt_param_l->fb_fade_gain = ((float)hdl->fade_ctr.lfb_gain) / 16384.0f;
-
-        memcpy(rt_param_l->ff_coeff, param->lff_coeff, rt_param_l->ff_yorder * yorder_size);
-        memcpy(rt_param_l->fb_coeff, param->lfb_coeff, rt_param_l->fb_yorder * yorder_size);
-        memcpy(rt_param_l->cmp_coeff, param->lcmp_coeff, rt_param_l->cmp_yorder * yorder_size);
+        rt_param_l->anc_mode = anc_mode;
         rt_param_l->param = param;
 
         rtanc_log("rtanc l order:ff %d, fb %d, cmp %d\n", rt_param_l->ff_yorder, \
@@ -186,18 +224,34 @@ void rt_anc_get_param(__rt_anc_param *rt_param_l, __rt_anc_param *rt_param_r)
     }
 
     if (rt_param_r) {
-        rt_param_r->ff_yorder = param->lff_yorder;
-        rt_param_r->fb_yorder = param->lfb_yorder;
-        rt_param_r->cmp_yorder = param->lcmp_yorder;
-        rt_param_r->ffgain = param->gains.l_ffgain;
-        rt_param_r->fbgain = param->gains.l_fbgain;
-        rt_param_r->cmpgain = param->gains.l_cmpgain;
+        if (anc_mode) {
+
+            rt_param_r->ff_yorder = param->rtrans_yorder;
+            rt_param_r->fb_yorder = param->rtrans_fb_yorder;
+            rt_param_r->cmp_yorder = param->rtrans_cmp_yorder;
+            rt_param_r->ffgain = param->gains.r_transgain;
+            rt_param_r->fbgain = param->rtrans_fbgain;
+            rt_param_r->cmpgain = param->rtrans_cmpgain;
+
+            memcpy(rt_param_r->ff_coeff, param->rtrans_coeff, rt_param_r->ff_yorder * yorder_size);
+            memcpy(rt_param_r->fb_coeff, param->rtrans_fb_coeff, rt_param_r->fb_yorder * yorder_size);
+            memcpy(rt_param_r->cmp_coeff, param->rtrans_cmp_coeff, rt_param_r->cmp_yorder * yorder_size);
+
+        } else {
+            rt_param_r->ff_yorder = param->rff_yorder;
+            rt_param_r->fb_yorder = param->rfb_yorder;
+            rt_param_r->cmp_yorder = param->rcmp_yorder;
+            rt_param_r->ffgain = param->gains.r_ffgain;
+            rt_param_r->fbgain = param->gains.r_fbgain;
+            rt_param_r->cmpgain = param->gains.r_cmpgain;
+
+            memcpy(rt_param_r->ff_coeff, param->rff_coeff, rt_param_r->ff_yorder * yorder_size);
+            memcpy(rt_param_r->fb_coeff, param->rfb_coeff, rt_param_r->fb_yorder * yorder_size);
+            memcpy(rt_param_r->cmp_coeff, param->rcmp_coeff, rt_param_r->cmp_yorder * yorder_size);
+        }
         rt_param_r->ff_fade_gain = ((float)hdl->fade_ctr.rff_gain) / 16384.0f;
         rt_param_r->fb_fade_gain = ((float)hdl->fade_ctr.rfb_gain) / 16384.0f;
-
-        memcpy(rt_param_r->ff_coeff, param->lff_coeff, rt_param_r->ff_yorder * yorder_size);
-        memcpy(rt_param_r->fb_coeff, param->lfb_coeff, rt_param_r->fb_yorder * yorder_size);
-        memcpy(rt_param_r->cmp_coeff, param->lcmp_coeff, rt_param_r->cmp_yorder * yorder_size);
+        rt_param_r->anc_mode = anc_mode;
         rt_param_r->param = param;
     }
 
@@ -211,7 +265,14 @@ int audio_adt_rtanc_set_infmt(void *rtanc_tool)
         hdl->seq = 0;
     }
     struct rt_anc_infmt infmt;
-    hdl->rtanc_tool = rtanc_tool;
+    if (anc_ext_tool_online_get()) {
+        hdl->rtanc_tool = rtanc_tool;
+    } else {
+        hdl->rtanc_tool = NULL;
+    }
+#if AUDIO_RT_ANC_SZ_PZ_CMP_EN
+    audio_rtanc_sz_pz_cmp_process();
+#endif
     infmt.id = hdl->seq;
     infmt.param = hdl->param;
     infmt.ext_cfg = (void *)anc_ext_ear_adaptive_cfg_get();
@@ -220,8 +281,8 @@ int audio_adt_rtanc_set_infmt(void *rtanc_tool)
     infmt.anc_param_r = zalloc(sizeof(__rt_anc_param));
     rt_anc_get_param(infmt.anc_param_l, infmt.anc_param_r);
 
-    extern void rt_anc_set_init(struct rt_anc_infmt * fmt);
-    rt_anc_set_init(&infmt);
+    struct __anc_ext_rtanc_adaptive_cfg *rtanc_tool_cfg = anc_ext_rtanc_adaptive_cfg_get();
+    rt_anc_set_init(&infmt, rtanc_tool_cfg);
 
 #if AUDIO_RT_ANC_PARAM_BY_TOOL_DEBUG
     for (int i = 0; i < ARRAY_SIZE(rtanc_debug_param); i++) {
@@ -277,14 +338,14 @@ static void audio_rt_anc_param_updata(void *rt_param_l, void *rt_param_r)
     if (hdl->out.lcmp_coeff) {
         free(hdl->out.lcmp_coeff);
     }
-    hdl->out.lcmp_coeff = malloc(param->lcmp_yorder * AUDIO_RTANC_COEFF_SIZE);
+    hdl->out.lcmp_coeff = malloc(ANC_ADAPTIVE_CMP_ORDER * AUDIO_RTANC_COEFF_SIZE);
     cmp_p.l_coeff = hdl->out.lcmp_coeff;
 
 #if ANC_CONFIG_RFB_EN
     if (hdl->out.rcmp_coeff) {
         free(hdl->out.lcmp_coeff);
     }
-    hdl->out.rcmp_coeff = malloc(param->rcmp_yorder * AUDIO_RTANC_COEFF_SIZE);
+    hdl->out.rcmp_coeff = malloc(ANC_ADAPTIVE_CMP_ORDER * AUDIO_RTANC_COEFF_SIZE);
     cmp_p.r_coeff = hdl->out.rcmp_coeff;
 #endif
 
@@ -348,7 +409,7 @@ void audio_adt_rtanc_output_handle(void *rt_param_l, void *rt_param_r)
 
 #if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
     //如果AEQ在运行就挂起RTANC
-    if (audio_adaptive_eq_is_running()) {
+    if (audio_adaptive_eq_state_get()) {
         audio_anc_real_time_adaptive_suspend();
     }
 #endif
@@ -376,7 +437,7 @@ void audio_anc_real_time_adaptive_suspend(void)
         if ((hdl->suspend_cnt == 1) && (hdl->state == RT_ANC_STATE_OPEN)) {
             rtanc_log("RTANC_STATE:SUSPEND\n");
             hdl->state = RT_ANC_STATE_SUSPEND;
-            if (hdl->reset_busy) {
+            if (!hdl->reset_busy) {
                 icsd_adt_rtanc_suspend();
             }
             rtanc_log("%s succ\n", __func__);
@@ -393,7 +454,7 @@ void audio_anc_real_time_adaptive_resume(void)
             if ((hdl->suspend_cnt == 0) && (hdl->state == RT_ANC_STATE_SUSPEND)) {
                 rtanc_log("RTANC_STATE:SUSPEND->OPEN\n");
                 hdl->state = RT_ANC_STATE_OPEN;
-                if (hdl->reset_busy) {
+                if (!hdl->reset_busy) {
                     icsd_adt_rtanc_resume();
                 }
                 rtanc_log("%s succ\n", __func__);
@@ -410,32 +471,48 @@ int audio_anc_real_time_adaptive_suspend_get(void)
     return 0;
 }
 
+//打开RTANC 前准备，sync_mode 是否TWS同步模式
+int audio_rtanc_init_prepare(u8 sync_mode)
+{
+    int ret;
+    rtanc_log("=================rt_anc_open==================\n");
+    rtanc_log("rtanc state %d\n", audio_anc_real_time_adaptive_state_get());
+    ret = audio_rtanc_permit(sync_mode);
+    if (ret) {
+        rtanc_log("Err:rt_anc_open permit sync:%d, ret:%d\n", sync_mode, ret);
+        return ret;
+    }
+
+    hdl->run_busy = 0;
+    hdl->suspend_cnt = 0;
+    rtanc_log("RTANC_STATE:OPEN\n");
+    hdl->state = RT_ANC_STATE_OPEN;
+    clock_alloc("ANC_RT_ADAPTIVE", 48 * 1000000L);
+    //目前算法缺陷，需提高时钟，后续修复
+    /* clock_alloc("ANC_RT_ADAPTIVE", 192 * 1000000L); */
+    audio_rt_anc_iir_type_get();	//获取工具配置IIR TYPE
+    hdl->pz_cmp = zalloc(50 * sizeof(float));
+    hdl->sz_cmp = zalloc(50 * sizeof(float));
+#if ANC_EAR_ADAPTIVE_CMP_EN
+    audio_anc_ear_adaptive_cmp_open();
+#endif
+    return 0;
+}
+
 int audio_rtanc_adaptive_en(u8 en)
 {
     int ret;
+    anc_ext_tool_rtanc_suspend_clear();
     if (en) {
-        rtanc_log("=================rt_anc_open==================\n");
-        rtanc_log("rtanc state %d\n", audio_anc_real_time_adaptive_state_get());
-        ret = audio_rtanc_permit();
+        ret = audio_rtanc_init_prepare(0);
         if (ret) {
-            rtanc_log("Err:rt_anc_open permit %d\n", ret);
-            return 1;
+            return ret;
         }
-
-        hdl->run_busy = 0;
-        hdl->suspend_cnt = 0;
-        rtanc_log("RTANC_STATE:OPEN\n");
-        hdl->state = RT_ANC_STATE_OPEN;
-        clock_alloc("ANC_RT_ADAPTIVE", 48 * 1000000L);
-        audio_rt_anc_iir_type_get();	//获取工具配置IIR TYPE
-#if ANC_EAR_ADAPTIVE_CMP_EN
-        audio_anc_ear_adaptive_cmp_open();
-#endif
         return audio_icsd_adt_sync_open(hdl->rtanc_mode);
 
     } else {
         if (audio_anc_real_time_adaptive_state_get() == 0) {
-            return 0;
+            return 1;
         }
         rtanc_log("================rt_anc_close==================\n");
         rtanc_log("RTANC_STATE:CLOSE\n");
@@ -450,11 +527,15 @@ int audio_rtanc_adaptive_en(u8 en)
             rtanc_log("ERR!!rt_anc_close timeout\n");
         }
         clock_free("ANC_RT_ADAPTIVE");
+        free(hdl->pz_cmp);
+        free(hdl->sz_cmp);
+        hdl->pz_cmp = NULL;
+        hdl->sz_cmp = NULL;
 
 #if ANC_EAR_ADAPTIVE_CMP_EN
         audio_anc_ear_adaptive_cmp_close();
 #endif
-        rtanc_log("rt_anc_close okn");
+        rtanc_log("rt_anc_close ok\n");
 
     }
     return 0;
@@ -478,7 +559,7 @@ int audio_anc_real_time_adaptive_close(void)
     hdl->app_func_en = 0;
     ret = audio_rtanc_adaptive_en(0);
     //恢复默认ANC参数
-    if (anc_mode_get() == ANC_ON) {
+    if ((!ret) && (anc_mode_get() == ANC_ON)) {
 #if ANC_MULT_ORDER_ENABLE
         /* audio_anc_mult_scene_set(audio_anc_mult_scene_get()); */
         audio_anc_mult_scene_update(audio_anc_mult_scene_get());
@@ -493,6 +574,9 @@ int audio_anc_real_time_adaptive_close(void)
 #if AUDIO_RT_ANC_EXPORT_TOOL_DATA_DEBUG
 static void audio_anc_real_time_adaptive_data_packet(struct icsd_rtanc_tool_data *rtanc_tool)
 {
+    if (!rtanc_tool) {
+        return;
+    }
     int len = rtanc_tool->h_len;
     int ff_yorder = hdl->param->lff_yorder;
 
@@ -508,6 +592,8 @@ static void audio_anc_real_time_adaptive_data_packet(struct icsd_rtanc_tool_data
 #if ANC_EAR_ADAPTIVE_CMP_EN
     float *lcmp_output = audio_anc_ear_adaptive_cmp_output_get(ANC_EAR_ADAPTIVE_CMP_CH_L);
     float *rcmp_output = audio_anc_ear_adaptive_cmp_output_get(ANC_EAR_ADAPTIVE_CMP_CH_R);
+    u8 *lcmp_type = audio_anc_ear_adaptive_cmp_type_get(ANC_EAR_ADAPTIVE_CMP_CH_L);
+    u8 *rcmp_type = audio_anc_ear_adaptive_cmp_type_get(ANC_EAR_ADAPTIVE_CMP_CH_R);
 #endif
 
 #if ANC_CONFIG_LFF_EN
@@ -519,64 +605,75 @@ static void audio_anc_real_time_adaptive_data_packet(struct icsd_rtanc_tool_data
 #endif/*ANC_CONFIG_LFF_EN*/
 #if ANC_CONFIG_LFB_EN && ANC_EAR_ADAPTIVE_CMP_EN
     cmp_dat = zalloc(cmp_dat_len);
-    audio_anc_fr_format(cmp_dat, lcmp_output, cmp_yorder, icsd_cmp_type);
+    audio_anc_fr_format(cmp_dat, lcmp_output, cmp_yorder, lcmp_type);
 #endif/*ANC_EAR_ADAPTIVE_CMP_EN*/
 #if ANC_CONFIG_RFF_EN
     rff_dat = zalloc(ff_dat_len);
     //RTANC 增益没有输出符号，需要对齐工具符号
     rtanc_tool->ff_fgq_r[0] = (hdl->param->gains.gain_sign & ANCR_FF_SIGN) ? \
                               (0 - rtanc_tool->ff_fgq_r[0]) : rtanc_tool->ff_fgq_r[0];
-    audio_anc_fr_format(rff_dat, rt_anc_tool->ff_fgq_r, ff_yorder, hdl->rff_iir_type);
+    audio_anc_fr_format(rff_dat, rtanc_tool->ff_fgq_r, ff_yorder, hdl->rff_iir_type);
 #endif/*ANC_CONFIG_RFF_EN*/
 #if ANC_CONFIG_RFB_EN && ANC_EAR_ADAPTIVE_CMP_EN
     rcmp_dat = zalloc(cmp_dat_len);
-    audio_anc_fr_format(rcmp_dat, rcmp_output, cmp_yorder, icsd_cmp_type);
+    audio_anc_fr_format(rcmp_dat, rcmp_output, cmp_yorder, rcmp_type);
 #endif/*ANC_EAR_ADAPTIVE_CMP_EN*/
 
-    if (hdl->param->developer_mode || anc_ext_tool_online_get()) {
-        rtanc_log("-- len = %d\n", len);
-        rtanc_log("-- ff_yorder = %d\n", ff_yorder);
+    rtanc_log("-- len1: %d, len2: %d\n", rtanc_tool->h_len, rtanc_tool->h2_len);
+    rtanc_log("-- ff_yorder = %d\n", ff_yorder);
 #if ANC_EAR_ADAPTIVE_CMP_EN
-        rtanc_log("-- cmp_yorder = %d\n", cmp_yorder);
+    rtanc_log("-- cmp_yorder = %d\n", cmp_yorder);
 #endif
-        /* 先统一申请空间，因为下面不知道什么情况下调用函数 anc_data_catch 时令参数 init_flag 为1 */
-        rtanc_tool_data = anc_data_catch(rtanc_tool_data, NULL, 0, 0, 1);
+    /* 先统一申请空间，因为下面不知道什么情况下调用函数 anc_data_catch 时令参数 init_flag 为1 */
+    rtanc_tool_data = anc_data_catch(rtanc_tool_data, NULL, 0, 0, 1);
 
 #if TCFG_USER_TWS_ENABLE
-        if (bt_tws_get_local_channel() == 'R') {
-            r_printf("RTANC export send tool_data, ch:R\n");
+    if (bt_tws_get_local_channel() == 'R') {
+        r_printf("RTANC export send tool_data, ch:R\n");
+        if (hdl->param->developer_mode) {
             rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)rtanc_tool->h_freq, len * 4, ANC_R_ADAP_FRE, 0);
             rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)rtanc_tool->sz_out_l, len * 8, ANC_R_ADAP_SZPZ, 0);
             rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)rtanc_tool->pz_out_l, len * 8, ANC_R_ADAP_PZ, 0);
             rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)rtanc_tool->target_out_l, len * 8, ANC_R_ADAP_TARGET, 0);
             rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)rtanc_tool->target_out_cmp_l, len * 8, ANC_R_ADAP_TARGET_CMP, 0);
-            rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)ff_dat, ff_dat_len, ANC_R_FF_IIR, 0);  //R_ff
+        }
+        rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)ff_dat, ff_dat_len, ANC_R_FF_IIR, 0);  //R_ff
+
+        rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)rtanc_tool->h2_freq, rtanc_tool->h2_len * 4, ANC_R_ADAP_FRE_2, 0);
+        rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)rtanc_tool->mse_l, rtanc_tool->h2_len * 8, ANC_R_ADAP_MSE, 0);
 #if ANC_CONFIG_LFB_EN && ANC_EAR_ADAPTIVE_CMP_EN
-            rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)cmp_dat, cmp_dat_len, ANC_R_CMP_IIR, 0);  //R_cmp
+        rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)cmp_dat, cmp_dat_len, ANC_R_CMP_IIR, 0);  //R_cmp
 #endif/*ANC_EAR_ADAPTIVE_CMP_EN*/
-        } else
+    } else
 #endif/*TCFG_USER_TWS_ENABLE*/
-        {
-            r_printf("RTANC export send tool_data, ch:L\n");
+    {
+        r_printf("RTANC export send tool_data, ch:L\n");
 
-            /* put_buf((u8 *)rtanc_tool->h_freq, len * 4); */
-            /* put_buf((u8 *)rtanc_tool->sz_out_l, len * 8); */
-            /* put_buf((u8 *)rtanc_tool->pz_out_l, len * 8); */
-            /* put_buf((u8 *)rtanc_tool->target_out_l, len * 8); */
-            /* put_buf((u8 *)rtanc_tool->target_out_cmp_l, len * 8); */
-            /* put_buf((u8 *)ff_dat, ff_dat_len);  //R_ff */
-            /* put_buf((u8 *)cmp_dat, cmp_dat_len);  //R_cmp */
+        /* put_buf((u8 *)rtanc_tool->h_freq, len * 4); */
+        /* put_buf((u8 *)rtanc_tool->sz_out_l, len * 8); */
+        /* put_buf((u8 *)rtanc_tool->pz_out_l, len * 8); */
+        /* put_buf((u8 *)rtanc_tool->target_out_l, len * 8); */
+        /* put_buf((u8 *)rtanc_tool->target_out_cmp_l, len * 8); */
+        /* put_buf((u8 *)rtanc_tool->h2_freq, rtanc_tool->h2_len * 4); */
+        /* put_buf((u8 *)rtanc_tool->mse_l, rtanc_tool->h2_len * 8); */
 
+        /* put_buf((u8 *)ff_dat, ff_dat_len);  //R_ff */
+        /* put_buf((u8 *)cmp_dat, cmp_dat_len);  //R_cmp */
+
+        if (hdl->param->developer_mode) {
             rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)rtanc_tool->h_freq, len * 4, ANC_L_ADAP_FRE, 0);
             rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)rtanc_tool->sz_out_l, len * 8, ANC_L_ADAP_SZPZ, 0);
             rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)rtanc_tool->pz_out_l, len * 8, ANC_L_ADAP_PZ, 0);
             rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)rtanc_tool->target_out_l, len * 8, ANC_L_ADAP_TARGET, 0);
             rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)rtanc_tool->target_out_cmp_l, len * 8, ANC_L_ADAP_TARGET_CMP, 0);
-            rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)ff_dat, ff_dat_len, ANC_L_FF_IIR, 0);  //R_ff
-#if ANC_CONFIG_LFB_EN && ANC_EAR_ADAPTIVE_CMP_EN
-            rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)cmp_dat, cmp_dat_len, ANC_L_CMP_IIR, 0);  //R_cmp
-#endif/*ANC_EAR_ADAPTIVE_CMP_EN*/
         }
+        rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)ff_dat, ff_dat_len, ANC_L_FF_IIR, 0);  //R_ff
+
+        rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)rtanc_tool->h2_freq, rtanc_tool->h2_len * 4, ANC_L_ADAP_FRE_2, 0);
+        rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)rtanc_tool->mse_l, rtanc_tool->h2_len * 8, ANC_L_ADAP_MSE, 0);
+#if ANC_CONFIG_LFB_EN && ANC_EAR_ADAPTIVE_CMP_EN
+        rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)cmp_dat, cmp_dat_len, ANC_L_CMP_IIR, 0);  //R_cmp
+#endif/*ANC_EAR_ADAPTIVE_CMP_EN*/
     }
 
 #if ANC_CONFIG_LFF_EN
@@ -597,12 +694,16 @@ static void audio_anc_real_time_adaptive_data_packet(struct icsd_rtanc_tool_data
 
 int audio_anc_real_time_adaptive_tool_data_get(u8 **buf, u32 *len)
 {
+    if ((!audio_anc_real_time_adaptive_suspend_get()) && audio_anc_real_time_adaptive_state_get()) {
+        rtanc_log("rtanc tool_data err: running! need suspend/close, return!\n");
+        return -1;
+    }
     if (rtanc_tool_data == NULL) {
-        rtanc_log("rtanc packet is NULL, return!\n");
+        rtanc_log("rtanc tool_data err: packet is NULL, return!\n");
         return -1;
     }
     if (rtanc_tool_data->dat_len == 0) {
-        rtanc_log("rtanc error: dat_len == 0\n");
+        rtanc_log("rtanc tool_data err: dat_len == 0\n");
         return -1;
     }
     g_printf("rtanc_tool_data->dat_len %d\n", rtanc_tool_data->dat_len);
@@ -615,7 +716,7 @@ int audio_rtanc_fade_gain_suspend(struct rt_anc_fade_gain_ctr *fade_ctr)
 {
     g_printf("%s, state %d\n", __func__, audio_anc_real_time_adaptive_state_get());
     if ((!audio_anc_real_time_adaptive_state_get()) || hdl->reset_busy || \
-        get_icsd_adt_mode_switch_busy()) {
+        get_icsd_adt_mode_switch_busy() || anc_mode_switch_lock_get()) {
         hdl->fade_ctr = *fade_ctr;
         return 0;
     }
@@ -633,7 +734,7 @@ int audio_rtanc_fade_gain_suspend(struct rt_anc_fade_gain_ctr *fade_ctr)
             rtanc_p->ffr_filter.fade_gain = ((float)fade_ctr->rff_gain) / 16384.0f;
             rtanc_p->fbr_filter.fade_gain = ((float)fade_ctr->rfb_gain) / 16384.0f;
 
-            icsd_alg_rtanc_fadegain_update(rtanc_p);
+            icsd_adt_rtanc_fadegain_update_run(rtanc_p);
             hdl->fade_ctr = *fade_ctr;
             free(rtanc_p);
         }
@@ -680,7 +781,7 @@ REGISTER_LP_TARGET(RTANC_lp_target) = {
 int audio_anc_real_time_adaptive_reset(int rtanc_mode, u8 wind_close)
 {
     static u8 wind_flag = 0;
-    int wait_cnt, switch_busy, mode_cmp, close_mode;
+    int wait_cnt = 0, switch_busy = 0, mode_cmp = 0, close_mode = 0;
     if (hdl->rtanc_mode == rtanc_mode) {
         rtanc_log("Err:rtanc adaptive reset fail, same mode\n");
         return -1;
@@ -712,10 +813,12 @@ int audio_anc_real_time_adaptive_reset(int rtanc_mode, u8 wind_close)
             if (wind_flag) {
                 close_mode |= ADT_WIND_NOISE_DET_MODE;
             }
-            audio_icsd_adt_sync_close(close_mode, 0);
+            /* audio_icsd_adt_sync_close(close_mode, 0); //qhh：icsd的模式需要同步修改，否则修改后不要用同步接口打开adt*/
+            audio_icsd_adt_close(close_mode, 0);
         } else {
             close_mode = ADT_REAL_TIME_ADAPTIVE_ANC_TIDY_MODE;
-            audio_icsd_adt_sync_close(close_mode, 0);
+            /* audio_icsd_adt_sync_close(close_mode, 0); //qhh：icsd的模式需要同步修改，否则修改后不要用同步接口打开adt*/
+            audio_icsd_adt_close(close_mode, 0);
         }
         //等待切换完毕
         wait_cnt = 200;
@@ -734,9 +837,70 @@ int audio_anc_real_time_adaptive_reset(int rtanc_mode, u8 wind_close)
         hdl->reset_busy = 0;
         audio_anc_real_time_adaptive_resume();
         rtanc_log("%s, end, %d\n", __func__, jiffies_usec2offset(last, jiffies_usec()));
+    } else {
+        return -1;
     }
     return 0;
 }
+
+void audio_real_time_adaptive_ignore_switch_lock(void)
+{
+    if (hdl) {
+        hdl->ignore_switch_lock = 1;
+    }
+}
+
+#if AUDIO_RT_ANC_SZ_PZ_CMP_EN
+static void audio_rtanc_sz_pz_cmp_process(void)
+{
+    struct sz_pz_cmp_cal_param p;
+
+#if TCFG_SPEAKER_EQ_NODE_ENABLE
+    hdl->spk_eq_tab_l.global_gain = spk_eq_read_global_gain(0);
+    hdl->spk_eq_tab_l.global_gain = eq_db2mag(hdl->spk_eq_tab_l.global_gain);
+    hdl->spk_eq_tab_l.seg_num = spk_eq_read_seg_l((u8 **)&hdl->spk_eq_tab_l.seg) / sizeof(struct eq_seg_info);
+#endif
+
+#if ANC_DUT_MIC_CMP_GAIN_ENABLE
+    hdl->mic_cmp = &hdl->param->mic_cmp;
+#endif
+
+#if TCFG_SPEAKER_EQ_NODE_ENABLE
+    p.spk_eq_tab = &hdl->spk_eq_tab_l;
+#else
+    p.spk_eq_tab = NULL;
+#endif
+    p.pz_cmp_out = hdl->pz_cmp;
+    p.sz_cmp_out = hdl->sz_cmp;
+    p.ff_gain = hdl->mic_cmp->lff_gain;
+    p.fb_gain = hdl->mic_cmp->lfb_gain;
+    icsd_anc_v2_sz_pz_cmp_calculate(&p);
+}
+
+void audio_rtanc_self_talk_output(u8 flag)
+{
+#if AUDIO_RT_ANC_SELF_TALK_FLAG
+    printf("self talk flag: %d\n", flag);
+    audio_anc_debug_app_send_data(ANC_DEBUG_APP_CMD_RTANC, 0x0, &flag, 1);
+#endif
+}
+
+float *audio_rtanc_pz_cmp_get(void)
+{
+    if (hdl) {
+        return hdl->pz_cmp;
+    }
+    return NULL;
+}
+
+float *audio_rtanc_sz_cmp_get(void)
+{
+    if (hdl) {
+        return hdl->sz_cmp;
+    }
+    return NULL;
+}
+#endif
 
 //测试demo
 int audio_anc_real_time_adaptive_demo(void)

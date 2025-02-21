@@ -107,6 +107,30 @@ void icsd_de_free()
     }
 }
 
+void icsd_sde_malloc()
+{
+    printf("icsd_sde_malloc\n");
+    struct icsd_de_libfmt libfmt;
+    struct icsd_de_infmt  fmt;
+    icsd_sde_get_libfmt(&libfmt);
+    if (icsd_de_alloc_addr == NULL) {
+        printf("sDE RAM SIZE:%d\n", libfmt.lib_alloc_size);
+        icsd_de_alloc_addr = zalloc(libfmt.lib_alloc_size);
+    }
+    fmt.alloc_ptr = icsd_de_alloc_addr;
+    icsd_sde_set_infmt(&fmt);
+}
+
+void icsd_sde_free()
+{
+    printf("icsd_sde_free\n");
+    if (icsd_de_alloc_addr) {
+        printf("sDE RAM FREE\n");
+        free(icsd_de_alloc_addr);
+        icsd_de_alloc_addr = NULL;
+    }
+}
+
 
 #define	ICSD_COMMON_4CH_CIC8_DEBUG		0
 #if ICSD_COMMON_4CH_CIC8_DEBUG

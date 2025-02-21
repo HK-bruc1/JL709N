@@ -201,5 +201,26 @@ void adc_resume();
 
 
 
+#include "spinlock.h"
+#if CPU_CORE_NUM > 1
+
+#define gpadc_spin_lock(lock) \
+	do { \
+		q32DSP_testset(lock);\
+	}while(0)
+
+#define gpadc_spin_unlock(lock) \
+	do{ \
+		q32DSP_testclr(lock) ;\
+	}while(0)
+
+#else
+
+#define gpadc_spin_lock(lock)
+
+#define gpadc_spin_unlock(lock)
+
+#endif
+
 
 #endif

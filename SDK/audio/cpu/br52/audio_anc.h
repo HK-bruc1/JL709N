@@ -32,6 +32,8 @@
 #define ANC_MODE_FADE_LVL			1	/*降噪模式淡入步进*/
 #define ANC_LR_LOWPOWER_EN	  	    0	/*ANC立体声省功耗使能, 开启之后ANC可用滤波器数会减少*/
 
+#define ANC_DUT_MIC_CMP_GAIN_ENABLE 1   /*产测补偿ANC MIC增益使能； 仅支持多场景滤波器*/
+
 #if TCFG_AUDIO_DAC_CONNECT_MODE == DAC_OUTPUT_LR
 /*立体声方案*/
 #define ANC_MODE_SWITCH_DELAY_MS	400	/*ANC 模式切换延时: 处理开ADC不稳定导致,切模式有po声, 单位ms */
@@ -370,11 +372,11 @@ void anc_param_fill(u8 cmd, anc_gain_t *cfg);
 /*ANC_DUT audio模块使能函数，用于分离功耗*/
 void audio_anc_dut_enable_set(u8 enablebit);
 
-/*设置fb  mic为复用mic*/
-void audio_anc_mic_mana_fb_mult_set(u8 mult_flag);
+/*设置对应的mic为anc 复用mic, , mic_ch ff:0 ; fb:1*/
+void audio_anc_mic_mult_flag_set(u32 mic_ch, u8 mult_flag);
 
-/*获取fb mic复用MIC标志，左右耳有一个复用则认为被复用*/
-u8 audio_anc_mic_mana_fb_mult_get(void);
+/*获取对应的mic是否为anc 复用mic，左右耳有一个复用则认为被复用, , mic_ch ff:0 ; fb:1*/
+u8 audio_anc_mic_mult_flag_get(u32 mic_ch);
 
 void audio_anc_post_msg_music_dyn_gain(void);
 
@@ -466,5 +468,6 @@ void audio_anc_coeff_smooth_update(void);
  */
 void audio_anc_param_reset(u8 fade_en);
 
+void audio_anc_howldet_fade_set(u16 gain);
 
 #endif/*AUDIO_ANC_H*/

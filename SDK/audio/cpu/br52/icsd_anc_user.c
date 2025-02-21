@@ -101,10 +101,14 @@ int audio_mic_en(u8 en, audio_mic_param_t *mic_param,
     } else {
         if (audio_mic) {
 #if TCFG_AUDIO_ANC_ENABLE
-            int mult_flag = audio_anc_mic_mana_fb_mult_get();
+            int mult_flag = audio_anc_mic_mult_flag_get(1);
             if (!mult_flag) {
                 /*设置fb mic为复用mic*/
-                audio_anc_mic_mana_fb_mult_set(1);
+                audio_anc_mic_mult_flag_set(1, 1);
+            }
+            int ff_mult_flag = audio_anc_mic_mult_flag_get(0);
+            if (!ff_mult_flag) {
+                audio_anc_mic_mult_flag_set(0, 1);
             }
 #endif
 #if ICSD_ADT_SHARE_ADC_ENABLE
@@ -120,7 +124,10 @@ int audio_mic_en(u8 en, audio_mic_param_t *mic_param,
 #if TCFG_AUDIO_ANC_ENABLE
             if (!mult_flag) {
                 /*清除fb mic为复用mic的标志*/
-                audio_anc_mic_mana_fb_mult_set(0);
+                audio_anc_mic_mult_flag_set(1, 0);
+            }
+            if (!ff_mult_flag) {
+                audio_anc_mic_mult_flag_set(0, 0);
             }
             if (anc_status_get() == 0)
 #endif
@@ -255,10 +262,14 @@ void icsd_set_clk()
     clock_alloc("icsd_adt", 128 * 1000000L);
 }
 
-void icsd_anc_fade_set(int gain)
+void icsd_anc_fade_set(enum anc_fade_mode_t mode, int gain)
 {
 #if TCFG_AUDIO_ANC_ENABLE
-    audio_anc_fade_ctr_set(ANC_FADE_MODE_WIND_NOISE, AUDIO_ANC_FDAE_CH_ALL, gain);
+    if (mode == ANC_FADE_MODE_WIND_NOISE) {
+        audio_anc_fade_ctr_set(mode, AUDIO_ANC_FDAE_CH_FF, gain);
+    } else {
+        audio_anc_fade_ctr_set(mode, AUDIO_ANC_FDAE_CH_ALL, gain);
+    }
 #endif
 }
 
