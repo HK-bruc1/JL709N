@@ -157,6 +157,7 @@ typedef struct {
     float *sz_coef_table;
     float *pz_table_cmp;
     float *sz_table_cmp;
+    float *ff_filter;
 
     u8 high_fgq_fix;
     u8 de_alg_sel;
@@ -193,7 +194,6 @@ typedef struct {
     u8    tone_out_sel_r;
     u8    fb_agc_en;
 
-    float debug[10];
     adpt_anc_cfg adpt_cfg;
     adpt_anc_cfg adpt_cfg_r;
 } __icsd_anc_config_data;

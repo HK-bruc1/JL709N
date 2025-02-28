@@ -11,6 +11,7 @@
 #include "icsd_wind.h"
 #include "icsd_adt.h"
 #include "anc_ext_tool.h"
+#include "audio_anc_common.h"
 
 //====================风噪检测配置=====================
 const u8 ICSD_WIND_PHONE_TYPE  = SDK_WIND_PHONE_TYPE;

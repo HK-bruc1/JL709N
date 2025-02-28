@@ -18,11 +18,13 @@ extern int (*avc_printf)(const char *format, ...);
 
 struct icsd_avc_libfmt {
     int lib_alloc_size;  //算法ram需求大小
+    u8  type;
 };
 
 struct icsd_avc_infmt {
     void *alloc_ptr;     //外部申请的ram地址
     int lib_alloc_size;  //算法ram需求大小
+    u8  type;
 };
 
 typedef struct {
@@ -39,6 +41,7 @@ extern struct avc_function *AVC_FUNC;
 typedef struct {
     s16 *refmic;
     s16 *dac_data;
+    u8  type;
 } __icsd_avc_run_parm;
 
 typedef struct {

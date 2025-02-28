@@ -33,8 +33,6 @@ int audio_adt_rtanc_set_infmt(void *rtanc_tool);
 
 void audio_adt_rtanc_output_handle(void *rt_param_l, void *rt_param_r);
 
-void audio_rtanc_debug_param_set(u8 cmd, float param);
-
 u8 audio_rtanc_app_func_en_get(void);
 
 int audio_rtanc_adaptive_en(u8 en);
@@ -68,11 +66,17 @@ float *audio_rtanc_pz_cmp_get(void);
 
 float *audio_rtanc_sz_cmp_get(void);
 
-int audio_rtanc_init_prepare(u8 sync_mode);
-
 void audio_real_time_adaptive_ignore_switch_lock(void);
 
 void audio_rtanc_self_talk_output(u8 flag);
+
+int audio_rtanc_adaptive_init(u8 sync_mode);
+
+int audio_rtanc_adaptive_exit(void);
+
+void audio_rtanc_cmp_data_packet(void);
+
+void audio_rtanc_cmp_update(void);
 
 #endif
 

@@ -19,6 +19,8 @@
 #define ANC_EXT_FUNC_EN_ADAPTIVE_CMP		BIT(2)	//自适应CMP
 #define ANC_EXT_FUNC_EN_ADAPTIVE_EQ			BIT(3)	//自适应EQ
 #define ANC_EXT_FUNC_EN_WIND_DET			BIT(4)	//风噪检测
+#define ANC_EXT_FUNC_EN_SOFT_HOWL_DET		BIT(5)	//软件啸叫检测
+#define ANC_EXT_FUNC_EN_ADAPTIVE_DCC		BIT(6)	//自适应DCC
 
 //文件 SUBFILE ID
 enum {

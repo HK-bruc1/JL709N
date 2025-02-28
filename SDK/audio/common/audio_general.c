@@ -98,11 +98,17 @@ const int butterworth_iir_filter_coeff_type_select = 0;//虚拟低音根据此�
 const int butterworth_iir_filter_coeff_type_select = 1;//虚拟低音根据此变量使用相应的滤波器设计函数 0:float  1:int
 #endif
 
-#ifdef TCFG_AUDIO_EFX_4E5B_RUN_MODE
-const int limiter_run_mode = TCFG_AUDIO_EFX_4E5B_RUN_MODE;
-#else
-const int limiter_run_mode = 0xFFFF;
+const int limiter_run_mode = EFx_PRECISION_PRO
+#if defined(TCFG_AUDIO_EFX_4E5B_RUN_MODE)
+                             | TCFG_AUDIO_EFX_4E5B_RUN_MODE
 #endif
+#if defined(TCFG_AUDIO_EFX_F58A_RUN_MODE)
+                             | TCFG_AUDIO_EFX_F58A_RUN_MODE
+#endif
+#if !defined(TCFG_AUDIO_EFX_4E5B_RUN_MODE) && !defined(TCFG_AUDIO_EFX_F58A_RUN_MODE)
+                             | 0xFFFF
+#endif
+                             ;
 
 #ifdef TCFG_AUDIO_EFX_6195_RUN_MODE
 const  int frequency_shift_run_mode      = TCFG_AUDIO_EFX_6195_RUN_MODE;
@@ -175,20 +181,27 @@ const  int virtual_bass_classic_run_mode = TCFG_AUDIO_EFX_55C9_RUN_MODE;
 const  int virtual_bass_classic_run_mode = EFx_BW_16t16 | EFx_BW_32t32;
 #endif
 
-#ifdef TCFG_AUDIO_EFX_4250_RUN_MODE
-const  int drc_advance_run_mode          = TCFG_AUDIO_EFX_4250_RUN_MODE;
-#else
-const  int drc_advance_run_mode          = EFx_BW_16t16 | EFx_BW_32t16 | EFx_PRECISION_NOR | EFx_BW_32t32;
+const  int drc_advance_run_mode          = EFx_PRECISION_NOR
+#if defined(TCFG_AUDIO_EFX_4250_RUN_MODE)
+        | TCFG_AUDIO_EFX_4250_RUN_MODE
 #endif
+#if defined(TCFG_AUDIO_EFX_74CB_RUN_MODE)
+        | TCFG_AUDIO_EFX_74CB_RUN_MODE
+#endif
+#if !defined(TCFG_AUDIO_EFX_4250_RUN_MODE) && !defined(TCFG_AUDIO_EFX_74CB_RUN_MODE)
+        | EFx_BW_16t16 | EFx_BW_32t16 | EFx_BW_32t32
+#endif
+        ;
+
 
 #ifdef TCFG_AUDIO_EFX_9A58_RUN_MODE
-const  int drc_detect_run_mode           = TCFG_AUDIO_EFX_9A58_RUN_MODE;
+const  int drc_detect_run_mode           = TCFG_AUDIO_EFX_9A58_RUN_MODE | EFx_PRECISION_NOR;
 #else
 const  int drc_detect_run_mode           = EFx_BW_16t16 | EFx_BW_32t16 | EFx_PRECISION_NOR | EFx_BW_32t32;
 #endif
 
 #ifdef TCFG_AUDIO_EFX_DEFE_RUN_MODE
-const  int drc_run_mode                  = TCFG_AUDIO_EFX_DEFE_RUN_MODE;
+const  int drc_run_mode                  = TCFG_AUDIO_EFX_DEFE_RUN_MODE | EFx_PRECISION_NOR;
 #else
 const  int drc_run_mode                  = EFx_BW_16t16 | EFx_BW_32t16 | EFx_PRECISION_NOR | EFx_BW_32t32;
 #endif
@@ -221,6 +234,22 @@ const int lfaudio_plc_run_mode       = EFx_BW_16t16 | EFx_BW_32t32;
 #endif
 
 
+
+const int dynamic_eq_run_mode = EFx_BW_32t32 | EFx_PRECISION_NOR; //只支持32进32出 不会优化代码预留
+
+const int dynamic_eq_pro_run_mode = EFx_BW_32t32;//只支持32进32出 不会优化代码预留
+
+const int iir_filter_run_mode = 0  //不支持32进16出
+#if defined(TCFG_AUDIO_EFX_3845_RUN_MODE)
+                                | TCFG_AUDIO_EFX_3845_RUN_MODE
+#endif
+#if defined(TCFG_AUDIO_EFX_6700_RUN_MODE)
+                                | TCFG_AUDIO_EFX_6700_RUN_MODE
+#endif
+#if !defined(TCFG_AUDIO_EFX_3845_RUN_MODE) && !defined(TCFG_AUDIO_EFX_6700_RUN_MODE)
+                                | EFx_BW_16t16 | EFx_BW_16t32 | EFx_BW_32t32  //不支持32进16出
+#endif
+                                ;
 
 /*变声模式使能*/
 const int voicechanger_effect_v_config = (0

@@ -332,30 +332,45 @@ void icsd_set_tws_t_sniff(u16 slot)
     /* set_tws_t_sniff(slot); */
 }
 
+static u8 talk_mic_ch_cfg_read_flag = 0;
 u8 icsd_get_talk_mic_ch(void)
 {
-    cvp_param_cfg_read();
+    if (!talk_mic_ch_cfg_read_flag) {
+        talk_mic_ch_cfg_read_flag = 1;
+        cvp_param_cfg_read();
+    }
     return cvp_get_talk_mic_ch();
 }
 
-u8 icsd_get_ref_mic_ch(void)
+u8 icsd_get_ref_mic_L_ch(void)
 {
-    printf("TCFG_AUDIO_ANCL_FF_MIC %d", TCFG_AUDIO_ANCL_FF_MIC);
-    if (TCFG_AUDIO_ANCL_FF_MIC != MIC_NULL) {
+    if (ANC_CONFIG_LFF_EN && (TCFG_AUDIO_ANCL_FF_MIC != MIC_NULL)) {
         return BIT(TCFG_AUDIO_ANCL_FF_MIC);
-    } else if (TCFG_AUDIO_ANCR_FF_MIC != MIC_NULL) {
+    } else {
+        return 0;
+    }
+}
+
+u8 icsd_get_fb_mic_L_ch(void)
+{
+    if (ANC_CONFIG_LFB_EN && (TCFG_AUDIO_ANCL_FB_MIC != MIC_NULL)) {
+        return BIT(TCFG_AUDIO_ANCL_FB_MIC);
+    } else {
+        return 0;
+    }
+}
+u8 icsd_get_ref_mic_R_ch(void)
+{
+    if (ANC_CONFIG_RFF_EN && (TCFG_AUDIO_ANCR_FF_MIC != MIC_NULL)) {
         return BIT(TCFG_AUDIO_ANCR_FF_MIC);
     } else {
         return 0;
     }
 }
 
-u8 icsd_get_fb_mic_ch(void)
+u8 icsd_get_fb_mic_R_ch(void)
 {
-    printf("TCFG_AUDIO_ANCL_FB_MIC %d", TCFG_AUDIO_ANCL_FB_MIC);
-    if (TCFG_AUDIO_ANCL_FB_MIC != MIC_NULL) {
-        return BIT(TCFG_AUDIO_ANCL_FB_MIC);
-    } else if (TCFG_AUDIO_ANCR_FB_MIC != MIC_NULL) {
+    if (ANC_CONFIG_RFB_EN && (TCFG_AUDIO_ANCR_FB_MIC != MIC_NULL)) {
         return BIT(TCFG_AUDIO_ANCR_FB_MIC);
     } else {
         return 0;

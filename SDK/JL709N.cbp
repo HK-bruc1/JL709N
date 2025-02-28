@@ -53,7 +53,6 @@
 <Add option="-DCONFIG_SUPPORT_EX_TWS_ADJUST" />
 <Add option="-D__GCC_PI32V2__" />
 <Add option="-DCONFIG_NEW_ECC_ENABLE" />
-<Add option="-DCONFIG_FLOAT_DEBUG_ENABLE" />
 <Add option="-DCONFIG_EFFECT_CORE_V2_ENABLE" />
 <Add option="-DCONFIG_OS_AFFINITY_ENABLE=0" />
 <Add option="-DEVENT_HANDLER_NUM_CONFIG=2" />
@@ -327,6 +326,7 @@
 <Add option="cpu/br52/liba/lib_icsd_ein.a" />
 <Add option="cpu/br52/liba/lib_icsd_envnl.a" />
 <Add option="cpu/br52/liba/lib_icsd_avc.a" />
+<Add option="cpu/br52/liba/lib_icsd_howl.a" />
 <Add option="cpu/br52/liba/lib_icsd_adjdcc.a" />
 <Add option="cpu/br52/liba/lib_limiter.a" />
 <Add option="cpu/br52/liba/lib_iir_filter.a" />

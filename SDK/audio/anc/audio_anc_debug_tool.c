@@ -246,10 +246,6 @@ int audio_anc_debug_user_cmd_process(u8 *data, int len)
     printf("ANC DEBUG USER CMD:0x%x\n", cmd);
     put_buf(data_p, data_len);
 
-#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE && AUDIO_RT_ANC_PARAM_BY_TOOL_DEBUG
-    audio_rtanc_debug_param_set(cmd, f_param);
-#endif
-
 #if 1
     switch (cmd) {
     case CMD_DEFAULT:

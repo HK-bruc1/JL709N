@@ -14,10 +14,16 @@
 #include "rt_anc_app.h"
 #endif
 
+#if 1
+#define env_log printf
+#else
+#define env_log(...)
+#endif
+
 /*打开anc增益自适应*/
 int audio_anc_env_adaptive_gain_open()
 {
-    printf("%s", __func__);
+    env_log("%s", __func__);
     u8 adt_mode = ADT_ENV_NOISE_DET_MODE;
     return audio_icsd_adt_sync_open(adt_mode);
 }
@@ -25,7 +31,7 @@ int audio_anc_env_adaptive_gain_open()
 /*关闭anc增益自适应*/
 int audio_anc_env_adaptive_gain_close()
 {
-    printf("%s", __func__);
+    env_log("%s", __func__);
     u8 adt_mode = ADT_ENV_NOISE_DET_MODE;
     int ret = audio_icsd_adt_sync_close(adt_mode, 0);
     return ret;
@@ -34,7 +40,7 @@ int audio_anc_env_adaptive_gain_close()
 /*anc增益自适应使用demo*/
 void audio_anc_env_adaptive_gain_demo()
 {
-    printf("%s", __func__);
+    env_log("%s", __func__);
     if (audio_icsd_adt_open_permit(ADT_ENV_NOISE_DET_MODE) == 0) {
         return;
     }
@@ -82,7 +88,7 @@ static struct anc_fade_handle anc_env_gain_fade = {
     .timer_id = 0, //记录定时器id
     .cur_gain = 16384, //记录当前增益
     .fade_setp = 0,//记录淡入淡出步进
-    .target_gain = 0, //记录目标增益
+    .target_gain = 16384, //记录目标增益
     .fade_gain_mode = 0,//记录当前设置fade gain的模式
 };
 
@@ -107,6 +113,7 @@ void audio_anc_env_adaptive_fade_param_reset(void)
         anc_env_gain_fade.timer_id = 0;
     }
     anc_env_gain_fade.cur_gain = 16384;
+    anc_env_gain_fade.target_gain = 16384;
 }
 
 /*设置环境自适应增益，带淡入淡出功能*/
@@ -119,6 +126,8 @@ void audio_anc_env_adaptive_fade_gain_set(int fade_gain, int fade_time)
 int audio_env_noise_event_process(u8 spldb_iir)
 {
     u8 anc_env_noise_lvl = 0;
+
+    /* env_log("spldb_iir %d", spldb_iir); */
 
     /*anc模式下才改anc增益*/
     if (anc_mode_get() != ANC_OFF) {
@@ -133,7 +142,6 @@ int audio_env_noise_event_process(u8 spldb_iir)
     } else {
         return -1;
     }
-    printf(" ========== anc_env_noise_lvl %d", anc_env_noise_lvl);
 
     u16 anc_fade_gain = 16384;
     u16 anc_fade_time = 3000; //ms
@@ -169,6 +177,12 @@ int audio_env_noise_event_process(u8 spldb_iir)
         anc_fade_time = 3000;
         break;
     }
+
+    if (anc_env_gain_fade.target_gain == anc_fade_gain) {
+        return anc_fade_gain;
+    }
+
+    env_log("ENV_NOISE_STATE:RUN, lvl %d, gain %d\n", anc_env_noise_lvl, anc_fade_gain);
 
     u8 data[5] = {0};
     data[0] = SYNC_ICSD_ADT_SET_ANC_FADE_GAIN;

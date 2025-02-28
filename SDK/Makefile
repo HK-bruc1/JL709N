@@ -121,7 +121,6 @@ DEFINES := \
 	-DCONFIG_SUPPORT_EX_TWS_ADJUST \
 	-D__GCC_PI32V2__ \
 	-DCONFIG_NEW_ECC_ENABLE \
-	-DCONFIG_FLOAT_DEBUG_ENABLE \
 	-DCONFIG_EFFECT_CORE_V2_ENABLE \
 	-DCONFIG_OS_AFFINITY_ENABLE=0 \
 	-DEVENT_HANDLER_NUM_CONFIG=2 \
@@ -1044,6 +1043,7 @@ LFLAGS := \
 	cpu/br52/liba/lib_icsd_ein.a \
 	cpu/br52/liba/lib_icsd_envnl.a \
 	cpu/br52/liba/lib_icsd_avc.a \
+	cpu/br52/liba/lib_icsd_howl.a \
 	cpu/br52/liba/lib_icsd_adjdcc.a \
 	cpu/br52/liba/lib_limiter.a \
 	cpu/br52/liba/lib_iir_filter.a \

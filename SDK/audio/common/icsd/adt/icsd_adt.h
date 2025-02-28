@@ -23,7 +23,7 @@
 #define ADT_EIN_EN                  BIT(5) //入耳检测
 #define ADT_AVC_EN                  BIT(6) //自适应音量
 //#define ADT_RTANC_TIDY_EN                  BIT(7) //RTANC TIDY mode 占用
-#define ADT_ADJDCC_EN               BIT(8) //
+#define ADT_ADJDCC_EN               BIT(8) //自适应DCC
 #define ADT_HOWL_EN                 BIT(9) //防啸叫
 
 #define ADT_PATH_3M_EN         		BIT(0)
@@ -42,6 +42,14 @@ extern u8 ADT_PATH_CONFIG;
 #define ADT_INF_12					BIT(12)//open talk mic
 extern const u16 ADT_DEBUG_INF;
 
+//u16 mic_type
+#define ADT_REFMIC_L				BIT(0)
+#define ADT_REFMIC_R				BIT(1)
+#define ADT_ERRMIC_L				BIT(2)
+#define ADT_ERRMIC_R				BIT(3)
+#define ADT_TLKMIC_L				BIT(4)
+#define ADT_TLKMIC_R				BIT(5)
+
 struct adt_function {
     //sys
     void (*os_time_dly)(int tick);
@@ -56,6 +64,7 @@ struct adt_function {
     void (*icsd_post_srctask_msg)(u8 cmd);
     void (*icsd_post_anctask_msg)(u8 cmd);
     void (*icsd_post_rtanctask_msg)(u8 cmd);
+    void (*icsd_post_detask_msg)(u8 cmd);
     int (*jiffies_usec2offset)(unsigned long begin, unsigned long end);
     unsigned long (*jiffies_usec)(void);
     int (*audio_anc_debug_send_data)(u8 *buf, int len);
@@ -145,8 +154,8 @@ struct icsd_acoustic_detector_libfmt {
     int adc_sr;          //ADC 采样率
     int lib_alloc_size;  //算法ram需求大小
     u8 mic_num;			 //需要打开的mic个数
-
     u8 rtanc_type;      //RTANC类型(传入参数)
+    u16 mic_type;
 };
 
 typedef struct {
@@ -214,6 +223,7 @@ void icsd_adt_task_handler(int msg, int msg2);
 void icsd_src_task_handler(int msg);
 void icsd_adt_anctask_handle(u8 cmd);
 void icsd_rtanc_task_handler(int msg);
+void icsd_de_task_handler(int msg);
 void icsd_task_create();
 //anc
 void icsd_adt_dma_done();
@@ -254,9 +264,11 @@ void icsd_HOWL_output_demo(u8 result);
 void icsd_adt_tone_play_handler(u8 idx);
 u8 	 icsd_adt_get_wind_lvl();
 u8 icsd_adt_get_adjdcc_result();
+int audio_dac_read_anc_reset(void);
 
 extern const u8 rt_anc_dac_en;
 extern const u8 mic_input_v2;
 extern const u8 RTANC_ALG_DEBUG;
 extern const u8 ICSD_WDT_V2;
+extern const u8 ICSD_HOWL_REF_EN;
 #endif

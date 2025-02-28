@@ -162,14 +162,15 @@ const struct task_info task_info_table[] = {
 #if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
     {"icsd_anc",            5,     0,   512,   128 },
     {"icsd_adt",            2,     0,   512,   128 },
-    {"icsd_src",            2,     0,   512,   256 },
+    {"icsd_src",            3,     0,   512,   256 },
     {"speak_to_chat",       2,     0,   512,   128 },
 #endif
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
-    {"rt_anc",              3,     1,   512,   128 },
+    {"rt_anc",              3,     0,   512,   128 },
+    {"rt_de",              	1,     0,   512,   128 },
 #endif
 #if TCFG_AUDIO_ANC_ENABLE && (TCFG_AUDIO_ANC_EXT_VERSION == ANC_EXT_V2)
-    {"afq_common",         	2,     1,   512,   128 },
+    {"afq_common",         	1,     0,   512,   128 },
 #endif
 #endif
 

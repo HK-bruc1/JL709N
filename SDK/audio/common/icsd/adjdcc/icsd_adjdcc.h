@@ -24,8 +24,8 @@
 #include "icsd_common.h"
 #include "icsd_common_v2.h"
 
-#if 1
-#define _dcc_printf printf                  //打开智能免摘库打印信息
+#if 0
+#define _dcc_printf printf                  //打开自适应DCC算法库信息
 #else
 #define _dcc_printf icsd_printf_off
 #endif
@@ -49,23 +49,35 @@ typedef struct {
 
 typedef struct {
     u8 result;
-    u8 ff_dc_par_use;
+    u8 de_task;
 } __icsd_adjdcc_output;
 
 typedef struct {
     u8 idx;
     u8 ff_dc_par;
     u8 release_cnt;
+    u8 steps;
+    u8 wind_lvl_thr;
+
     u16 refmic_max_thr;
     u16 refmic_mp_thr;
 
+    float iir_coef;
+    float *thr_list_up;
+    float *thr_list_down;
+
     float *err_overload_list;
+    float *param_table;
 
 } __adjdcc_config;
 
 struct adjdcc_function {
     void (*adjdcc_config_init)(__adjdcc_config *_adjdcc_config);
     void (*ff_adjdcc_par_set)(u8 dc_par);
+    void (*rtanc_adjdcc_flag_set)(u8 flag);
+    u8(*adjdcc_trigger_update)(u8 env_level, float *table);
+    u8(*rtanc_adjdcc_flag_get)();
+    u8(*get_wind_lvl)();
 };
 extern struct adjdcc_function *ADJDCC_FUNC;
 

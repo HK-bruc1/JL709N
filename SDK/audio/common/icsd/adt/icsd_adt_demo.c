@@ -17,7 +17,7 @@ void icsd_HOWL_output_demo(u8 result)
 
 void icsd_ADJDCC_output_demo(u8 result)
 {
-    printf("icsd_adt_alg_adjdcc_output:%d\n", result);
+    /* printf("icsd_adt_alg_adjdcc_output:%d\n", result); */
 }
 
 void icsd_EIN_output_demo(u8 ein_state)

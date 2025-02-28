@@ -20,7 +20,7 @@
 
 #define ADAPTIVE_EQ_MAXGAIN_DB					6			//非音量/松紧度分档使用
 
-#define ADAPTIVE_EQ_ONLY_IN_MUSIC_UPDATE		0			//(实时AEQ)仅在播歌/通话的时候更新
+#define ADAPTIVE_EQ_ONLY_IN_MUSIC_UPDATE		1			//(实时AEQ)仅在播歌/通话的时候更新
 
 #if ADAPTIVE_EQ_TIGHTNESS_GRADE_EN && (!TCFG_AUDIO_FIT_DET_ENABLE)
 #error "Must open TCFG_AUDIO_FIT_DET_ENABLE"

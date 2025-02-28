@@ -37,6 +37,9 @@ typedef struct {
     float weight[2 * sFLEN];
     float mse_tar[2 * sFLEN];
 
+    float pz_cmp_en;
+    float *hp_cmp;
+
 } __sDe_handler;
 extern __sDe_handler *ICSD_sDe_handler;
 

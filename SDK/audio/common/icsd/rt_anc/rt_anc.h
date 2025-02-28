@@ -60,6 +60,7 @@ typedef struct {
 struct rt_anc_function {
     u8(*anc_dma_done_ppflag)();
     u16(*sys_timeout_add)(void *priv, void (*func)(void *priv), u32 msec);
+    void (*icsd_adt_rtanc_suspend)();
     void (*sys_timeout_del)(u16 t);
     void (*anc_dma_on)(u8 out_sel, int *buf, int len);
     void (*anc_dma_on_double)(u8 out_sel, int *buf, int len);
@@ -67,6 +68,7 @@ struct rt_anc_function {
     void (*anc_core_dma_stop)(void);
     void (*rt_anc_post_rttask_cmd)(u8 cmd);
     void (*rt_anc_post_anctask_cmd)(u8 cmd);
+    void (*icsd_post_detask_msg)(u8 cmd);
     void (*rt_anc_dma_2ch_on)(u8 out_sel, int *buf, int len);
     void (*rt_anc_dma_4ch_on)(u8 out_sel_ch01, u8 out_sel_ch23, int *buf, int len);
     void (*rt_anc_task_create)();
@@ -194,49 +196,39 @@ struct __rtanc_bt_inf {
     u16 debug_id;
 
     u8 mode;   // norm/tidy
-
     u8 ff_dc_par_use;
     u8 wind_lvl;
     u8 trim_lock;
-
     u8 pass_idx;
-
     u8 ptr_cnt;
     u8 dov[3 * 16];
-    float angle[3 * 16];
-
     u8 vod_cnt;
     u8 self_vod_cnt;
     u8 self_talk_flag;
-
     u8 spec_cnt;
     u8 ref_spec_cnt;
     u8 err_spec_cnt;
-
-    float mse_180_500;
-    float mse_500_1k;
-
     u8 mse_fcnt_thr;
     u8 mse_ctl_fcnt;
-    float mse_ctl1;
-    float mse_ctl2;
-    float mse_ctl3;
-
-    float hist_err;
     u8 hist_history[5];
     u8 hist_cur;
     u8 hist_last;
-
-    float fitness;
-    float tar_diff;
-    float tar_hz_diff;
-    float tar_diff_thr;
-
     u8 sz_diff_meet;
     u8 sz_hist_cur;
     u8 sz_hist_last;
     u8 sz_iir_cnt;
 
+    float angle[3 * 16];
+    float mse_180_500;
+    float mse_500_1k;
+    float mse_ctl1;
+    float mse_ctl2;
+    float mse_ctl3;
+    float hist_err;
+    float fitness;
+    float tar_diff;
+    float tar_hz_diff;
+    float tar_diff_thr;
     float sz_stable_val1;
     float sz_stable_val2;
     float sz_iir_diff;
@@ -305,7 +297,7 @@ struct rtanc_param {
 void icsd_rtanc_get_libfmt(struct icsd_rtanc_libfmt *libfmt);
 void icsd_rtanc_set_infmt(struct icsd_rtanc_infmt *fmt);
 void icsd_alg_rtanc_run_part1(__icsd_rtanc_part1_parm *part1_parm);
-void icsd_alg_rtanc_run_part2(__icsd_rtanc_part2_parm *part2_parm);
+u8   icsd_alg_rtanc_run_part2(__icsd_rtanc_part2_parm *part2_parm);
 void icsd_alg_rtanc_part2_parm_init();
 void rt_anc_time_out_del();
 void rt_anc_set_init(struct rt_anc_infmt *fmt, struct __anc_ext_rtanc_adaptive_cfg *rtanc_tool_cfg);
@@ -316,6 +308,11 @@ void icsd_rtanc_alg_get_sz(float *sz_out, u8 ch);
 void icsd_alg_rtanc_fadegain_update(struct rtanc_param *param);
 void icsd_alg_rtanc_filter_update(struct rtanc_param *param);
 void icsd_post_rtanctask_msg(u8 cmd);
+void icsd_post_detask_msg(u8 cmd);
+void rtanc_adjdcc_flag_set(u8 flag);
+void rtanc_cal_and_update_filter_l_task();
+u8 adjdcc_trigger_update(u8 env_level, float *table);
+u8 rtanc_adjdcc_flag_get();
 
 extern const u8 RTANC_ALG_DEBUG;
 #endif

@@ -245,6 +245,11 @@ static const struct __anc_ext_subfile_id_table ear_adaptive_id_table[] = {
     //软件-啸叫检测 配置 文件ID FILE_ID_ANC_EXT_SOFT_HOWL_DET_CFG
     { 0, ANC_EXT_SOFT_HOWL_DET_CFG_ID,	EAR_ADAPTIVE_STR_OFFSET(soft_howl_det_cfg)},
 
+#if TCFG_AUDIO_ADAPTIVE_DCC_ENABLE
+    //自适应DCC 配置 文件ID FILE_ID_ANC_EXT_ADAPTIVE_DCC_CFG
+    { 0, ANC_EXT_ADAPTIVE_DCC_CFG_ID,	EAR_ADAPTIVE_STR_OFFSET(adaptive_dcc_cfg)},
+#endif
+
 };
 
 
@@ -263,6 +268,7 @@ static void anc_file_adaptive_eq_thr_printf(int id, void *buf, int len);
 static void anc_file_wind_det_cfg_printf(int id, void *buf, int len);
 static void anc_file_wind_trigger_cfg_printf(int id, void *buf, int len);
 static void anc_file_soft_howl_det_cfg_printf(int id, void *buf, int len);
+static void anc_file_adaptive_dcc_cfg_printf(int id, void *buf, int len);
 
 struct __anc_ext_printf {
     void (*p)(int id, void *buf, int len);
@@ -371,6 +377,10 @@ const struct __anc_ext_printf anc_ext_printf[] = {
 
     //啸叫检测配置
     { anc_file_soft_howl_det_cfg_printf },
+
+#if TCFG_AUDIO_ADAPTIVE_DCC_ENABLE
+    { anc_file_adaptive_dcc_cfg_printf },
+#endif
 
 };
 
@@ -602,6 +612,9 @@ void anc_ext_tool_cmd_deal(u8 *data, u16 len, enum ANC_EXT_UART_SEL uart_sel)
 #if TCFG_AUDIO_ANC_WIND_NOISE_DET_ENABLE
         en |= ANC_EXT_FUNC_EN_WIND_DET;
 #endif
+#if TCFG_AUDIO_ADAPTIVE_DCC_ENABLE
+        en |= ANC_EXT_FUNC_EN_ADAPTIVE_DCC;
+#endif
         audio_anc_param_map_init();
         anc_ext_tool_send_buf(cmd, (u8 *)&en, 2);
         break;
@@ -711,6 +724,17 @@ void anc_ext_tool_cmd_deal(u8 *data, u16 len, enum ANC_EXT_UART_SEL uart_sel)
         audio_icsd_wind_detect_en(0);
         break;
 #endif
+#if TCFG_AUDIO_ADAPTIVE_DCC_ENABLE
+    case CMD_ADAPTIVE_DCC_OPEN:
+        anc_ext_log("CMD_ADAPTIVE_DCC_OPEN data %d\n", data[1]);
+        tool_hdl->DEBUG_TOOL_FUNCTION = data[1];
+        /* audio_icsd_wind_detect_en(1); */
+        break;
+    case CMD_ADAPTIVE_DCC_STOP:
+        anc_ext_log("CMD_ADAPTIVE_DCC_STOP\n");
+        /* audio_icsd_wind_detect_en(0); */
+        break;
+#endif
     default:
         ret = FALSE;
         break;
@@ -813,6 +837,7 @@ int anc_ext_subfile_analysis_each(u32 file_id, u8 *data, int len, u8 alloc_flag)
     case FILE_ID_ANC_EXT_REF_SZ_DATA:
     case FILE_ID_ANC_EXT_WIND_DET_CFG:
     case FILE_ID_ANC_EXT_SOFT_HOWL_DET_CFG:
+    case FILE_ID_ANC_EXT_ADAPTIVE_DCC_CFG:
         ret = anc_cfg_analysis_ear_adaptive(data, len, alloc_flag);
         /* put_buf(data, len); */
         break;
@@ -1170,6 +1195,26 @@ static void anc_file_soft_howl_det_cfg_printf(int id, void *buf, int len)
 
     for (int i = 0; i < 6; i++) {
         anc_ext_log("param[%d]         :%d/100 \n", i, (int)(cfg->param[i] * 100.0f));
+    }
+}
+
+static void anc_file_adaptive_dcc_cfg_printf(int id, void *buf, int len)
+{
+    struct __anc_ext_adaptive_dcc_cfg *cfg = (struct __anc_ext_adaptive_dcc_cfg *)buf;
+
+    printf("---ANC_EXT_ADAPTIVE_DCC_CFG_ID 0x%x---\n", id);
+    printf("ff_dc_par         :%d \n", cfg->ff_dc_par);
+    printf("refmic_max_thr    :%d \n", cfg->refmic_max_thr);
+    printf("refmic_mp_thr     :%d \n", cfg->refmic_mp_thr);
+
+    for (int i = 0; i < ARRAY_SIZE(cfg->err_overload_list); i++) {
+        printf("err_overload_list[%d]:%d/100 \n", i, (int)(cfg->err_overload_list[i] * 100.0f));
+    }
+    for (int i = 0; i < ARRAY_SIZE(cfg->param1); i++) {
+        printf("param1[%d]         :%d \n", i, cfg->param1[i]);
+    }
+    for (int i = 0; i < ARRAY_SIZE(cfg->param2); i++) {
+        printf("param2[%d]         :%d/100 \n", i, (int)(cfg->param2[i] * 100.0f));
     }
 }
 

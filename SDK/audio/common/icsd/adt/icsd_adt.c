@@ -27,6 +27,7 @@
 #define ICSD_ANC_TASK_NAME  "icsd_anc"
 #define ICSD_ADT_TASK_NAME  "icsd_adt"
 #define ICSD_SRC_TASK_NAME  "icsd_src"
+#define ICSD_DE_TASK_NAME   "rt_de"
 #define ICSD_RTANC_TASK_NAME "rt_anc"
 
 __adt_anc46k_ctl *ANC46K_CTL = NULL;
@@ -176,6 +177,11 @@ void icsd_post_rtanctask_msg(u8 cmd)
     adt_post_msg(ICSD_RTANC_TASK_NAME, cmd, 0);
 }
 
+void icsd_post_detask_msg(u8 cmd)
+{
+    adt_post_msg(ICSD_DE_TASK_NAME, cmd, 0);
+}
+
 static void icsd_anc_process_task(void *priv)
 {
     int res = 0;
@@ -224,10 +230,23 @@ static void icsd_rtanc_task(void *priv)
     }
 }
 
+static void icsd_de_task(void *priv)
+{
+    int res = 0;
+    int msg[30];
+    while (1) {
+        res = os_taskq_pend(NULL, msg, ARRAY_SIZE(msg));
+        if (res == OS_TASKQ) {
+            icsd_de_task_handler(msg[1]);
+        }
+    }
+}
+
 static u8 icsd_anc_task = 0;
 static u8 adt_task = 0;
 static u8 src_task = 0;
 static u8 rtanc_task = 0;
+static u8 de_task = 0;
 static void adt_task_create(void (*task)(void *p), const char *name, u8 *task_flag)
 {
     if (*task_flag == 0) {
@@ -251,6 +270,7 @@ void icsd_task_create()
     adt_task_create(icsd_src_task, ICSD_SRC_TASK_NAME, &src_task);
     if (ICSD_RTANC_EN) {
         adt_task_create(icsd_rtanc_task, ICSD_RTANC_TASK_NAME, &rtanc_task);
+        adt_task_create(icsd_de_task, ICSD_DE_TASK_NAME, &de_task);
     }
 }
 
@@ -261,6 +281,7 @@ void icsd_task_kill()
     adt_task_kill(ICSD_SRC_TASK_NAME, &src_task);
     if (ICSD_RTANC_EN) {
         adt_task_kill(ICSD_RTANC_TASK_NAME, &rtanc_task);
+        adt_task_kill(ICSD_DE_TASK_NAME, &de_task);
     }
 }
 
@@ -351,7 +372,6 @@ void br28_test_fun_anc_dma_on_double_4ch(u8 ch1_out_sel, u8 ch2_out_sel, int *bu
 }
 
 extern u8  audio_anc_debug_busy_get(void);
-extern int audio_dac_read_anc_reset(void);
 extern int audio_dac_read_anc(s16 points_offset, void *data, int len, u8 read_channel);
 extern void audio_icsd_adptive_vol_output_handle(__adt_avc_output *_output);
 const struct adt_function ADT_FUNC_t = {
@@ -367,6 +387,7 @@ const struct adt_function ADT_FUNC_t = {
     .icsd_post_srctask_msg = icsd_post_srctask_msg,
     .icsd_post_anctask_msg = icsd_post_anctask_msg,
     .icsd_post_rtanctask_msg = icsd_post_rtanctask_msg,
+    .icsd_post_detask_msg = icsd_post_detask_msg,
     .jiffies_usec = jiffies_usec,
     .jiffies_usec2offset = jiffies_usec2offset,
     .audio_anc_debug_send_data = audio_anc_debug_send_data,

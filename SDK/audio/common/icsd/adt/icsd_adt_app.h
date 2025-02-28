@@ -200,6 +200,9 @@ void audio_acoustic_detector_output_hdl(u8 voice_state, u8 wind_lvl, u8 wat_resu
 /*设置ADT 通透模式下的FB/CMP 参数*/
 void audio_icsd_adt_trans_fb_param_set(audio_anc_t *param);
 
+//获取当前ADT是否运行
+u8 icsd_adt_is_running(void);
+
 /************************* 智能免摘相关接口 ***********************/
 /*打开智能免摘*/
 int audio_speak_to_chat_open();

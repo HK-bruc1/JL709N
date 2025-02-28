@@ -262,11 +262,9 @@ void setup_arch()
     log_i("         setup_arch");
     log_i("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
 
-    clock_dump();
-
     power_early_flowing();
 
-
+    clock_dump();
 
     extern void ic_vbg_current_trim();
     ic_vbg_current_trim();

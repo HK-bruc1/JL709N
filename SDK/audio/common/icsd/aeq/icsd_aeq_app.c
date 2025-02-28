@@ -23,6 +23,7 @@
 #include "audio_anc_debug_tool.h"
 #include "icsd_aeq.h"
 #include "anc_ext_tool.h"
+#include "a2dp_player.h"
 
 #if TCFG_USER_TWS_ENABLE
 #include "bt_tws.h"
@@ -41,6 +42,8 @@
 #endif
 
 #define ADAPTIVE_EQ_OUTPUT_IN_CUR_VOL_EN		0	//AEQ只根据当前音量生成一组AEQ，其他音量用默认EQ
+
+#define ADAPTIVE_EQ_RUN_TIME_DEBUG				0	//AEQ 算法运行时间测试
 
 #if 0
 #define aeq_printf printf
@@ -109,7 +112,7 @@ u8 aeq_volume_grade_maxdB_table[3][3] = {
 };
 #endif
 
-static struct eq_seg_info test_eq_tab_normal[] = {
+static const struct eq_seg_info test_eq_tab_normal[] = {
     {0, EQ_IIR_TYPE_BAND_PASS, 31,    0, 0.7f},
     {1, EQ_IIR_TYPE_BAND_PASS, 62,    0, 0.7f},
     {2, EQ_IIR_TYPE_BAND_PASS, 125,   0, 0.7f},
@@ -126,7 +129,7 @@ static struct audio_aeq_t *aeq_hdl = NULL;
 struct eq_default_seg_tab default_seg_tab = {
     .global_gain = 0.0f,
     .seg_num = ARRAY_SIZE(test_eq_tab_normal),
-    .seg = test_eq_tab_normal,
+    .seg = (struct eq_seg_info *)(test_eq_tab_normal),
 };
 
 static void audio_adaptive_eq_afq_output_hdl(struct audio_afq_output *p);
@@ -207,11 +210,11 @@ int audio_adaptive_eq_open(enum audio_adaptive_fre_sel fre_sel, void (*result_cb
     aeq_hdl->result_cb = result_cb;
 
     //2.准备算法输入参数
-    if (aeq_hdl->eq_ref && (aeq_hdl->eq_ref != &default_seg_tab)) {
-        free(aeq_hdl->eq_ref->seg);
+    if (aeq_hdl->eq_ref) {
         free(aeq_hdl->eq_ref);
     }
-    aeq_hdl->eq_ref = audio_icsd_eq_default_tab_read();
+    aeq_hdl->eq_ref = malloc(sizeof(struct eq_default_seg_tab));
+    memcpy(aeq_hdl->eq_ref, &default_seg_tab, sizeof(struct eq_default_seg_tab));
 
     audio_icsd_eq_eff_update(aeq_hdl->eq_ref);
     //输入算法前，dB转线性值
@@ -278,10 +281,7 @@ int audio_adaptive_eq_close()
             //恢复ANC相关状态
             audio_adaptive_eq_mutex_resume();
 
-            if (aeq_hdl->eq_ref && (aeq_hdl->eq_ref != &default_seg_tab)) {
-                if (aeq_hdl->eq_ref->seg) {
-                    free(aeq_hdl->eq_ref->seg);
-                }
+            if (aeq_hdl->eq_ref) {
                 free(aeq_hdl->eq_ref);
                 aeq_hdl->eq_ref = NULL;
             }
@@ -688,10 +688,11 @@ static int audio_adaptive_eq_stop(void)
 
 static struct eq_default_seg_tab *audio_adaptive_eq_run(float maxgain_dB, int cnt)
 {
-    struct eq_default_seg_tab *eq_cur_tmp;
+    struct eq_default_seg_tab *eq_cur_tmp = NULL;
     struct anc_ext_ear_adaptive_param *ext_cfg = anc_ext_ear_adaptive_cfg_get();
 
-    float *sz_cur = aeq_hdl->fre_out->sz_l.out;
+    float *sz_cur = (float *)zalloc(aeq_hdl->fre_out->sz_l.len * sizeof(float));
+    memcpy(sz_cur, aeq_hdl->fre_out->sz_l.out, aeq_hdl->fre_out->sz_l.len * sizeof(float));
 
     aeq_hdl->sz_ref = (float *)zalloc(AEQ_FLEN * sizeof(float));
 
@@ -733,6 +734,7 @@ static struct eq_default_seg_tab *audio_adaptive_eq_run(float maxgain_dB, int cn
                                            (void *)aeq_hdl->eq_ref, aeq_hdl->sz_dut_cmp, maxgain_dB, lib_eq_cur, aeq_cfg);
     if (aeq_output->state) {
         aeq_printf("AEQ OUTPUT ERR!\n");
+        goto __exit;
     }
 
     audio_adaptive_eq_data_packet(aeq_output, sz_cur, lib_eq_cur, cnt, aeq_cfg);
@@ -758,8 +760,11 @@ static struct eq_default_seg_tab *audio_adaptive_eq_run(float maxgain_dB, int cn
         /* (int)(out_seg[i].freq * 10000), (int)(out_seg[i].gain * 10000), \ */
         /* (int)(out_seg[i].q * 10000)); */
     }
+
+__exit:
     free(lib_eq_cur);
     free(aeq_cfg);
+    free(sz_cur);
 
     if (aeq_hdl->sz_dut_cmp) {
         free(aeq_hdl->sz_dut_cmp);
@@ -833,6 +838,10 @@ static void audio_adaptive_eq_afq_output_hdl(struct audio_afq_output *p)
     aeq_hdl->state = ADAPTIVE_EQ_STATE_RUN;
     aeq_hdl->run_busy = 1;
 
+#if ADAPTIVE_EQ_RUN_TIME_DEBUG
+    u32 last = jiffies_usec();
+#endif
+
     //释放上一次AEQ存储空间
     audio_adaptive_eq_cur_list_del();
 
@@ -858,6 +867,11 @@ static void audio_adaptive_eq_afq_output_hdl(struct audio_afq_output *p)
             aeq_printf("max_dB %d/10, lvl %d\n", (int)(maxgain_dB * 10), aeq_volume_grade_list[i]);
             audio_adaptive_eq_start();
             eq_output = audio_adaptive_eq_run(maxgain_dB, i);
+            if (!eq_output) {
+                printf("aeq forced exit! i=%d", i);
+                audio_adaptive_eq_stop();
+                break;
+            }
             audio_adaptive_eq_cur_list_add(aeq_volume_grade_list[i], eq_output);
             audio_adaptive_eq_stop();
             break;
@@ -868,10 +882,16 @@ static void audio_adaptive_eq_afq_output_hdl(struct audio_afq_output *p)
     for (u8 i = 0; i < vol_list_num; i++) {
         /* maxgain_dB = 0 - audio_adaptive_eq_vol_gain_get(aeq_volume_grade_list[i]); */
         os_time_dly(2); //避免系统跑不过来
+        wdt_clear();
         maxgain_dB = aeq_hdl->thr.max_dB[dot_lvl][i];
-        r_printf("max_dB %d/10, lvl %d\n", (int)(maxgain_dB * 10), aeq_volume_grade_list[i]);
+        aeq_printf("max_dB %d/10, lvl %d\n", (int)(maxgain_dB * 10), aeq_volume_grade_list[i]);
         audio_adaptive_eq_start();
         eq_output = audio_adaptive_eq_run(maxgain_dB, i);
+        if (!eq_output) {
+            printf("aeq forced exit! i=%d", i);
+            audio_adaptive_eq_stop();
+            break;
+        }
         audio_adaptive_eq_cur_list_add(aeq_volume_grade_list[i], eq_output);
         audio_adaptive_eq_stop();
     }
@@ -879,11 +899,16 @@ static void audio_adaptive_eq_afq_output_hdl(struct audio_afq_output *p)
 #else
     audio_adaptive_eq_start();
     eq_output = audio_adaptive_eq_run(ADAPTIVE_EQ_MAXGAIN_DB, 0);
-    audio_adaptive_eq_cur_list_add(0, eq_output);
+    if (eq_output) {
+        audio_adaptive_eq_cur_list_add(0, eq_output);
+    }
     audio_adaptive_eq_stop();
 
 #endif
 
+#if ADAPTIVE_EQ_RUN_TIME_DEBUG
+    aeq_printf("ADAPTIVE EQ RUN time: %d us\n", (int)(jiffies_usec2offset(last, jiffies_usec())));
+#endif
     aeq_hdl->run_busy = 0;
 
 __aeq_close:
@@ -964,7 +989,7 @@ static float audio_adaptive_eq_vol_gain_get(s16 volume)
     if (!ret) {
         struct volume_cfg *vol_cfg = zalloc(info.size);
         if (!jlstream_read_form_cfg_data(&info, (void *)vol_cfg)) {
-            printf("[AEQ]user vol cfg parm read err\n");
+            aeq_printf("[AEQ]user vol cfg parm read err\n");
             free(vol_cfg);
             return 0;
         }
@@ -984,7 +1009,7 @@ static float audio_adaptive_eq_vol_gain_get(s16 volume)
             return vol_db;
         }
     } else {
-        printf("[AEQ]user vol cfg parm read err ret %d\n", ret);
+        aeq_printf("[AEQ]user vol cfg parm read err ret %d\n", ret);
     }
     return 0;
 }

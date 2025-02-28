@@ -303,7 +303,7 @@ int audio_anc_ear_adaptive_open(void)
 {
 
 #if ANC_EAR_ADAPTIVE_CMP_EN
-    audio_anc_ear_adaptive_cmp_open();
+    audio_anc_ear_adaptive_cmp_open(CMP_FROM_ANC_EAR_ADAPTIVE);
 #endif
 
 #if ANC_MULT_ORDER_ENABLE
@@ -1364,7 +1364,7 @@ void anc_ear_adaptive_sz_output(__afq_output *output)
         audio_afq_common_output_post_msg(output);
     }
 #if ANC_EAR_ADAPTIVE_CMP_EN
-    audio_anc_ear_adaptive_cmp_run(output, CMP_FROM_ANC_EAR_ADAPTIVE);
+    audio_anc_ear_adaptive_cmp_run(output);
 #endif
 }
 

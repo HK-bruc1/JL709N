@@ -148,6 +148,7 @@ const struct rt_anc_function RT_ANC_FUNC_t = {
     .sys_timeout_del = sys_timeout_del,
     .rt_anc_post_rttask_cmd = icsd_post_rtanctask_msg,
     .rt_anc_post_anctask_cmd = rt_anc_post_anctask_cmd,
+    .icsd_post_detask_msg = icsd_post_detask_msg,
     .rt_anc_dma_2ch_on = anc_dma_on_double,
     .rt_anc_dma_4ch_on = anc_dma_on_double_4ch,
     .rt_anc_task_create = rt_anc_task_create,
@@ -167,6 +168,7 @@ const struct rt_anc_function RT_ANC_FUNC_t = {
     .get_wind_lvl = icsd_adt_alg_rtanc_get_wind_lvl,
     .get_adjdcc_result = icsd_adt_alg_rtanc_get_adjdcc_result,
     .icsd_self_talk_output = audio_rtanc_self_talk_output,
+    .icsd_adt_rtanc_suspend = icsd_adt_rtanc_suspend,
 };
 struct rt_anc_function *RT_ANC_FUNC = (struct rt_anc_function *)(&RT_ANC_FUNC_t);
 

@@ -100,10 +100,6 @@ void icsd_afq_output(__afq_output *_AFQ_OUT)
         }
     }
     audio_icsd_afq_output(_AFQ_OUT);
-    if (AFQ_FUNC) {
-        free(AFQ_FUNC);
-        AFQ_FUNC = NULL;
-    }
 }
 
 #if ICSD_AFQ_DSF8_DATA_DEBUG

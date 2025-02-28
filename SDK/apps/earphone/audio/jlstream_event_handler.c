@@ -54,23 +54,23 @@ static const struct stream_coexist_policy coexist_policy_table_rewrite[] = {
         .scene_b = STREAM_SCENE_A2DP, .coding_b = AUDIO_CODING_AAC | AUDIO_CODING_SBC,
     },
 #if TCFG_AUDIO_HEARING_AID_ENABLE && !TCFG_AUDIO_DHA_AND_MUSIC_COEXIST
-    [3] = {
+    {
         .scene_a = STREAM_SCENE_A2DP,        .coding_a = 0xffffffff,
         .scene_b = STREAM_SCENE_HEARING_AID, .coding_b = 0xffffffff,
     },
 #endif
 #if TCFG_AUDIO_HEARING_AID_ENABLE && !TCFG_AUDIO_DHA_AND_TONE_COEXIST
-    [4] = {
+    {
         .scene_a = STREAM_SCENE_TONE,        .coding_a = 0xffffffff,
         .scene_b = STREAM_SCENE_HEARING_AID, .coding_b = 0xffffffff,
     },
 #endif
 #if TCFG_AUDIO_HEARING_AID_ENABLE && !TCFG_AUDIO_DHA_AND_CALL_COEXIST
-    [5] = {
+    {
         .scene_a = STREAM_SCENE_ESCO,        .coding_a = 0xffffffff,
         .scene_b = STREAM_SCENE_HEARING_AID, .coding_b = 0xffffffff,
     },
-    [6] = {
+    {
         .scene_a = STREAM_SCENE_RING,        .coding_a = 0xffffffff,
         .scene_b = STREAM_SCENE_HEARING_AID, .coding_b = 0xffffffff,
     },
@@ -203,7 +203,7 @@ static void player_close_handler(const char *name)
     }
 }
 
-#if TCFG_VIRTUAL_SURROUND_PRO_MODULE_NODE_ENABLE
+#if defined(TCFG_HI_RES_AUDIO_ENEBALE) || TCFG_VIRTUAL_SURROUND_PRO_MODULE_NODE_ENABLE
 //调整解码器输出帧长
 static const int frame_unit_size[] = { 64, 128, 256, 384, 512, 1024, 2048, 4096, 8192};
 int decoder_check_frame_unit_size(int dest_len)

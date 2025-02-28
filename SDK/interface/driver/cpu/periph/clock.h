@@ -43,6 +43,8 @@ enum pll_ref_source : u8 {
 #define     SYS_128M    (128 * MHz)
 #define     SYS_160M    (160 * MHz)
 
+#define     SPI0_MAX_CLK        (12 * MHz)
+
 void clock_dump(void);
 void clock_core_voltage_dump();
 
