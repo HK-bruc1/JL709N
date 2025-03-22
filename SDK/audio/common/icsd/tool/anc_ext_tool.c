@@ -666,11 +666,12 @@ void anc_ext_tool_cmd_deal(u8 *data, u16 len, enum ANC_EXT_UART_SEL uart_sel)
     case CMD_EAR_ADAPTIVE_SIGN_TRIM:
         anc_ext_log("CMD_EAR_ADAPTIVE_SIGN_TRIM\n");
         tool_hdl->ear_adaptive.train_mode = EAR_ADAPTIVE_MODE_SIGN_TRIM;
-        if (audio_anc_mode_ear_adaptive(1)) {
-            ret = FALSE;
-            err = ERR_EAR_FAIL;
+        if (!audio_anc_mode_ear_adaptive(1)) {
+            //符号校准完毕后回复命令
+            return;
         }
-        //符号校准完毕后回复命令
+        ret = FALSE;
+        err = ERR_EAR_FAIL;
         break;
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
     case CMD_RTANC_ADAPTIVE_OPEN:

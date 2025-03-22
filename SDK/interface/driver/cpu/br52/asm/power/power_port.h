@@ -90,6 +90,8 @@
 
 #define		MCLR_PORT		IO_PORTC_07
 
+#define		LVD_PORT		IO_PORTB_06
+
 //A B C D F P USB
 #define PORT_TABLE(arg)		u32 gpio_confi##arg[7] = {IO_PORT_PA_MASK, IO_PORT_PB_MASK,IO_PORT_PC_MASK, 0xffff, IO_PORT_PF_MASK, IO_PORT_PP_MASK, IO_PORT_USB_MASK}
 

@@ -227,17 +227,6 @@
 #define BT_CALL_VOL_LEAVE_MAX	15		/*通话音量等级*/
 // #define BT_CALL_VOL_STEP		(-2.0f)	[>通话音量等级衰减步进<]
 
-/*
- *audio state define
- */
-#define APP_AUDIO_STATE_IDLE        0
-#define APP_AUDIO_STATE_MUSIC       1
-#define APP_AUDIO_STATE_CALL        2
-#define APP_AUDIO_STATE_WTONE       3
-#define APP_AUDIO_STATE_KTONE       4
-#define APP_AUDIO_STATE_RING       	5
-#define APP_AUDIO_CURRENT_STATE     6
-
 #define TONE_BGM_FADEOUT            0   //播叠加提示音时是否将背景音淡出
 
 #define VOL_TAB_CUSTOM_EN           1  //使能音量表功能

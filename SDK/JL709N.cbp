@@ -1464,14 +1464,12 @@
 <Unit filename="interface/driver/cpu/br52/asm/mcpwm.h" />
 <Unit filename="interface/driver/cpu/br52/asm/plcnt.h" />
 <Unit filename="interface/driver/cpu/br52/asm/power/p11/lp_ipc.h" />
-<Unit filename="interface/driver/cpu/br52/asm/power/p11/m2p_msg.h" />
 <Unit filename="interface/driver/cpu/br52/asm/power/p11/p11_api.h" />
 <Unit filename="interface/driver/cpu/br52/asm/power/p11/p11_csfr.h" />
 <Unit filename="interface/driver/cpu/br52/asm/power/p11/p11_io_imap.h" />
 <Unit filename="interface/driver/cpu/br52/asm/power/p11/p11_io_omap.h" />
 <Unit filename="interface/driver/cpu/br52/asm/power/p11/p11_mmap.h" />
 <Unit filename="interface/driver/cpu/br52/asm/power/p11/p11_sfr.h" />
-<Unit filename="interface/driver/cpu/br52/asm/power/p11/p2m_msg.h" />
 <Unit filename="interface/driver/cpu/br52/asm/power/p33/charge_hw.h" />
 <Unit filename="interface/driver/cpu/br52/asm/power/p33/p33_access.h" />
 <Unit filename="interface/driver/cpu/br52/asm/power/p33/p33_api.h" />
@@ -1528,6 +1526,7 @@
 <Unit filename="interface/driver/device/usb/usb_phy.h" />
 <Unit filename="interface/driver/power/lib_power_config.h" />
 <Unit filename="interface/driver/power/low_power.h" />
+<Unit filename="interface/driver/power/lp_msg.h" />
 <Unit filename="interface/driver/power/power_app.h" />
 <Unit filename="interface/driver/power/power_manage.h" />
 <Unit filename="interface/driver/power/power_reset.h" />

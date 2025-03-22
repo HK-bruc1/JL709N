@@ -228,5 +228,9 @@ typedef struct _MUTIL_UFW_INFO {
 
 u32 update_target_check(void *fd, void *info);
 
+enum {
+    CONFIG_UPDATE_FEATRUES_CONTENT_COMPARE_EN = 0,
+};
+
 #endif /*_UPDATE_LOADER_DOWNLOAD_H_*/
 

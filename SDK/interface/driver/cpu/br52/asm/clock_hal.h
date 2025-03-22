@@ -129,6 +129,13 @@ void clk_set_osc_cap(u8 sel_l, u8 sel_r);
 u32 clk_get_osc_cap();
 u32 get_btosc_info_for_update(void *info);
 
+void xosc_common_init(u32 lrc_clk, void(*udly)(u32));
+void xosc_set_sys_cfg(u32 sys_hcs, u32 sys_cls, u32 sys_crs);
+
+
+void clock_enter_sleep_prepare();
+void clock_exit_sleep_post();
+
 
 #define CLK_INDEPENDENT_CTL_DCVDD
 void clk_set_vdc_lowest_voltage(u32 vdc_level);

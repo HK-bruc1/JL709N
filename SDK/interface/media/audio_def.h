@@ -32,6 +32,16 @@
 #define  DATA_BIT_WIDE_32BIT_FLOAT  	3
 
 /*
+ *audio state define
+ */
+#define APP_AUDIO_STATE_IDLE        0
+#define APP_AUDIO_STATE_MUSIC       1
+#define APP_AUDIO_STATE_CALL        2
+#define APP_AUDIO_STATE_WTONE       3
+#define APP_AUDIO_STATE_KTONE       4
+#define APP_AUDIO_STATE_RING       	5
+#define APP_AUDIO_CURRENT_STATE     6
+/*
  *******************************************************************
  *						DAC Definitions
  *******************************************************************

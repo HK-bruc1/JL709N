@@ -97,7 +97,7 @@ struct app_audio_config {
     s16 digital_volume;
     u8 analog_volume_l;
     u8 analog_volume_r;
-    s16 max_volume[APP_AUDIO_STATE_WTONE + 1];
+    s16 max_volume[APP_AUDIO_CURRENT_STATE];
     u8 sys_cvol_max;
     u8 call_cvol_max;
     u16 sys_hw_dvol_max;	//系统最大硬件数字音量(非通话模式)
@@ -119,6 +119,8 @@ static const char *audio_state[] = {
     "music",
     "call",
     "tone",
+    "ktone",
+    "ring",
     "err",
 };
 

@@ -1046,6 +1046,10 @@ int bt_tws_connction_status_event_handler(int *msg)
         break;
     case TWS_EVENT_ESCO_ROLE_SWITCH_START:
         r_printf("TWS_EVENT_ESCO_ROLE_SWITCH_START=%d\n", role);
+        u8 *esco_addr1 = lmp_get_esco_link_addr();
+        if (esco_addr1) {
+            bt_phone_esco_play(esco_addr1);
+        }
 #if TCFG_TWS_POWER_BALANCE_ENABLE
         if (role == TWS_ROLE_SLAVE) {
             esco_recoder_switch(1);

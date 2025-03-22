@@ -301,4 +301,5 @@
 
     . = ALIGN(4);
     media_data_code_end = .;
+    media_data_code_size = media_data_code_end - media_data_code_start;
 

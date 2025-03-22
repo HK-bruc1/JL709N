@@ -370,10 +370,12 @@ void audio_anc_mode_ear_adaptive_sync_cb(void *_data, u16 len, bool rx)
 }
 
 #define TWS_FUNC_ID_ANC_EAR_ADAPTIVE_SYNC    TWS_FUNC_ID('A', 'D', 'A', 'P')
+#if TCFG_USER_TWS_ENABLE
 REGISTER_TWS_FUNC_STUB(anc_ear_adaptive_mode_sync) = {
     .func_id = TWS_FUNC_ID_ANC_EAR_ADAPTIVE_SYNC,
     .func    = audio_anc_mode_ear_adaptive_sync_cb,
 };
+#endif
 
 /*自适应模式-重新检测
  * param: tws_sync_en          1 TWS同步自适应，支持TWS降噪平衡，需左右耳一起调用此接口
