@@ -267,6 +267,13 @@ const int voicechanger_effect_v_config = (0
 /*mb limiter 3带使能(1.2k) */
 const int mb_limiter_3band_run_en       = 1;
 
+/*vbass noisegate 参数配置*/
+const int virtualbass_noisegate_attack_time = 50;
+const int virtualbass_noisegate_release_time = 30;
+const int virtualbass_noisegate_hold_time = 15;
+const float virtualbass_noisegate_threshold = -85.0f;
+
+
 __attribute__((weak))
 int get_system_stream_bit_width(void *par)
 {

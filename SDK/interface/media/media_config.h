@@ -73,6 +73,10 @@ extern const int limiter_run_mode;
 extern const int drc_advance_run_mode;
 extern const int drc_run_mode;
 
+extern const int virtualbass_noisegate_attack_time;
+extern const int virtualbass_noisegate_release_time;
+extern const int virtualbass_noisegate_hold_time;
+extern const float virtualbass_noisegate_threshold;
 /*
  *******************************************************************
  *						Audio Codec Configs
