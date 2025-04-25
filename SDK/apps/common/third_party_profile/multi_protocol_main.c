@@ -12,8 +12,15 @@
 #include "gfps_platform_api.h"
 #include "btstack_rcsp_user.h"
 #include "ble_rcsp_server.h"
+#if (THIRD_PARTY_PROTOCOLS_SEL & DMA_EN)
+#include "dma_platform_api.h"
+#endif
 
-#if (THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN)) || ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN | LE_AUDIO_AURACAST_SINK_EN | LE_AUDIO_JL_AURACAST_SINK_EN | LE_AUDIO_AURACAST_SOURCE_EN | LE_AUDIO_JL_AURACAST_SOURCE_EN)))
+#if (THIRD_PARTY_PROTOCOLS_SEL & XIMALAYA_EN)
+#include "xmly_protocol.h"
+#endif
+
+#if (THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN | XIMALAYA_EN)) || ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN | LE_AUDIO_AURACAST_SINK_EN | LE_AUDIO_JL_AURACAST_SINK_EN | LE_AUDIO_AURACAST_SOURCE_EN | LE_AUDIO_JL_AURACAST_SOURCE_EN)))
 
 #define ATT_LOCAL_PAYLOAD_SIZE    (517)//(517)              //note: need >= 20
 #define ATT_SEND_CBUF_SIZE        (512*2)                   //note: need >= 20,缓存大小，可修改
@@ -382,6 +389,10 @@ void multi_protocol_bt_init(void)
 #if (THIRD_PARTY_PROTOCOLS_SEL & CUSTOM_DEMO_EN)
     custom_demo_all_init();
 #endif
+
+#if (THIRD_PARTY_PROTOCOLS_SEL & XIMALAYA_EN)
+    ximalaya_protocol_init();
+#endif
 }
 
 void multi_protocol_bt_exit(void)
@@ -418,6 +429,10 @@ void multi_protocol_bt_exit(void)
 
 #if (THIRD_PARTY_PROTOCOLS_SEL & CUSTOM_DEMO_EN)
     custom_demo_all_exit();
+#endif
+
+#if (THIRD_PARTY_PROTOCOLS_SEL & XIMALAYA_EN)
+    ximalaya_protocol_exit();
 #endif
 
     app_ble_exit();

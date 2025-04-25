@@ -123,6 +123,9 @@ struct dac_platform_data {
     u8 epa_clk_sel;
     u8 epa_dsm_mode;
     u8 epa_pwm_mode;
+    u8 ldo_volt;                //电压：0~3
+    u8 pa_isel0;                //电流：3~5
+    u8 pa_isel1;                //电流：2~6
 };
 
 /*DAC数字相关的变量*/
@@ -214,6 +217,7 @@ struct audio_dac_hdl {
     struct audio_dac_trim trim;
     void (*fade_handler)(u8 left_gain, u8 right_gain);
     void (*update_frame_handler)(u8 channel_num, void *data, u32 len);
+    void (*set_samplerate_callback)(int len);
     u8 avdd_level;
     u8 lpf_i_level;
     volatile u8 mute;
@@ -228,6 +232,7 @@ struct audio_dac_hdl {
     u16 d_volume[2];
     u32 sample_rate;
     u32 digital_gain_limit;
+    u32 output_buf_len;
     u16 start_ms;
     u16 delay_ms;
     u16 start_points;
@@ -244,11 +249,11 @@ struct audio_dac_hdl {
     u8 sound_state;
     unsigned long sound_resume_time;
     s16 *output_buf;
-    u16 output_buf_len;
     u8 *mono_lr_diff_tmp_buf;
 
     u8 anc_dac_open;
 
+    u16 set_analog_gain_timer;
     u8 dac_read_flag;	//AEC可读取DAC参考数据的标志
 
     u8 fifo_state;
@@ -281,6 +286,19 @@ struct audio_dac_hdl {
 	struct list_head sync_list;
 };
 
+enum DAC_PA_MODE{
+	DAC_PA_MODE_DEFAULT,
+	DAC_PA_MODE_CLASSD,
+};
+
+#define DAC_FREE_CRITICAL	0//256	/*dac写fifo的时候预留不可写区间*/
+#define DAC_READ_MAGIC		0xAA55
+struct dac_read_handle {
+    u16 read_pos;
+    u16 cur_dac_hrp;
+    u16 last_dac_hrp;
+    int dac_hrp_diff;
+};
 
 /*
 *********************************************************************
@@ -325,18 +343,6 @@ int audio_dac_do_trim(struct audio_dac_hdl *dac, struct audio_dac_trim *dac_trim
 */
 int audio_dac_set_trim_value(struct audio_dac_hdl *dac, struct audio_dac_trim *dac_trim);
 
-/*
-*********************************************************************
-*              audio_dac_set_delay_time
-* Description: 设置 DAC DMA fifo 的启动延时和最大延时。
-* Arguments  : dac      	dac 句柄
-*              start_ms     启动延时，DAC 开启时候的 DMA fifo 延时
-*              max_ms   	DAC DMA fifo 的最大延时
-* Return	 : 0：成功  -1：失败
-* Note(s)    :
-*********************************************************************
-*/
-int audio_dac_set_delay_time(struct audio_dac_hdl *dac, int start_ms, int max_ms);
 
 /*
 *********************************************************************
@@ -349,18 +355,6 @@ int audio_dac_set_delay_time(struct audio_dac_hdl *dac, int start_ms, int max_ms
 */
 void audio_dac_irq_handler(struct audio_dac_hdl *dac);
 
-/*
-*********************************************************************
-*              audio_dac_set_buff
-* Description: 设置 DAC 的 DMA buff
-* Arguments  : dac      	dac 句柄
-*              buf  		应用层分配的 DMA buff 起始地址
-*              len  		DMA buff 的字节长度
-* Return	 : 0：成功  -1：失败
-* Note(s)    :
-*********************************************************************
-*/
-int audio_dac_set_buff(struct audio_dac_hdl *dac, s16 *buf, int len);
 
 /*
 *********************************************************************
@@ -551,18 +545,6 @@ void audio_dac_set_fade_handler(struct audio_dac_hdl *dac, void *priv, void (*fa
 
 int audio_dac_sound_reset(struct audio_dac_hdl *dac, u32 msecs);
 
-
-/*
-*********************************************************************
-*              audio_dac_set_bit_mode
-* Description: 设置 DAC 的数据位宽
-* Arguments  : dac      		dac 句柄
-*              bit24_mode_en	0:16bit  1:24bit
-* Return	 : 0：成功  -1：失败
-* Note(s)    :
-*********************************************************************
-*/
-int audio_dac_set_bit_mode(struct audio_dac_hdl *dac, u8 bit24_mode_en);
 int audio_dac_get_max_channel(void);
 int audio_dac_get_status(struct audio_dac_hdl *dac);
 
@@ -670,5 +652,10 @@ void audio_dac_digital_mute(struct audio_dac_hdl *dac, u8 mute);
 u8 audio_dac_digital_mute_state(struct audio_dac_hdl *dac);
 
 int audio_dac_noisefloor_optimize_onoff(u8 onoff);
+
+void audio_dac_set_samplerate_callback_add(struct audio_dac_hdl *dac, void (*cb)(int));
+
+void audio_dac_set_samplerate_callback_del(struct audio_dac_hdl *dac, void (*cb)(int));
+
 #endif
 

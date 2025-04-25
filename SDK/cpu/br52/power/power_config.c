@@ -15,6 +15,8 @@
 #define CONFIG_DCDC_TYPE				TCFG_DCDC_TYPE
 #define CONFIG_CHARGE_ENABLE			TCFG_CHARGE_ENABLE
 
+const u32 dvdd_cap_en = TCFG_DVDD_CAP_EN;
+
 //-----------------------------------------------------------------------------------------------------------------------
 /* power_param
  */

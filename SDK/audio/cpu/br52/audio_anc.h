@@ -13,6 +13,11 @@
 #if (TCFG_AUDIO_ANC_EAR_ADAPTIVE_VERSION == ANC_EXT_V2)
 #include "icsd_anc_v2_app.h"
 #endif
+
+#if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
+#include "icsd_cmp_app.h"
+#endif
+
 #include "audio_anc_fade_ctr.h"
 
 /*******************ANC User Config***********************/
@@ -26,6 +31,8 @@
 #define ANC_MODE_EN_MODE_NEXT_SW	1	/*ANC提示音结束后才允许下一次模式切换*/
 #define ANC_MODE_FADE_LVL			1	/*降噪模式淡入步进*/
 #define ANC_LR_LOWPOWER_EN	  	    0	/*ANC立体声省功耗使能, 开启之后ANC可用滤波器数会减少*/
+
+#define ANC_DUT_MIC_CMP_GAIN_ENABLE 1   /*产测补偿ANC MIC增益使能； 仅支持多场景滤波器*/
 
 #if TCFG_AUDIO_DAC_CONNECT_MODE == DAC_OUTPUT_LR
 /*立体声方案*/
@@ -70,7 +77,7 @@
 
 #define ANC_EAR_ADAPTIVE_EN					TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN  /*ANC耳道自适应使能, 耳道是变量，主动触发校准一次性能*/
 #define ANC_POWEOFF_SAVE_ADAPTIVE_DATA		1							    /*保存耳道自适应数据 0 每次保存；1 关机保存*/
-#define ANC_EAR_ADAPTIVE_CMP_EN				ANC_ADAPTIVE_CMP_EN				/*ANC耳道自适应音乐补偿使能*/
+#define ANC_EAR_ADAPTIVE_CMP_EN				TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN	/*ANC耳道自适应音乐补偿使能*/
 #define ANC_EAR_ADAPTIVE_EVERY_TIME			0                           	/*每次切ANC_ON都进行自适应*/
 
 /*
@@ -79,11 +86,6 @@
  */
 #define ANC_ADAPTIVE_EN		    	0						/*ANC增益自适应使能*/
 
-/*
-   实时自适应
-   (佩戴中实时校准ANC性能)
- */
-#define ANC_REAL_TIME_ADAPTIVE_ENABLE				0
 
 #if (TCFG_ANC_MUSIC_ANTI_CLIPPING_MODE == ANC_CLIPPING_MODE_DYNAMIC_ANC_GAIN)
 #define ANC_MUSIC_DYNAMIC_GAIN_EN					1		/*音乐动态ANC增益使能*/
@@ -195,6 +197,7 @@ enum {
     ANC_MSG_MODE_SWITCH_IN_ANCTASK,
     ANC_MSG_COEFF_UPDATE,		//无缝切换滤波器
     ANC_MSG_AFQ_CMD,
+    ANC_MSG_46KOUT_DEMO,
 };
 
 /*ANC MIC动态增益调整状态*/
@@ -369,11 +372,11 @@ void anc_param_fill(u8 cmd, anc_gain_t *cfg);
 /*ANC_DUT audio模块使能函数，用于分离功耗*/
 void audio_anc_dut_enable_set(u8 enablebit);
 
-/*设置fb  mic为复用mic*/
-void audio_anc_mic_mana_fb_mult_set(u8 mult_flag);
+/*设置对应的mic为anc 复用mic, , mic_ch ff:0 ; fb:1*/
+void audio_anc_mic_mult_flag_set(u32 mic_ch, u8 mult_flag);
 
-/*获取fb mic复用MIC标志，左右耳有一个复用则认为被复用*/
-u8 audio_anc_mic_mana_fb_mult_get(void);
+/*获取对应的mic是否为anc 复用mic，左右耳有一个复用则认为被复用, , mic_ch ff:0 ; fb:1*/
+u8 audio_anc_mic_mult_flag_get(u32 mic_ch);
 
 void audio_anc_post_msg_music_dyn_gain(void);
 
@@ -438,7 +441,6 @@ u8 get_anc_l_transyorder();
 void *get_anc_ltrans_fb_coeff();
 float get_anc_gains_lfb_transgain();
 u8 get_anc_lfb_transyorder();
-void set_anc_adt_state(u8 state);
 int anc_mode_change_tool(u8 dat);
 
 /*获取ANC alogm参数，type 滤波器类型 */
@@ -466,5 +468,6 @@ void audio_anc_coeff_smooth_update(void);
  */
 void audio_anc_param_reset(u8 fade_en);
 
+void audio_anc_howldet_fade_set(u16 gain);
 
 #endif/*AUDIO_ANC_H*/

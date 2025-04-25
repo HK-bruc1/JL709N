@@ -84,23 +84,8 @@ typedef enum {
     ANC_R_TRANS_PARM = 0x1D,     //右通透参数ID
 
     //OTHER
-    ANC_L_ADAP_FRE = 0x20,
-    ANC_L_ADAP_PZ = 0x21,
-    ANC_L_ADAP_SZPZ = 0x22,
-    ANC_L_ADAP_TARGET = 0x23,
     ANC_L_ADAP_GOLD_CURVE = 0x24,//自适应金机曲线
-    ANC_L_ADAP_TARGET_CMP = 0x25,
-    ANC_L_ADAP_TARGET_BEFORE_CMP = 0x26,
-    ANC_L_ADAP_CMP_FORM_TRAIN = 0x27,
-
-    ANC_R_ADAP_FRE = 0x30,
-    ANC_R_ADAP_PZ = 0x31,
-    ANC_R_ADAP_SZPZ = 0x32,
-    ANC_R_ADAP_TARGET = 0x33,
     ANC_R_ADAP_GOLD_CURVE = 0x34,
-    ANC_R_ADAP_TARGET_CMP = 0x35,
-    ANC_R_ADAP_TARGET_BEFORE_CMP = 0x36,
-    ANC_R_ADAP_CMP_FORM_TRAIN = 0x37,
 
 } ANC_config_seg_id_t;
 
@@ -488,6 +473,14 @@ typedef struct {
     // u8 reserve[236 - 176];	//工具端说明大小
 } anc_gain_t;
 
+struct anc_mic_gain_cmp_cfg {
+    u8 en;	  			//MIC 补偿值使能控制  range 0-1;	   default 0;
+    float lff_gain;		//ANCL FFmic 补偿增益(产测使用), range 0.0316(-30dB) - 31.622(+30dB); default 1.0(0dB)
+    float lfb_gain;		//ANCL FBmic 补偿增益(产测使用), range 0.0316(-30dB) - 31.622(+30dB); default 1.0(0dB)
+    float rff_gain;		//ANCR FFmic 补偿增益(产测使用), range 0.0316(-30dB) - 31.622(+30dB); default 1.0(0dB)
+    float rfb_gain;		//ANCR FBmic 补偿增益(产测使用), range 0.0316(-30dB) - 31.622(+30dB); default 1.0(0dB)
+};
+
 //ANC param主要结构
 typedef struct {
     u8 start;                       //ANC状态
@@ -584,6 +577,8 @@ typedef struct {
     anc_ear_adaptive_param_t *adaptive;
     anc_adt_param_t *adt;
     struct anc_sz_fft_t sz_fft;
+    struct anc_mic_gain_cmp_cfg mic_cmp;
+
     void (*train_callback)(u8, u8);
     void (*pow_callback)(anc_ack_msg_t *msg_t, u8 setp);
     int (*cfg_online_deal_cb)(u8, anc_gain_t *);
@@ -592,7 +587,6 @@ typedef struct {
     void (*biquad2ab)(float gain, float f, float fs, float q, double *a0, double *a1, double *a2, double *b0, double *b1, double *b2, u8 type);
     void (*mult_gain_set)(u8 gain_id, void *buf, int len);
 
-    u8 adt_state;//智能免摘开启状态
 } audio_anc_t;
 
 //ANC场景自适应相关结构体
@@ -947,5 +941,7 @@ void audio_anc_dma_add_output_handler(const char *name, void (*output)(void));
 
 /* 删除ANC DMA输出回调函数 */
 void audio_anc_dma_del_output_handler(const char *name);
+
+void audio_anc_biquad2ab_double(anc_fr_t *iir, double *out_coeff, u8 order, int alogm);
 
 #endif/*_ANC_H_*/

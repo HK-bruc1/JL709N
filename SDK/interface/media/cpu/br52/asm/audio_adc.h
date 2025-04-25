@@ -180,7 +180,7 @@ struct audio_adc_hdl {
     u8 adc_sel[AUDIO_ADC_MAX_NUM];
     u8 adc_dcc[AUDIO_ADC_MAX_NUM];
     u8 adc_dcc_en[AUDIO_ADC_MAX_NUM];
-    struct mic_open_param mic_param[AUDIO_ADC_MAX_NUM];
+    struct mic_open_param mic_param[AUDIO_ADC_MIC_MAX_NUM];
     struct linein_open_param linein_param[AUDIO_ADC_MAX_NUM];
     u8 mic_ldo_state;
     u8 state;
@@ -195,6 +195,7 @@ struct audio_adc_hdl {
     u8 lpadc_en;
     u8 plnk_en;
     u8 analog_common_inited;
+    u8 micbias_en_port[AUDIO_ADC_MAX_NUM]; //记录各个MIC使用的供电来源
 };
 
 struct adc_mic_ch {
@@ -360,7 +361,7 @@ int audio_adc_mic_start(struct adc_mic_ch *mic);
 *********************************************************************
 */
 int audio_adc_mic_close(struct adc_mic_ch *mic);
-int audio_adc_mic1_close(struct adc_mic_ch *mic);
+int audio_adc_mic_ch_close(struct adc_mic_ch *mic, u8 adc_ch);
 
 /*
    *********************************************************************

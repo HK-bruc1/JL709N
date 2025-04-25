@@ -13,6 +13,8 @@
 
 #define CHG_TRICKLE_EN(en)          p33_fast_access(P3_CHG_CON0, BIT(3), en)
 
+#define IS_TRICKLE_EN()             ((P33_CON_GET(P3_CHG_CON0) & BIT(3)) ? 1: 0 )
+
 #define CHG_CCLOOP_EN(en)           p33_fast_access(P3_CHG_CON0, BIT(4), en)
 
 #define CHG_VILOOP_EN(en)           p33_fast_access(P3_CHG_CON0, BIT(5), en)
@@ -27,6 +29,7 @@
 #define CHARGE_mA_SEL(a)			P33_CON_SET(P3_CHG_CON1, 0, 8, a); \
 									P33_CON_SET(P3_CHG_CON2, 0, 2, (a & 0x0300) >> 8)
 
+#define CHARGE_mA_GET()            (P33_CON_GET(P3_CHG_CON1) | ((P33_CON_GET(P3_CHG_CON2) & 0x3) << 8))
 /************************P3_CHG_CON2*****************************/
 enum {
     CHARGE_SELECT_CHG_FULL,
@@ -52,6 +55,8 @@ enum {
 #define CHGI_TRIM_SEL(a)            P33_CON_SET(P3_CHG_CON4, 0, 4, a)
 
 #define CHGV_VREF_SEL(a)        	P33_CON_SET(P3_CHG_CON4, 4, 3, a)
+
+#define CHGV_VREF_GET()             ((P33_CON_GET(P3_CHG_CON4) & 0x70) >> 4)
 
 /************************P3_L5V_CON0*****************************/
 #define L5V_IO_MODE(a)              p33_fast_access(P3_VPWR_CON0, BIT(2), a)

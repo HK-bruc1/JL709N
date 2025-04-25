@@ -9,6 +9,7 @@
 #include "AudioEffect_DataType.h"
 #include "media/framework/include/jlstream.h"
 #include "media_memory.h"
+#include "media/audio_general.h"
 
 #define TOOL_CTRL_BYPASS  	(0 << 4)
 #define USER_CTRL_BYPASS  	(1 << 4)
@@ -92,6 +93,7 @@ struct group_param {
 #define EFF_CRC_CMD       (0x504)//stream.bin crc校验命令
 #define EFF_FORM_CMD      (0x506)//表单节点获取当前值命令
 #define EFF_ONLINE_CMD    (0x507)//检查需要在线调试的节点
+#define EFF_DNSFB_COEFF_CMD    (0x509)//更新DNSFB_coeff eq命令
 
 #define EFF_NODE_MERGE_UPDATE          BIT(0)
 #define EFF_MANUAL_ADJ_NODE            BIT(1)
@@ -213,7 +215,15 @@ int jlstream_read_effects_online_param(u32 uuid, char *name, void *param, u16 le
  *小机主动往上位机发数据接口
  * */
 void eff_node_send_packet(u32 id, u8 sq, u8 *packet, int size);
+/*
+ *name_son:子节点名字
+ *name_father:父节点名字
+ *name_out:计算得到节点的实际名字 16byte
+ * */
+void jlstream_module_node_get_name(char *name_son, char *name_father, char *name_out);
 
-u32 jlstream_read_jbhash(u8 *data, int len);
-void jlstream_node_name_to_uuid(char *name, char *out);
+/*
+ *获取流程图中节点数据
+ * */
+int jlstream_read_pipeline_data(u16 pipeline, u8 **pipeline_data);
 #endif/*__EFFECTS_ADJ__H*/

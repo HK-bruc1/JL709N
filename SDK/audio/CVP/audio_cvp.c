@@ -102,6 +102,25 @@ const u8 CONST_DNS_SNR_EST = 0;
 /* DNS后处理 */
 const u8 CONST_DNS_POST_ENHANCE = 0;
 
+/*
+ *SMS DNS版本配置
+ *SMS_DNS_V100:第一版dns降噪算法，拆分aec nlp dns模块
+ *SMS_DNS_V200:第二版dns回音消除算法，集成aec nlp dns模块
+ */
+#if (TCFG_AUDIO_CVP_NS_MODE == CVP_DNS_MODE) && (defined TCFG_AUDIO_SMS_DNS_VERSION) && (TCFG_AUDIO_SMS_DNS_VERSION == SMS_DNS_V200)
+const u8 CONST_SMS_DNS_VERSION = SMS_DNS_V200;
+#else
+const u8 CONST_SMS_DNS_VERSION = SMS_DNS_V100;
+#endif
+
+/*
+ * 非线性压制模式选择
+ * JLSP_NLP_MODE1: 模式1为单独的NLP回声抑制，回声压制会偏过，该模式下NLP模块可以单独开启
+ * JLSP_NLP_MODE2: 模式2下回声信号会先经过AEC线性压制，然后进行NLP非线性压制
+ *                 此模式NLP不能单独打开需要同时打开AEC,使用AEC模块压制不够时，建议开启该模式
+ */
+const u8 CONST_JLSP_NLP_MODE = JLSP_NLP_MODE1;
+
 //*******************************DNS配置 end**************************************//
 
 /*Splittingfilter模式：0 or 1
@@ -425,7 +444,7 @@ static void audio_aec_param_init(struct aec_s_attr *p)
         p->DNS_highGain = 2.5f; /*EQ强度, 范围：1.0f~3.5f,越大越强*/
         p->DNS_rbRate = 0.3f;   /*混响强度，范围：0~0.9f,越大越强*/
 
-        p->ANS_NoiseLevel = db2mag((int)(75.0f * (1 << 8)), 8, 23);//初始噪声水平
+        p->ANS_NoiseLevel = db2mag((int)(-75.0f * (1 << 8)), 8, 23);//初始噪声水平
     }
     p->ANS_mode = 1;
     p->wn_gain = 331;
@@ -439,6 +458,13 @@ static void audio_aec_param_init(struct aec_s_attr *p)
     p->aec_tail_length = AEC_TAIL_LENGTH;
     p->ES_OverSuppressThr = 0.02f;
     p->ES_OverSuppress = 2.f;
+
+    if (CONST_SMS_DNS_VERSION == SMS_DNS_V200) {
+        p->AEC_Process_MaxFrequency = 8000;
+        p->AEC_Process_MinFrequency = 0;
+        p->NLP_Process_MaxFrequency = 8000;
+        p->NLP_Process_MinFrequency = 0;
+    }
     /* aec_param_dump(p); */
 }
 

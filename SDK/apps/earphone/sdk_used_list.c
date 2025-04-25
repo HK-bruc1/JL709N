@@ -468,3 +468,25 @@ vocal_remover_node_adapter
 #if TCFG_NOISEGATE_PRO_NODE_ENABLE
 noisegate_pro_node_adapter
 #endif
+
+#if TCFG_SPLIT_GAIN_NODE_ENABLE
+split_gain_node_adapter
+#endif
+
+#if TCFG_DEC_SPEEX_ENABLE
+speex_dec_plug
+#endif
+
+#if TCFG_ENC_SPEEX_ENABLE
+speex_encoder_plug
+#endif
+
+#if TCFG_VIRTUAL_BASS_CLASSIC_NODE_ENABLE
+virtual_bass_classic_node_adapter
+#endif
+
+#if TCFG_VIRTUAL_SURROUND_PRO_NODE_ENABLE
+upmix_node_adapter
+#endif
+
+

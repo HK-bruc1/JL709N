@@ -12,6 +12,7 @@ struct pcm_delay_update_parm {
     float ch1_delay;
     float ch2_delay;
     float ch3_delay;
+    float max_delay;
 };
 
 struct pcm_delay_open_parm {

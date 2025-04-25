@@ -19,6 +19,8 @@
 
 #define LE_AUDIO_TX_TEST        0
 
+#define LE_AUDIO_RX_BUF_MIN_SIZE    (2 * 1024) /*提供一个最小缓冲值，用于兼容小帧长的缓冲*/
+
 struct le_audio_stream_buf {
     void *addr;
     int size;
@@ -324,6 +326,9 @@ void *le_audio_stream_rx_open(void *le_audio, int coding_type)
     int iso_interval_len = (ctx->fmt.isoIntervalUs / 100 / ctx->fmt.frame_dms) * frame_size;
     /*如果存在flush timeout，那么缓冲需要大于flush timeout的数量*/
     rx_stream->frames_max_size = iso_interval_len * (ctx->fmt.flush_timeout ? (ctx->fmt.flush_timeout + 5) : 10);
+    if (rx_stream->frames_max_size < LE_AUDIO_RX_BUF_MIN_SIZE) {
+        rx_stream->frames_max_size = LE_AUDIO_RX_BUF_MIN_SIZE;
+    }
     rx_stream->buf.size = rx_stream->frames_max_size;
     rx_stream->buf.addr = malloc(rx_stream->frames_max_size);
     rx_stream->sdu_period_len = iso_interval_len;
@@ -435,8 +440,15 @@ int le_audio_stream_rx_frame(void *stream, void *data, int len, u32 timestamp)
 
     if (rx_stream->frames_len + len > rx_stream->frames_max_size) {
         /*printf("frame no buffer.\n");*/
+        spin_lock(&ctx->lock);
+        if (!list_empty(&rx_stream->frames)) {
+            frame = list_first_entry(&rx_stream->frames, struct le_audio_frame, entry);
+            list_del(&frame->entry);
+            rx_stream->frames_len -= frame->len;
+            free(frame);
+        }
+        spin_unlock(&ctx->lock);
         putchar('H');
-        return 0;
     }
     frame = malloc(sizeof(struct le_audio_frame) + len);
     if (!frame) {

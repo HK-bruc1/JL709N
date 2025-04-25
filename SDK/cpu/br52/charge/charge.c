@@ -16,6 +16,13 @@
 #include "clock.h"
 #include "app_config.h"
 #include "spinlock.h"
+#if TCFG_CHARGE_CALIBRATION_ENABLE
+#include "asm/charge_calibration.h"
+#endif
+#if TCFG_BURNER_CURRENT_CALIBRATION
+#include "device/inside_flash.h"
+#include "syscfg_id.h"
+#endif
 
 #define LOG_TAG_CONST   CHARGE
 #define LOG_TAG         "[CHARGE]"
@@ -39,6 +46,20 @@ typedef struct _CHARGE_VAR {
     u16 cc_timer;      //涓流切恒流的usr timer
     u16 charge_follow_timer;
 } CHARGE_VAR;
+
+#if TCFG_BURNER_CURRENT_CALIBRATION
+struct cali_current_item {
+    u16 chgia;
+    u16 chgib;
+    u16 curra;
+    u16 currb;
+};
+
+struct cali_current_info {
+    float offset;
+    float k;
+};
+#endif
 
 #define __this 	(&charge_var)
 static CHARGE_VAR charge_var;
@@ -98,9 +119,6 @@ static spinlock_t ldo5v_lock;
 #define GET_VBTCH_AWKUP_CLK_SET()  (P33_CON_GET(P3_AWKUP_CLK_SEL) & 0x03)
 
 extern void charge_event_to_user(u8 event);
-extern u16 efuse_get_vbat_trim();
-extern u16 efuse_get_vbat_trim_4p35(void);
-extern u16 efuse_get_charge_cur_trim(void);
 
 #if (!CHARGE_VILOOP2_ENABLE)
 static u8 vbat_port_wakeup_edge = 0;
@@ -255,8 +273,11 @@ u8 get_ldo5v_pulldown_res(void)
 
 static void charge_cc_check(void *priv)
 {
-    if ((adc_get_voltage(AD_CH_PMU_VBAT) * 4 / 10) > CHARGE_CCVOL_V) {
+    if ((gpadc_battery_get_voltage() / 10) > CHARGE_CCVOL_V) {
         set_charge_mA(__this->data->charge_mA);
+#if TCFG_CHARGE_CALIBRATION_ENABLE
+        charge_enter_calibration_mode();
+#endif
         usr_timer_del(__this->cc_timer);
 #if (!CHARGE_VILOOP2_ENABLE)
         if (!__this->charge_follow_timer) {
@@ -285,7 +306,7 @@ void charge_start(void)
     }
 #endif
     //进入恒流充电之后,才开启充满检测
-    if ((adc_get_voltage(AD_CH_PMU_VBAT) * 4 / 10) > CHARGE_CCVOL_V) {
+    if ((gpadc_battery_get_voltage() / 10) > CHARGE_CCVOL_V) {
         set_charge_mA(__this->data->charge_mA);
         p33_io_wakeup_enable(IO_CHGFL_DET, 1);
 #if (!CHARGE_VILOOP2_ENABLE)
@@ -294,6 +315,10 @@ void charge_start(void)
         }
 #endif
         check_full = 1;
+#if TCFG_CHARGE_CALIBRATION_ENABLE
+        charge_enter_calibration_mode();
+#endif
+
     } else {
         //涓流阶段系统不进入低功耗,防止电池电量更新过慢导致涓流切恒流时间过长
         set_charge_mA(__this->data->charge_trickle_mA);
@@ -357,7 +382,7 @@ static void charge_full_detect(void *priv)
         if (CHARGE_FULL_FLAG_GET() && LVCMP_DET_GET()) {
             log_char('1');
 
-            vbat_vol = adc_get_voltage(AD_CH_PMU_VBAT) * 4;
+            vbat_vol = gpadc_battery_get_voltage();
             //判断电池电压不小于满电电压-100mV
             if (vbat_vol < CHARGE_FULL_VBAT_MIN_VOLTAGE) {
                 charge_full_cnt = 0;
@@ -526,38 +551,75 @@ u16 get_charge_mA_config(void)
     return __this->data->charge_mA;
 }
 
+u16 get_charge_current_value(void)
+{
+    u16 charge_curr;
+    if (IS_TRICKLE_EN()) {
+        charge_curr = ((float)(1.16f + 0.01f * CHGV_VREF_GET()) * 0.0146484f * (CHARGE_mA_GET() + 1));
+    } else {
+        charge_curr = ((float)(1.16f + 0.01f * CHGV_VREF_GET()) * 0.146484f * (CHARGE_mA_GET() + 1));
+    }
+    return charge_curr;
+}
+
 void set_charge_mA(u16 charge_mA)
 {
-    u8 vref, type;
-    u16 chgi, temp;
+    u8 type;
+    u16 chgi;
+    u16 min_chgi;
+    float temp, min_div;
 
     type = (charge_mA & TRICKLE_EN_FLAG) ? 1 : 0;
     charge_mA &= ~TRICKLE_EN_FLAG;
     log_info("charge_mA: %d, type: %d", charge_mA, type);
-
-    for (vref = 0; vref < 8; vref++) {
-        for (chgi = 0; chgi < 1024; chgi++) {
-            if (type) {
-                temp = (float)(1.16f + 0.01f * vref) * 0.0146484f * (chgi + 1);
-            } else {
-                temp = (float)(1.16f + 0.01f * vref) * 0.146484f * (chgi + 1);
-            }
-            if (!((temp > charge_mA) ? (temp - charge_mA) : (charge_mA - temp))) {
-                log_info("chgi check success!");
-                goto _check_end;
-            }
+    if (((charge_mA < 15) && (type == 0)) || ((charge_mA < 2) && (type == 1))) {
+        if (type) {
+            ASSERT(0, "Trickle_charge_mA cann't < 2mA");
+        } else {
+            ASSERT(0, "Constant_charge_mA cann't < 15mA");
         }
     }
+    min_chgi = 0;
+    min_div = 2000.0f;
+    for (chgi = 0; chgi < 1024; chgi++) {
+        if (type) {
+            temp = 1.20f * 0.0146484f * (float)(chgi + 1);
+        } else {
+            temp = 1.20f * 0.146484f * (float)(chgi + 1);
+        }
 
-    //没有找到对应的电流则设置为最大档
-    vref = 7;
-    chgi = 1023;
-    log_info("chgi check fail! set max level!");
+        if (temp >= (float)charge_mA) {
+            temp = temp - (float)charge_mA;
+        } else {
+            temp = (float)charge_mA - temp;
+        }
+        if (min_div > temp) {
+            min_div = temp;
+            min_chgi = chgi;
+        }
+    }
+#if TCFG_BURNER_CURRENT_CALIBRATION
+    int cali_len;
+    struct cali_current_item item;
+    struct cali_current_info cali_info;
+    memset(&cali_info, 0, sizeof(cali_info));
+    cali_len = syscfg_read_otp(CFG_CONSTANT_CURRENT_CALI, (u8 *)&item, sizeof(struct cali_current_item));
+    if (cali_len == sizeof(struct cali_current_item) && (type == 0)) {
+        cali_info.k = ((float)(item.currb - item.curra) / (float)(item.chgib - item.chgia)) / 100.0f;
+        if (cali_info.k >= 0) {
+            cali_info.offset = (item.curra - cali_info.k * item.chgia * 100.0f) / 100.0f;
+            if ((float)charge_mA >= cali_info.offset) {
+                min_chgi = ((float)charge_mA - cali_info.offset) / cali_info.k;
+            }
+        }
+        log_info("len:%d k:%d/10000 chgia:%d chgib:%d curra:%d currb:%d", cali_len, (u32)(cali_info.k * 10000), item.chgia, item.chgib, item.curra, item.currb);
+    }
 
-_check_end:
-    log_info("vref: %d, chgi: %d", vref, chgi);
-    CHGV_VREF_SEL(vref);
-    CHARGE_mA_SEL(chgi);
+#endif
+
+    log_info("chgi: %d", min_chgi);
+    CHGV_VREF_SEL(0x4);
+    CHARGE_mA_SEL(min_chgi);
     CHG_TRICKLE_EN(type);
 }
 
@@ -574,23 +636,19 @@ static void charge_config(void)
     u8 charge_full_v_val = 0;
     u8 charge_curr_trim;
     //判断是用高压档还是低压档
-    if (__this->data->charge_full_V < CHARGE_FULL_V_4237) {
+    if (__this->data->charge_full_V <= CHARGE_FULL_V_MIN_4340) {
         CHG_HV_MODE(0);
         charge_trim_val = efuse_get_vbat_trim();//4.20V对应的trim出来的实际档位
-        if (charge_trim_val == 0xf) {
-            log_info("vbat low not trim, use default config!!!!!!");
-            charge_trim_val = CHARGE_FULL_V_4199;
-        }
         log_info("low charge_trim_val = %d\n", charge_trim_val);
-        if (__this->data->charge_full_V >= CHARGE_FULL_V_4199) {
-            offset = __this->data->charge_full_V - CHARGE_FULL_V_4199;
+        if (__this->data->charge_full_V >= CHARGE_FULL_V_MIN_4200) {
+            offset = __this->data->charge_full_V - CHARGE_FULL_V_MIN_4200;
             charge_full_v_val = charge_trim_val + offset;
             if (charge_full_v_val > 0xf) {
                 charge_full_v_val = 0xf;
             }
             __this->full_voltage = 4200 + (charge_full_v_val - charge_trim_val) * 20;
         } else {
-            offset = CHARGE_FULL_V_4199 - __this->data->charge_full_V;
+            offset = CHARGE_FULL_V_MIN_4200 - __this->data->charge_full_V;
             if (charge_trim_val >= offset) {
                 charge_full_v_val = charge_trim_val - offset;
             } else {
@@ -600,27 +658,23 @@ static void charge_config(void)
         }
     } else {
         CHG_HV_MODE(1);
-        charge_trim_val = efuse_get_vbat_trim_4p35();//4.35V对应的trim出来的实际档位
-        if (charge_trim_val == 0xf) {
-            log_info("vbat high not trim, use default config!!!!!!");
-            charge_trim_val = CHARGE_FULL_V_4354 - 16;
-        }
+        charge_trim_val = efuse_get_vbat_trim_4p40();//4.40V对应的trim出来的实际档位
         log_info("high charge_trim_val = %d\n", charge_trim_val);
-        if (__this->data->charge_full_V >= CHARGE_FULL_V_4354) {
-            offset = __this->data->charge_full_V - CHARGE_FULL_V_4354;
+        if (__this->data->charge_full_V >= CHARGE_FULL_V_MAX_4400) {
+            offset = __this->data->charge_full_V - CHARGE_FULL_V_MAX_4400;
             charge_full_v_val = charge_trim_val + offset;
             if (charge_full_v_val > 0xf) {
                 charge_full_v_val = 0xf;
             }
-            __this->full_voltage = 4350 + (charge_full_v_val - charge_trim_val) * 20;
+            __this->full_voltage = 4400 + (charge_full_v_val - charge_trim_val) * 20;
         } else {
-            offset = CHARGE_FULL_V_4354 - __this->data->charge_full_V;
+            offset = CHARGE_FULL_V_MAX_4400 - __this->data->charge_full_V;
             if (charge_trim_val >= offset) {
                 charge_full_v_val = charge_trim_val - offset;
             } else {
                 charge_full_v_val = 0;
             }
-            __this->full_voltage = 4350 - (charge_trim_val - charge_full_v_val) * 20;
+            __this->full_voltage = 4400 - (charge_trim_val - charge_full_v_val) * 20;
         }
     }
     log_info("charge_full_v_val = %d\n", charge_full_v_val);
@@ -628,10 +682,6 @@ static void charge_config(void)
 
     //电流校准
     charge_curr_trim = efuse_get_charge_cur_trim();
-    if (charge_curr_trim == 0xf) {
-        log_info("charge curr not trim, use default config!!!!!!");
-        charge_curr_trim = 8;
-    }
     log_info("charge curr set value = %d\n", charge_curr_trim);
 
     CHGI_TRIM_SEL(charge_curr_trim);

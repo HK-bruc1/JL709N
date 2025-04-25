@@ -10,8 +10,37 @@
 #ifndef _AUDIO_DEF_H_
 #define _AUDIO_DEF_H_
 
+/*
+ *******************************************************************
+ *						Audio Common Definitions
+ *******************************************************************
+ */
+//Audio I/O Mode
+#define AUDIO_IO_SINGLE_ENDED			0	//单端:Single-Ended
+#define AUDIO_IO_DIFFERENTIAL			1	//差分:Differential
 
+//Volume Mode
+#define  VOL_TYPE_DIGITAL				0	//软件数字音量
+#define  VOL_TYPE_ANALOG				1	//硬件模拟音量
+#define  VOL_TYPE_AD					2	//联合音量(模拟数字混合调节)
+#define  VOL_TYPE_DIGITAL_HW			3  	//硬件数字音量
 
+//数据位宽定义
+#define  DATA_BIT_WIDE_16BIT  			0
+#define  DATA_BIT_WIDE_24BIT  			1
+#define  DATA_BIT_WIDE_32BIT  			2
+#define  DATA_BIT_WIDE_32BIT_FLOAT  	3
+
+/*
+ *audio state define
+ */
+#define APP_AUDIO_STATE_IDLE        0
+#define APP_AUDIO_STATE_MUSIC       1
+#define APP_AUDIO_STATE_CALL        2
+#define APP_AUDIO_STATE_WTONE       3
+#define APP_AUDIO_STATE_KTONE       4
+#define APP_AUDIO_STATE_RING       	5
+#define APP_AUDIO_CURRENT_STATE     6
 /*
  *******************************************************************
  *						DAC Definitions
@@ -57,6 +86,20 @@
 #define EPA_PWM_MODE0                      (0)
 #define EPA_PWM_MODE1                      (1)
 #define EPA_PWM_MODE2                      (2)
+/*
+ *******************************************************************
+ *						PDM Definitions
+ *******************************************************************
+ */
+//PDM Version definitions
+#define AUDIO_PDM_V1						(1UL << 0)
+#define AUDIO_PDM_V2						(1UL << 1)
+
+#define AUDIO_PDM_MIC_0						(1UL << 0)
+#define AUDIO_PDM_MIC_1                     (1UL << 1)
+#define AUDIO_PDM_MIC_2                     (1UL << 2)
+#define AUDIO_PDM_MIC_3                     (1UL << 3)
+
 /*
  *******************************************************************
  *						Analog Aux Definitions
@@ -204,20 +247,19 @@
 
 /*
  *******************************************************************
- *						Common Definitions
+ *						Effect Definitions
  *******************************************************************
  */
-#define  VOL_TYPE_DIGITAL			0	//软件数字音量
-#define  VOL_TYPE_ANALOG			1	//硬件模拟音量
-#define  VOL_TYPE_AD				2	//联合音量(模拟数字混合调节)
-#define  VOL_TYPE_DIGITAL_HW		3  	//硬件数字音量
-
-//数据位宽定义
-#define  DATA_BIT_WIDE_16BIT  			0
-#define  DATA_BIT_WIDE_24BIT  			1
-#define  DATA_BIT_WIDE_32BIT  			2
-#define  DATA_BIT_WIDE_32BIT_FLOAT  	3
-
-
+//算法输入输出位宽使能位定义
+#define  EFx_BW_UNUSED 	                    (0)
+#define  EFx_BW_16t16 	                    (1UL << (0))
+#define  EFx_BW_16t32		                (1UL << (1))
+#define  EFx_BW_32t16		                (1UL << (2))
+#define  EFx_BW_32t32		                (1UL << (3))
+#define  EFx_PRECISION_NOR                  (1UL << (4)) //precision(精度为高 普通 最低使能)
+#define  EFx_PRECISION_PRO                  (1UL << (5)) //precision+(精度为最高使能)
+//Limiter精度使能位定义
+#define  LIMITER_PRECISION_HIGH_NORMAL_LOW  EFx_PRECISION_NOR//高、普通、最低
+#define  LIMITER_PRECISION_MAX              EFx_PRECISION_PRO //最高
 
 #endif/*_AUDIO_DEF_H_*/

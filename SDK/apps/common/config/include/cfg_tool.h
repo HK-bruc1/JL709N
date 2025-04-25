@@ -47,6 +47,11 @@
 #define CFG_EFFECT_CFG_FILEID	0x00000002
 #define CFG_EFFECT_CFG_FILE		FLASH_RES_PATH"effect_cfg.bin"
 
+/*可视化配置工具DNSFB_Coeff.bin文件所属文件ID为4*/
+#define CFG_DNSFB_COEFF_FILEID	0x00000004
+#define CFG_DNSFB_COEFF_FILE    FLASH_RES_PATH"DNSFB_Coeff.bin"
+#define CFG_DNSTALK_COEFF_FILE  FLASH_RES_PATH"DNSTK_Coeff.bin"
+
 #define CFG_TOOL_READ_LIT_U16(a)   (*((u8*)(a))  + (*((u8*)(a)+1)<<8))
 #define CFG_TOOL_WRITE_LIT_U16(a,src)   {*((u8*)(a)+1) = (u8)(src>>8); *((u8*)(a)+0) = (u8)(src&0xff); }
 
@@ -207,8 +212,10 @@ typedef struct {
  *
  *	@param buf 数据
  *	@param rlen 接收数据长度
+ *
+ *	@result 0:success 非0:fail
  */
-void cfg_tool_combine_rx_data(u8 *buf, u32 rlen);
+u8 cfg_tool_combine_rx_data(u8 *buf, u32 rlen);
 
 /* --------------------------------------------------------------------------*/
 /**

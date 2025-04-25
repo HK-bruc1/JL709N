@@ -7,7 +7,7 @@
 //-------------------------------------------------------------------
 /*config
  */
-#define CONFIG_UART_DEBUG_ENABLE	CONFIG_DEBUG_ENABLE
+#define CONFIG_UART_DEBUG_ENABLE    (CONFIG_DEBUG_ENABLE || CONFIG_DEBUG_LITE_ENABLE)
 #ifdef TCFG_DEBUG_UART_TX_PIN
 #define CONFIG_UART_DEBUG_PORT		TCFG_DEBUG_UART_TX_PIN
 #else
@@ -98,7 +98,7 @@ void power_early_flowing()
     // 默认关闭长按复位0，由key_driver配置
     gpio_longpress_pin0_reset_config(IO_PORTA_03, 0, 0, 1, 1);
     //长按复位1默认配置8s，写保护
-    gpio_longpress_pin1_reset_config(IO_LDOIN_DET, 0, 0, 1);//临时关闭 by IC :luochangen
+    gpio_longpress_pin1_reset_config(IO_LDOIN_DET, 1, 8, 1);
 
 #if CONFIG_UART_DEBUG_ENABLE
     PORT_PROTECT(CONFIG_UART_DEBUG_PORT);

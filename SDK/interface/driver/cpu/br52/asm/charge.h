@@ -6,40 +6,40 @@
 
 /*------充满电电压选择 4.041V-4.534V-------*/
 //低压压电池配置0~15
-#define CHARGE_FULL_V_4041		0
-#define CHARGE_FULL_V_4061		1
-#define CHARGE_FULL_V_4081		2
-#define CHARGE_FULL_V_4101		3
-#define CHARGE_FULL_V_4119		4
-#define CHARGE_FULL_V_4139		5
-#define CHARGE_FULL_V_4159		6
-#define CHARGE_FULL_V_4179		7
-#define CHARGE_FULL_V_4199		8
-#define CHARGE_FULL_V_4219		9
-#define CHARGE_FULL_V_4238		10
-#define CHARGE_FULL_V_4258		11
-#define CHARGE_FULL_V_4278		12
-#define CHARGE_FULL_V_4298		13
-#define CHARGE_FULL_V_4318		14
-#define CHARGE_FULL_V_4338		15
+#define CHARGE_FULL_V_MIN_4040		0
+#define CHARGE_FULL_V_MIN_4060		1
+#define CHARGE_FULL_V_MIN_4080		2
+#define CHARGE_FULL_V_MIN_4100		3
+#define CHARGE_FULL_V_MIN_4120		4
+#define CHARGE_FULL_V_MIN_4140		5
+#define CHARGE_FULL_V_MIN_4160		6
+#define CHARGE_FULL_V_MIN_4180		7
+#define CHARGE_FULL_V_MIN_4200		8
+#define CHARGE_FULL_V_MIN_4220		9
+#define CHARGE_FULL_V_MIN_4240		10
+#define CHARGE_FULL_V_MIN_4260		11
+#define CHARGE_FULL_V_MIN_4280		12
+#define CHARGE_FULL_V_MIN_4300		13
+#define CHARGE_FULL_V_MIN_4320		14
+#define CHARGE_FULL_V_MIN_4340		15
 //高压电池配置16~31
-#define CHARGE_FULL_V_4237		16
-#define CHARGE_FULL_V_4257		17
-#define CHARGE_FULL_V_4275		18
-#define CHARGE_FULL_V_4295		19
-#define CHARGE_FULL_V_4315		20
-#define CHARGE_FULL_V_4335		21
-#define CHARGE_FULL_V_4354		22
-#define CHARGE_FULL_V_4374		23
-#define CHARGE_FULL_V_4394		24
-#define CHARGE_FULL_V_4414		25
-#define CHARGE_FULL_V_4434		26
-#define CHARGE_FULL_V_4454		27
-#define CHARGE_FULL_V_4474		28
-#define CHARGE_FULL_V_4494		29
-#define CHARGE_FULL_V_4514		30
-#define CHARGE_FULL_V_4534		31
-#define CHARGE_FULL_V_MAX       32
+#define CHARGE_FULL_V_MAX_4240		16
+#define CHARGE_FULL_V_MAX_4260		17
+#define CHARGE_FULL_V_MAX_4280		18
+#define CHARGE_FULL_V_MAX_4300		19
+#define CHARGE_FULL_V_MAX_4320		20
+#define CHARGE_FULL_V_MAX_4340		21
+#define CHARGE_FULL_V_MAX_4360		22
+#define CHARGE_FULL_V_MAX_4380		23
+#define CHARGE_FULL_V_MAX_4400		24
+#define CHARGE_FULL_V_MAX_4420		25
+#define CHARGE_FULL_V_MAX_4440		26
+#define CHARGE_FULL_V_MAX_4460		27
+#define CHARGE_FULL_V_MAX_4480		28
+#define CHARGE_FULL_V_MAX_4500		29
+#define CHARGE_FULL_V_MAX_4520		30
+#define CHARGE_FULL_V_MAX_4540		31
+#define CHARGE_FULL_V_MAX           32
 
 /*充满判断电流为恒流电流的比例配置*/
 #define CHARGE_FC_IS_CC_DIV_5		0 // full current = constant current / 5
@@ -47,6 +47,7 @@
 #define CHARGE_FC_IS_CC_DIV_15      2
 #define CHARGE_FC_IS_CC_DIV_20		3
 
+#define CHARGE_mA_MAX  180
 /* 充电口下拉电阻 50k ~ 200k */
 #define CHARGE_PULLDOWN_50K     0
 #define CHARGE_PULLDOWN_100K    1
@@ -101,6 +102,7 @@ void set_charge_poweron_en(u32 onOff);
 void charge_start(void);
 void charge_close(void);
 u16 get_charge_mA_config(void);
+u16 get_charge_current_value(void);
 void set_charge_mA(u16 charge_mA);
 u8 get_ldo5v_pulldown_en(void);
 u8 get_ldo5v_pulldown_res(void);

@@ -118,11 +118,29 @@ void ic_btosc_init(void);
 u32 ic_pll_init(u32 osc_freq);
 
 
+u32 __get_lrc_avg_hz();
+u32 __get_lrc_latest_hz();
+u32 __get_lrc_drift();
+u32 __get_lrc_high_hz();
+u32 __get_lrc_low_hz();
+
 //for bt
 void clk_set_osc_cap(u8 sel_l, u8 sel_r);
 u32 clk_get_osc_cap();
 u32 get_btosc_info_for_update(void *info);
+
+void xosc_common_init(u32 lrc_clk, void(*udly)(u32));
+void xosc_set_sys_cfg(u32 sys_hcs, u32 sys_cls, u32 sys_crs);
+
+
+void clock_enter_sleep_prepare();
+void clock_exit_sleep_post();
+
+
+#define CLK_INDEPENDENT_CTL_DCVDD
+void clk_set_vdc_lowest_voltage(u32 vdc_level);
 void clk_vdc_mode_init(u32 mode, u32 vdc_level);
+
 
 #define BT_CLOCK_IN(x)          //SFR(JL_CLOCK->CLK_CON1,  14,  2,  x)
 //for MACRO - BT_CLOCK_IN

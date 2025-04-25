@@ -39,6 +39,10 @@
 #include "audio_anc.h"
 #endif
 
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+#include "rt_anc_app.h"
+#endif
+
 extern struct audio_dac_hdl dac_hdl;
 struct a2dp_player {
     u8 bt_addr[6];
@@ -141,7 +145,7 @@ static void a2dp_player_callback(void *private_data, int event)
 
 static void a2dp_player_set_audio_channel(struct a2dp_player *player)
 {
-    int channel = AUDIO_CH_MIX;
+    int channel = (TCFG_AUDIO_DAC_CONNECT_MODE == DAC_OUTPUT_LR) ? AUDIO_CH_LR : AUDIO_CH_MIX;
     if (tws_api_get_tws_state() & TWS_STA_SIBLING_CONNECTED) {
         channel = tws_api_get_local_channel() == 'L' ? AUDIO_CH_L : AUDIO_CH_R;
     }
@@ -243,6 +247,11 @@ int a2dp_player_open(u8 *btaddr)
         audio_speak_to_char_sync_suspend();
     }
 #endif
+
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE && AUDIO_RT_ANC_TIDY_MODE_ENABLE
+    audio_anc_real_time_adaptive_reset(ADT_REAL_TIME_ADAPTIVE_ANC_TIDY_MODE, 0);
+#endif
+
     err = a2dp_player_create(btaddr);
     if (err) {
         if (err == -EFAULT) {
@@ -259,11 +268,16 @@ int a2dp_player_open(u8 *btaddr)
 
     if (CONFIG_BTCTLER_TWS_ENABLE) {
         if (tws_api_get_tws_state() & TWS_STA_SIBLING_CONNECTED) {
-            player->channel = tws_api_get_local_channel() == 'L' ? AUDIO_CH_L : AUDIO_CH_R;
-            jlstream_ioctl(player->stream, NODE_IOC_SET_CHANNEL, player->channel);
+            if (TCFG_AUDIO_DAC_CONNECT_MODE == DAC_OUTPUT_LR) {	//如果dac配置的立体声，tws 连接上时解码也要配置输出立体声，由channel_adapter节点做tws 声道适配;
+                player->channel = AUDIO_CH_LR; 					// 避免断开tws 连接时，立体声输出无法声道分离
+            } else {
+                player->channel = tws_api_get_local_channel() == 'L' ? AUDIO_CH_L : AUDIO_CH_R;
+            }
         } else {
-            jlstream_ioctl(player->stream, NODE_IOC_SET_CHANNEL, AUDIO_CH_MIX);
+            player->channel = (TCFG_AUDIO_DAC_CONNECT_MODE == DAC_OUTPUT_LR) ? AUDIO_CH_LR : AUDIO_CH_MIX;
         }
+        printf("a2dp player channel setup:0x%x", player->channel);
+        jlstream_ioctl(player->stream, NODE_IOC_SET_CHANNEL, player->channel);
     }
     err = jlstream_node_ioctl(player->stream, NODE_UUID_SOURCE,
                               NODE_IOC_SET_BTADDR, (int)player->bt_addr);
@@ -273,6 +287,26 @@ int a2dp_player_open(u8 *btaddr)
                              BREAKER_SOURCE_NODE_UUID, BREAKER_SOURCE_NODE_NEME,
                              BREAKER_TARGER_NODE_UUID, BREAKER_TARGER_NODE_NEME);
 #endif
+
+#if TCFG_VIRTUAL_SURROUND_PRO_MODULE_NODE_ENABLE
+    //iphone sbc解码帧长短得情况下，使用三线程推数
+    jlstream_add_thread(player->stream, "media0");
+    jlstream_add_thread(player->stream, "media1");
+
+    int codec_type = 0xff;
+    void *file = a2dp_open_media_file(player->bt_addr);
+    if (file) {
+        codec_type = a2dp_media_get_codec_type(file);
+    }
+    if (codec_type == A2DP_CODEC_SBC) {
+#if defined(CONFIG_CPU_BR28)
+        jlstream_add_thread(player->stream, "media2");
+#endif
+    }
+
+#endif
+
+
 
     if (err == 0) {
         err = jlstream_start(player->stream);
@@ -361,6 +395,10 @@ void a2dp_player_close(u8 *btaddr)
 
 #if (TCFG_SMART_VOICE_ENABLE && TCFG_SMART_VOICE_USE_AEC)
     audio_smart_voice_aec_close();
+#endif
+
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE && AUDIO_RT_ANC_TIDY_MODE_ENABLE
+    audio_anc_real_time_adaptive_reset(ADT_REAL_TIME_ADAPTIVE_ANC_MODE, 0);
 #endif
 }
 

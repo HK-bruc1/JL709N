@@ -9,9 +9,13 @@
 #include "tws_dual_share.h"
 #include "low_latency.h"
 #include "poweroff.h"
+#include "earphone.h"
 
 #include "bt_event_func.h"
 #include "app_tone.h"
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+#include "app_le_connected.h"
+#endif
 
 void bt_volume_up(u8 inc)
 {
@@ -478,4 +482,27 @@ void bt_send_a2dp_cmd(int msg)
         break;
     }
 }
+
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+void bt_send_jl_cis_cmd(int msg)
+{
+    u8 data[1];
+
+    switch (msg) {
+    case APP_MSG_MUSIC_PP:
+        puts("LE_AUDIO APP_MSG_MUSIC_PP\n");
+        data[0] = CIG_EVENT_OPID_PLAY;
+        break;
+    case APP_MSG_MUSIC_PREV:
+        puts("LE_AUDIO APP_MSG_MUSIC_PREV\n");
+        data[0] = CIG_EVENT_OPID_PREV;
+        break;
+    case APP_MSG_MUSIC_NEXT:
+        puts("LE_AUDIO APP_MSG_MUSIC_NEXT\n");
+        data[0] = CIG_EVENT_OPID_NEXT;
+        break;
+    }
+    le_audio_media_control_cmd(data, 1);
+}
+#endif
 

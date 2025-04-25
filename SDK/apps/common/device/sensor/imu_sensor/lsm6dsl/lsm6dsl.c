@@ -2106,7 +2106,7 @@ int32_t lsm6dsl_fifo_output_raw(lsm6dsl_ctx_t *ctx, axis1bit16_t *buff)
 lsm6dsl_fifo_mode_t fifo_mode_old = STOP_WHEN_FULL;
 void lsm6dsl_fifo_mode_start()
 {
-    lsm6dsl_fifo_mode_set(&lsm6dsl_ctx, BYPASS);
+    /* lsm6dsl_fifo_mode_set(&lsm6dsl_ctx, BYPASS); */
     lsm6dsl_fifo_mode_set(&lsm6dsl_ctx, STOP_WHEN_FULL);
 }
 //data:gyro(6bytes)+acc(6bytes)+step(6bytes)+temperature(6bytes头尾补0)

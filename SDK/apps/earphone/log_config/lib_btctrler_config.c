@@ -72,6 +72,13 @@ const int config_force_bt_pwr_tab_using_normal_level  = 0;
 //配置BLE广播发射功率的等级:0-最大功率等级;1~10-固定发射功率等级
 const int config_ble_adv_tx_pwr_level  = 0;
 
+//only for br52
+#ifdef CONFIG_CPU_BR52
+const u8 config_fre_offset_trim_mode = 1; //0:trim pll 1:trim osc 2:trim pll&osc
+#else
+const u8 config_fre_offset_trim_mode = 0; //0:trim pll 1:trim osc 2:trim pll&osc
+#endif
+
 const int CONFIG_BLE_SYNC_WORD_BIT = 30;
 const int CONFIG_LNA_CHECK_VAL = -80;
 
@@ -153,7 +160,7 @@ const int CONFIG_LNA_CHECK_VAL = -80;
 	#if TWS_PURE_MONITOR_MODE
 		const int CONFIG_EXTWS_NACK_LIMIT_INT_CNT       = 63;
 	#else
-		const int CONFIG_EXTWS_NACK_LIMIT_INT_CNT       = 8;
+		const int CONFIG_EXTWS_NACK_LIMIT_INT_CNT       = 4;
 	#endif
 #endif
 
@@ -199,6 +206,18 @@ const int CONFIG_A2DP_DELAY_TIME_SBC = TCFG_A2DP_DELAY_TIME_SBC;
 const int CONFIG_A2DP_DELAY_TIME_SBC_LO = TCFG_A2DP_DELAY_TIME_SBC_LO;
 const int CONFIG_A2DP_DELAY_TIME_AAC_LO = TCFG_A2DP_DELAY_TIME_AAC_LO;
 const int CONFIG_A2DP_ADAPTIVE_MAX_LATENCY = TCFG_A2DP_ADAPTIVE_MAX_LATENCY;
+#ifdef TCFG_A2DP_DELAY_TIME_LDAC
+const int CONFIG_A2DP_DELAY_TIME_LDAC = TCFG_A2DP_DELAY_TIME_LDAC;
+#endif
+#ifdef TCFG_A2DP_DELAY_TIME_LDAC_LO
+const int CONFIG_A2DP_DELAY_TIME_LDAC_LO = TCFG_A2DP_DELAY_TIME_LDAC_LO;
+#endif
+#ifdef TCFG_A2DP_DELAY_TIME_LHDC
+const int CONFIG_A2DP_DELAY_TIME_LHDC = TCFG_A2DP_DELAY_TIME_LHDC;
+#endif
+#ifdef TCFG_A2DP_DELAY_TIME_LHDC_LO
+const int CONFIG_A2DP_DELAY_TIME_LHDC_LO = TCFG_A2DP_DELAY_TIME_LHDC_LO;
+#endif
 const int CONFIG_JL_DONGLE_PLAYBACK_DYNAMIC_LATENCY_ENABLE  = 1;    //jl_dongle 动态延时
 
 const int CONFIG_PAGE_POWER                 = 9;
@@ -265,6 +284,8 @@ const int CONFIG_LMP_MASTER_ESCO_ENABLE  =  0;
     const int CONFIG_AES_CCM_FOR_EDR_ENABLE     = 0;
 #endif
 
+    const int CONFIG_MPR_CLOSE_WHEN_ESCO = 0;
+
 #ifdef CONFIG_SUPPORT_WIFI_DETECT
 	#if TCFG_USER_TWS_ENABLE
 		const int CONFIG_WIFI_DETECT_ENABLE = 1;
@@ -275,18 +296,20 @@ const int CONFIG_LMP_MASTER_ESCO_ENABLE  =  0;
 	#endif
 
 #else
-#if defined CONFIG_CPU_BR50 || defined CONFIG_CPU_BR52 || defined CONFIG_CPU_BR56
-	const int CONFIG_WIFI_DETECT_ENABLE = 3;
+
+#if defined CONFIG_CPU_BR27 || defined CONFIG_CPU_BR28 || defined CONFIG_CPU_BR36 || defined CONFIG_CPU_BR42
+
+        const int CONFIG_WIFI_DETECT_ENABLE = 0;
+        const int CONFIG_TWS_AFH_ENABLE     = 0;
+#else
+        const int CONFIG_WIFI_DETECT_ENABLE = 3;
 
 #if TCFG_USER_TWS_ENABLE
-    const int CONFIG_TWS_AFH_ENABLE     = 1;
+        const int CONFIG_TWS_AFH_ENABLE     = 1;
 #else
-    const int CONFIG_TWS_AFH_ENABLE     = 0;
+        const int CONFIG_TWS_AFH_ENABLE     = 0;
 #endif
 
-#else
-	const int CONFIG_WIFI_DETECT_ENABLE = 0;
-    const int CONFIG_TWS_AFH_ENABLE     = 0;
 #endif
 #endif//end CONFIG_SUPPORT_WIFI_DETECT
 
@@ -392,11 +415,7 @@ const int config_btctler_le_acl_total_nums = 15;
  * @brief Bluetooth Analog setting
  */
 /*-----------------------------------------------------------*/
-#if ((!TCFG_USER_BT_CLASSIC_ENABLE) && TCFG_USER_BLE_ENABLE)
-	const int config_btctler_single_carrier_en = 1;   ////单模ble才设置
-#else
-	const int config_btctler_single_carrier_en = 0;
-#endif
+const int config_btctler_single_carrier_en = 0;   // 单载波，如果是单模ble建议设置为1，否则会有部分芯片测试盒连接不上的情况。by zhibin
 
 const int sniff_support_reset_anchor_point = 0;   //sniff状态下是否支持reset到最近一次通信点，用于HID
 const int sniff_long_interval = (500 / 0.625);    //sniff状态下进入long interval的通信间隔(ms)

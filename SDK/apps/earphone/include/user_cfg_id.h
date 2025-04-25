@@ -13,6 +13,7 @@
 #define     CFG_DMS_MALFUNC_STATE_ID         5//dms故障麦克风检测默认使用哪个mic的参数id
 #define     CFG_MIC_TARGET_DIFF_CMP          6//目标MIC补偿值
 #define     CFG_LE_AUDIO_EN                  7
+#define     CFG_ANC_MIC_CMP_GAIN			 8//ANC MIC补偿配置
 
 #define     CFG_EQ0_INDEX               	19
 #define     CFG_MIC_EFF_VOLUME_INDEX        20
@@ -25,17 +26,12 @@
 #define    	CFG_IMU_GYRO_OFFEST_ID          28	//空间音频imu陀螺仪偏置
 #define    	CFG_IMU_ACC_OFFEST_ID           29	//空间音频imu加速度偏置
 
-#define     VM_LP_TOUCH_KEY0_ALOG_CFG       32
-#define     VM_LP_TOUCH_KEY1_ALOG_CFG       33
-#define     VM_LP_TOUCH_KEY2_ALOG_CFG       34
-#define     VM_LP_TOUCH_KEY3_ALOG_CFG       35
-#define     VM_LP_TOUCH_KEY4_ALOG_CFG       36
-
-#define     VM_LP_TOUCH_KEY0_IDTY_ALGO       37
-#define     VM_LP_TOUCH_KEY1_IDTY_ALGO       38
-#define     VM_LP_TOUCH_KEY2_IDTY_ALGO       39
-#define     VM_LP_TOUCH_KEY3_IDTY_ALGO       40
-#define     VM_LP_TOUCH_KEY4_IDTY_ALGO       41
+#define     VM_LP_TOUCH_KEY0_ALOG_CFG       31
+#define     VM_LP_TOUCH_KEY1_ALOG_CFG       32
+#define     VM_LP_TOUCH_KEY2_ALOG_CFG       33
+#define     VM_LP_TOUCH_KEY0_IDTY_ALGO      34
+#define     VM_LP_TOUCH_KEY1_IDTY_ALGO      35
+#define     VM_LP_TOUCH_KEY2_IDTY_ALGO      36
 
 #define     CFG_SPK_EQ_SEG_SAVE             37
 #define     CFG_SPK_EQ_GLOBAL_GAIN_SAVE     38

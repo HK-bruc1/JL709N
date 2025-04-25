@@ -74,10 +74,8 @@ int ns_param_cfg_read(struct stream_node *node)
      *获取在线调试的临时参数
      * */
     if (config_audio_cfg_online_enable) {
-        ret = jlstream_read_effects_online_param(hdl_node(hdl)->uuid, hdl->name, &config, sizeof(config));
-        if (ret != sizeof(config)) {
-            printf("get ans online param err\n");
-            return -1 ;
+        if (jlstream_read_effects_online_param(hdl_node(hdl)->uuid, hdl->name, &config, sizeof(config))) {
+            printf("get ans online param succ\n");
         }
     }
 
@@ -131,8 +129,8 @@ static void ns_handle_frame(struct stream_iport *iport, struct stream_note *note
             break;
         }
 
-        if (hdl->cfg.ns_type == AUDIO_NS_TYPE_ESCO_DL) {
-            if (hdl->cfg.call_active_trigger && (!hdl->trigger)) {
+        if ((hdl->cfg.ns_type == AUDIO_NS_TYPE_ESCO_DL) && hdl->cfg.call_active_trigger) {
+            if (!hdl->trigger) {
                 if (bt_get_call_status_for_addr(hdl->bt_addr) == BT_CALL_ACTIVE) {
                     hdl->trigger = 1;
                 }

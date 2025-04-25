@@ -1355,11 +1355,13 @@ int audio_iis_add_syncts_with_timestamp(void *iis_ch, void *syncts, u32 timestam
         os_mutex_post(&hdl->mutex[ch->attr.ch_idx]);
         return 0;
     }
+#if TCFG_DAC_NODE_ENABLE
     if (dac_adapter_link_to_syncts_check(syncts)) {
         log_debug("syncts has beed link to dac");
         os_mutex_post(&hdl->mutex[ch->attr.ch_idx]);
         return 0;
     }
+#endif
     for (int i = 0; i < 4; i++) { //检查所有iis通道，当前synsts是否已经挂载上，挂载上就不需要重复挂载
         list_for_each_entry(node, &hdl->sync_list[i], entry) {
             if ((u32)node->hdl == (u32)syncts) {

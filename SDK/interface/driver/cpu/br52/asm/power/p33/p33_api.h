@@ -262,6 +262,7 @@ void vddiom_vol_sel(enum VDDIOM_VOL vol);
 enum VDDIOM_VOL get_vddiom_vol_sel();
 void vddiow_vol_sel(enum VDDIOW_VOL vol);
 enum VDDIOW_VOL get_vddiow_vol_sel();
+u32 get_vddiom_vol();
 
 //
 //
@@ -297,18 +298,6 @@ typedef enum {
 
 void lvd_en(u8 en);
 void lvd_config(LVD_VOL vol, u8 expin_en, LVD_MODE mode, void (*callback));
-
-//
-//
-//                    pinr
-//
-//
-//
-//******************************************************************
-void gpio_longpress_pin0_reset_config(u32 pin, u32 level, u32 time, u32 release, u32 pull_enable);
-void gpio_longpress_pin1_reset_config(u32 pin, u32 level, u32 time, u32 release);
-
-
 
 //
 //

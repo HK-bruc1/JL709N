@@ -40,8 +40,10 @@ typedef struct {
     u8 start;
     u16 digital_vol_max;
     u16 *dig_vol_table;
+#if BG_DVOL_FADE_ENABLE
     struct list_head dvol_head;
     spinlock_t lock;
+#endif
 } dvol_t;
 static dvol_t dvol_attr;
 /*
@@ -97,15 +99,18 @@ const u16 default_dig_vol_table[DEFAULT_DIGITAL_VOL_MAX + 1] = {
 int audio_digital_vol_init(u16 *vol_table, u16 vol_max)
 {
     memset(&dvol_attr, 0, sizeof(dvol_attr));
+
+#if BG_DVOL_FADE_ENABLE
     INIT_LIST_HEAD(&dvol_attr.dvol_head);
     spin_lock_init(&dvol_attr.lock);
+#endif
 
     if (vol_table != NULL) {
         dvol_attr.dig_vol_table = vol_table;
         dvol_attr.digital_vol_max = vol_max;
     } else {
         dvol_attr.dig_vol_table = (u16 *)default_dig_vol_table;
-        dvol_attr.digital_vol_max = DIGITAL_VOLUME_LEVEL_MAX;
+        dvol_attr.digital_vol_max = DEFAULT_DIGITAL_VOL_MAX;
     }
 
     return 0;
@@ -153,18 +158,35 @@ dvol_handle *audio_digital_vol_open(struct audio_vol_params params)
         }
         dvol->vol_max 	= vol_max;
         if (vol_limit == -1) {
-            dvol->vol_limit = dvol_attr.digital_vol_max;
+            dvol->vol_limit = dvol->vol_max;
         } else {
-            dvol->vol_limit = (vol_limit > dvol_attr.digital_vol_max) ? dvol_attr.digital_vol_max : vol_limit;
+            dvol->vol_limit = (vol_limit > dvol->vol_max) ? dvol->vol_max : vol_limit;
         }
         vol_level 		= dvol->vol * dvol->vol_limit / vol_max;
-        dvol->vol_target = dvol_attr.dig_vol_table[vol_level];
+        if (dvol->vol_table_default) {
+            dvol->vol_target = dvol_attr.dig_vol_table[vol_level];
+        } else {
+            if (vol_level == 0) {
+                dvol->vol_target = 0;
+            } else {
+                if (!dvol->vol_table) {
+                    u16 step = (dvol->cfg_level_max - 1 > 0) ? (dvol->cfg_level_max - 1) : 1;
+                    float step_db = (dvol->cfg_vol_max - dvol->cfg_vol_min) / (float)step;
+                    float hdl_db = dvol->cfg_vol_min  + (vol_level - 1) * step_db;
+                    float hdl_gain = eq_db2mag(hdl_db);//dB转换倍数
+                    dvol->vol_target = (s16)(DVOL_MAX_FLOAT  * hdl_gain + 0.5f);
+                    //printf("vol param calc:%d,%d,%d,%d,%d",(int)hdl_gain,dvol->vol_target,(int)step_db,dvol->cfg_level_max - vol_level,(int)hdl_db);
+                } else {
+                    dvol->vol_target = dvol->vol_table[vol_level - 1];
+                }
+            }
+        }
         dvol->vol_fade 	= dvol->vol_target;
         dvol->fade_step 	= fade_step;
         dvol->toggle 	= 1;
+#if BG_DVOL_FADE_ENABLE
         spin_lock(&dvol_attr.lock);
         list_add(&dvol->entry, &dvol_attr.dvol_head);
-#if BG_DVOL_FADE_ENABLE
         dvol->vol_bk = -1;
         if (dvol_attr.bg_dvol_fade_out) {
             dvol_handle *hdl;
@@ -204,8 +226,8 @@ dvol_handle *audio_digital_vol_open(struct audio_vol_params params)
                 }
             }
         }
-#endif/*BG_DVOL_FADE_ENABLE*/
         spin_unlock(&dvol_attr.lock);
+#endif/*BG_DVOL_FADE_ENABLE*/
         /*dvol_log("dvol_open:%x-%d-%d-%d\n",  dvol, dvol->vol, dvol->vol_max, fade_step);*/
     }
     return dvol;
@@ -282,6 +304,46 @@ void audio_digital_vol_mute_set(dvol_handle *dvol, u8 mute_en)
 
 /*
 *********************************************************************
+*                  Audio Digital offset Set
+* Description: 数字音量设置音量偏移大小
+* Arguments  : dvol     数字音量操作句柄，详见audio_dvol.h宏定义
+*			   offset	音量偏移大小
+* Return	 : None.
+* Note(s)    : None.
+*********************************************************************
+*/
+void audio_digital_vol_offset_set(dvol_handle *dvol, s16 offset)
+{
+    if (dvol == NULL) {
+        return;
+    }
+    dvol->offset = offset;
+}
+
+/*
+*********************************************************************
+*                  Audio Digital offset Set
+* Description: 数字音量设置音量dB偏移大小
+* Arguments  : dvol         数字音量操作句柄，详见audio_dvol.h宏定义
+*			   offset_dB	音量偏移大小，单位dB
+* Return	 : None.
+* Note(s)    : None.
+*********************************************************************
+*/
+void audio_digital_vol_offset_dB_set(dvol_handle *dvol, float offset_dB)
+{
+    if (dvol == NULL) {
+        return;
+    }
+    s16 cur_vol = dvol->vol_target;
+    dvol->offset_dB = offset_dB;
+    float tar_dB = 20 * log10_float(cur_vol / DVOL_MAX_FLOAT) + offset_dB;
+    s16 tar_vol = (s16)(eq_db2mag(tar_dB) * DVOL_MAX_FLOAT + 0.5f);
+    dvol->offset = tar_vol - cur_vol;
+}
+
+/*
+*********************************************************************
 *                  Audio Digital Volume Set
 * Description: 数字音量设置
 * Arguments  : dvol     数字音量操作句柄，详见audio_dvol.h宏定义
@@ -324,6 +386,12 @@ void audio_digital_vol_set(dvol_handle *dvol, u16 vol)
             }
         }
     }
+
+    /*音量改变时，更新音量dB偏移的音量大小*/
+    if (dvol->offset) {
+        audio_digital_vol_offset_dB_set(dvol, dvol->offset_dB);
+    }
+
     dvol_log("digital_vol:%d-%d-%d-%d\n", vol, vol_level, dvol->vol_fade, dvol->vol_target);
 }
 /*********************************************************************
@@ -371,6 +439,10 @@ void audio_digital_vol_set_no_fade(dvol_handle *dvol, u8 vol)
             }
         }
     }
+    /*音量改变时，更新音量dB偏移的音量大小*/
+    if (dvol->offset) {
+        audio_digital_vol_offset_dB_set(dvol, dvol->offset_dB);
+    }
     dvol_log("digital_vol:%d-%d-%d-%d\n", vol, vol_level, dvol->vol_fade, dvol->vol_target);
 }
 
@@ -405,6 +477,17 @@ int audio_digital_vol_run(dvol_handle *dvol, void *data, u32 len)
     }
 
     s16 vol_target = dvol->vol_target;
+
+    /*音量不为0时，才做偏移*/
+    if (vol_target && dvol->offset) {
+        vol_target += dvol->offset;
+        if (vol_target < dvol->min_vol) {
+            vol_target = dvol->min_vol;
+        } else if (vol_target > dvol->max_vol) {
+            vol_target = dvol->max_vol;
+        }
+    }
+
     if (dvol->mute_en) {
         vol_target = 0;
     }

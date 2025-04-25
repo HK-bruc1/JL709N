@@ -49,4 +49,9 @@ extern const bool control_pdown;
 //使能poff模块
 extern const bool control_poff;
 
+extern const bool lib_pmu_config_pdown;
+
+extern const bool lib_pmu_config_soff;
+
+extern const bool lib_pmu_config_poff;
 #endif

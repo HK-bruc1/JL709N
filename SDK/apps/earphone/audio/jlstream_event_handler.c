@@ -17,6 +17,7 @@
 #include "audio_manager.h"
 #include "classic/tws_api.h"
 #include "esco_recoder.h"
+#include "clock.h"
 
 #if TCFG_AUDIO_DUT_ENABLE
 #include "test_tools/audio_dut_control.h"
@@ -53,23 +54,23 @@ static const struct stream_coexist_policy coexist_policy_table_rewrite[] = {
         .scene_b = STREAM_SCENE_A2DP, .coding_b = AUDIO_CODING_AAC | AUDIO_CODING_SBC,
     },
 #if TCFG_AUDIO_HEARING_AID_ENABLE && !TCFG_AUDIO_DHA_AND_MUSIC_COEXIST
-    [3] = {
+    {
         .scene_a = STREAM_SCENE_A2DP,        .coding_a = 0xffffffff,
         .scene_b = STREAM_SCENE_HEARING_AID, .coding_b = 0xffffffff,
     },
 #endif
 #if TCFG_AUDIO_HEARING_AID_ENABLE && !TCFG_AUDIO_DHA_AND_TONE_COEXIST
-    [4] = {
+    {
         .scene_a = STREAM_SCENE_TONE,        .coding_a = 0xffffffff,
         .scene_b = STREAM_SCENE_HEARING_AID, .coding_b = 0xffffffff,
     },
 #endif
 #if TCFG_AUDIO_HEARING_AID_ENABLE && !TCFG_AUDIO_DHA_AND_CALL_COEXIST
-    [5] = {
+    {
         .scene_a = STREAM_SCENE_ESCO,        .coding_a = 0xffffffff,
         .scene_b = STREAM_SCENE_HEARING_AID, .coding_b = 0xffffffff,
     },
-    [6] = {
+    {
         .scene_a = STREAM_SCENE_RING,        .coding_a = 0xffffffff,
         .scene_b = STREAM_SCENE_HEARING_AID, .coding_b = 0xffffffff,
     },
@@ -169,12 +170,16 @@ static int get_pipeline_uuid(const char *name)
 #endif
 #if LE_AUDIO_STREAM_ENABLE
     if (!strcmp(name, "le_audio")) {
-        clock_alloc("le_audio", 24 * 1000000UL);
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
+        clock_alloc("le_audio", clk_get_max_frequency());
+#endif
         return PIPELINE_UUID_LE_AUDIO;
     }
     if (!strcmp(name, "le_audio_call") || \
         !strcmp(name, "mic_le_audio_call")) {
-        clock_alloc("le_audio", 24 * 1000000UL);
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
+        clock_alloc("le_audio", clk_get_max_frequency());
+#endif
         return PIPELINE_UUID_ESCO;
     }
 #endif
@@ -198,6 +203,24 @@ static void player_close_handler(const char *name)
     }
 }
 
+#if defined(TCFG_HI_RES_AUDIO_ENEBALE) || TCFG_VIRTUAL_SURROUND_PRO_MODULE_NODE_ENABLE
+//调整解码器输出帧长
+static const int frame_unit_size[] = { 64, 128, 256, 384, 512, 1024, 2048, 4096, 8192};
+int decoder_check_frame_unit_size(int dest_len)
+{
+    for (int i = 0; i < ARRAY_SIZE(frame_unit_size); i++) {
+        if (dest_len <= frame_unit_size[i]) {
+            dest_len = frame_unit_size[i];
+            return dest_len;
+        }
+    }
+    dest_len = 8192;
+    return dest_len ;
+}
+
+#endif
+
+
 static int load_decoder_handler(struct stream_decoder_info *info)
 {
 #if TCFG_BT_SUPPORT_AAC
@@ -208,6 +231,10 @@ static int load_decoder_handler(struct stream_decoder_info *info)
 #endif
     if (info->scene == STREAM_SCENE_A2DP) {
         info->task_name = "a2dp_dec";
+
+#if TCFG_VIRTUAL_SURROUND_PRO_MODULE_NODE_ENABLE
+        info->frame_time = 16;
+#endif
     }
     if (info->scene == STREAM_SCENE_LEA_CALL) {
         //printf("decoder scene:LEA CALL\n");

@@ -162,6 +162,8 @@ RESFILE *cfg_open_file(u32 file_id)
         cfg_fp = resfile_open(CFG_STREAM_FILE);
     } else if (file_id == CFG_EFFECT_CFG_FILEID) {
         cfg_fp = resfile_open(CFG_EFFECT_CFG_FILE);
+    } else if (file_id == CFG_DNSFB_COEFF_FILEID) {
+        cfg_fp = resfile_open(CFG_DNSFB_COEFF_FILE);
     }
     return cfg_fp;
 }
@@ -243,13 +245,25 @@ static void reset_rx_resource()
  *
  *	@param buf 数据
  *	@param rlen 接收数据长度
+ *
+ *	@result 0:success 非0:fail
  */
-void cfg_tool_combine_rx_data(u8 *buf, u32 rlen)
+u8 cfg_tool_combine_rx_data(u8 *buf, u32 rlen)
 {
     /* printf("cfg_tool combine rx:\n"); */
     /* put_buf(buf, rlen); */
 
     if ((buf[0] == 0x5A) && (buf[1] == 0xAA) && (buf[2] == 0xA5)) {
+
+        if (rlen <= 255) {
+            u8 rx_data_len = buf[5] + 6;
+            if (rx_data_len == rlen) {
+                // 不支持旧协议数据
+                printf("cfg_tool rx data is not right!!!\n");
+                return -1;
+            }
+        }
+
         reset_rx_resource();
         tool_buf_total_len = CFG_TOOL_READ_LIT_U16(buf + 5);
         buf_rx = zalloc(CFG_TOOL_PROTOCOL_HEAD_SIZE + tool_buf_total_len);
@@ -268,11 +282,11 @@ void cfg_tool_combine_rx_data(u8 *buf, u32 rlen)
         if (!buf_rx) {
             printf("%s, buf_rx null!\n", __FUNCTION__);
             reset_rx_resource();
-            return;
+            return -1;
         }
         if ((rx_len_count + rlen) > (CFG_TOOL_PROTOCOL_HEAD_SIZE + tool_buf_total_len)) {
             reset_rx_resource();
-            return;
+            return -1;
         }
         memcpy(buf_rx + rx_len_count, buf, rlen);
         /* printf("cfg_tool combine need total len2 = %d\n", tool_buf_total_len); */
@@ -286,6 +300,7 @@ void cfg_tool_combine_rx_data(u8 *buf, u32 rlen)
             rx_len_count += rlen;
         }
     }
+    return 0;
 }
 
 u8 online_cfg_tool_data_deal(void *buf, u32 len)
@@ -628,6 +643,8 @@ static void cfg_tool_callback(u8 *packet, u32 size)
 
         if (__this->r_prepare_write_file.file_id == CFG_STREAM_FILEID) {
             app_send_message(APP_MSG_WRITE_RESFILE_START, (int)"stream.bin");
+        } else if (__this->r_prepare_write_file.file_id == CFG_DNSFB_COEFF_FILEID) {
+            app_send_message(APP_MSG_WRITE_RESFILE_START, (int)"DNSFB_Coeff.bin");
         }
         break;
 
@@ -719,6 +736,10 @@ static void cfg_tool_callback(u8 *packet, u32 size)
         if (__this->r_prepare_write_file.file_id == CFG_STREAM_FILEID) {
             if (a >= b) {
                 app_send_message(APP_MSG_WRITE_RESFILE_STOP, (int)"stream.bin");
+            }
+        } else if (__this->r_prepare_write_file.file_id == CFG_DNSFB_COEFF_FILEID) {
+            if (a >= b) {
+                app_send_message(APP_MSG_WRITE_RESFILE_STOP, (int)"DNSFB_Coeff.bin");
             }
         }
         break;

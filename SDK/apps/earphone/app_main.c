@@ -75,6 +75,14 @@ const struct task_info task_info_table[] = {
     {"jlstream_6",          5,     0,  768,   0 },
     {"jlstream_7",          5,     0,  768,   0 },
 
+#if TCFG_VIRTUAL_SURROUND_PRO_MODULE_NODE_ENABLE
+    /*virtual surround pro*/
+
+    {"media0",          5,     0,  768,   0 },
+    {"media1",          5,     0,  768,   0 },
+    {"media2",          5,     0,  768,   0 },
+#endif
+
 #if (TCFG_BT_SUPPORT_LHDC || TCFG_BT_SUPPORT_LHDC_V5)
     {"a2dp_dec",            4,     1,   256 + 512,   0 },
 #else
@@ -87,7 +95,7 @@ const struct task_info task_info_table[] = {
     {"update",				1,	   0,   256,   0   },
     {"tws_ota",				2,	   0,   256,   0   },
     {"tws_ota_msg",			2,	   0,   256,   128 },
-    {"dw_update",		 	2,	   0,   256,   128 },
+    {"dw_update",		 	1,	   0,   256,   128 }, // 优先级需要从2改成1，防止app_core事件不响应的问题
 #if TCFG_AUDIO_DATA_EXPORT_DEFINE
     {"aud_capture",         4,     0,   512,   256 },
     {"data_export",         5,     0,   512,   256 },
@@ -154,14 +162,15 @@ const struct task_info task_info_table[] = {
 #if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
     {"icsd_anc",            5,     0,   512,   128 },
     {"icsd_adt",            2,     0,   512,   128 },
-    {"icsd_src",            2,     0,   512,   256 },
+    {"icsd_src",            3,     0,   512,   256 },
     {"speak_to_chat",       2,     0,   512,   128 },
 #endif
-#if ANC_REAL_TIME_ADAPTIVE_ENABLE
-    {"rt_anc",              3,     1,   512,   128 },
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+    {"rt_anc",              3,     0,   512,   128 },
+    {"rt_de",              	1,     0,   512,   128 },
 #endif
 #if TCFG_AUDIO_ANC_ENABLE && (TCFG_AUDIO_ANC_EXT_VERSION == ANC_EXT_V2)
-    {"afq_common",         	2,     1,   512,   128 },
+    {"afq_common",         	1,     0,   512,   128 },
 #endif
 #endif
 
@@ -173,6 +182,9 @@ const struct task_info task_info_table[] = {
 #if (defined TCFG_AUDIO_SOMATOSENSORY_ENABLE && TCFG_AUDIO_SOMATOSENSORY_ENABLE)
     /*Head Action Detection*/
     {"HA_Detect",           2,     0,  512,   0 },
+#endif
+#if (defined(TCFG_DEBUG_DLOG_ENABLE) && TCFG_DEBUG_DLOG_ENABLE)
+    {"dlog",                1,     0,  256,   128 },
 #endif
     {0, 0},
 };
@@ -338,12 +350,17 @@ static struct app_mode *app_task_init()
 
     sdfile_init();
     syscfg_tools_init();
+    cfg_file_parse(0);
 
     do_early_initcall();
     board_init();
     do_platform_initcall();
 
-    cfg_file_parse(0);
+#if (defined(TCFG_DEBUG_DLOG_ENABLE) && TCFG_DEBUG_DLOG_ENABLE)
+    dlog_init();
+    dlog_enable(1);
+#endif
+
     key_driver_init();
 
     do_initcall();

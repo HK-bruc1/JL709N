@@ -61,7 +61,7 @@ static void tws_a2dp_play_in_task(u8 *data)
         app_audio_state_switch(APP_AUDIO_STATE_MUSIC,
                                app_audio_volume_max_query(AppVol_BT_MUSIC), NULL);
         set_music_device_volume(dev_vol);
-        a2dp_player_low_latency_enable(tws_api_get_low_latency_state());
+        a2dp_player_low_latency_enable(bt_get_low_latency_mode());
         a2dp_player_open(bt_addr);
         break;
     case CMD_A2DP_CLOSE:
@@ -260,7 +260,7 @@ static int a2dp_app_msg_handler(int *msg)
         if (tws_api_get_role() == TWS_ROLE_SLAVE) {
             break;
         }
-        void *device = btstack_get_device_mac_addr(bt_addr);
+        void *device = btstack_get_conn_device(bt_addr);
         if (device) {
             btstack_device_control(device, USER_CTRL_AVCTP_OPID_PLAY);
         }

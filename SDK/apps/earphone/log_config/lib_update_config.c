@@ -49,6 +49,9 @@ const int support_norflash_update_en  = 0;
 //支持从外挂flash读取ufw文件升级使能
 const int support_norflash_ufw_update_en = 0;
 
+// 单备份升级时是否支持检查升级文件是否一致(BIT(0))
+const int support_config_update_features = 0;
+
 #if TCFG_UPDATE_ENABLE
 const int CONFIG_UPDATE_ENABLE  = 0x1;
 const int CONFIG_UPDATE_STORAGE_DEV_EN  = TCFG_UPDATE_STORAGE_DEV_EN;

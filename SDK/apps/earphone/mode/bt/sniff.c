@@ -18,6 +18,9 @@
 #include "btstack_rcsp_user.h"
 #include "ble_rcsp_server.h"
 #endif
+#if TCFG_LE_AUDIO_APP_CONFIG
+#include "le_audio_player.h"
+#endif
 
 #if TCFG_APP_BT_EN
 
@@ -59,6 +62,15 @@ u8 sniff_ready_status = 0; //0:sniff_ready 1:sniff_not_ready
 bool bt_is_sniff_close(void)
 {
     return (g_bt_hdl.sniff_timer == 0);
+}
+u8 check_local_not_accept_sniff_by_remote()
+{
+#if TCFG_LE_AUDIO_APP_CONFIG
+    if (le_audio_player_is_playing()) {
+        return TRUE;
+    }
+#endif
+    return FALSE;
 }
 
 void bt_check_exit_sniff()
@@ -102,6 +114,10 @@ void bt_check_enter_sniff()
     if (bt_get_esco_coder_busy_flag()) {
         return;
     }
+    if (check_local_not_accept_sniff_by_remote()) {
+        return;
+    }
+
 
     int conn_cnt = bt_api_enter_sniff_status_check(SNIFF_CNT_TIME, addr);
     ASSERT(conn_cnt <= 2);

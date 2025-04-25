@@ -262,14 +262,13 @@ void setup_arch()
     log_i("         setup_arch");
     log_i("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
 
-    clock_dump();
-
     power_early_flowing();
 
-    void mvbg_current_trim();        //pmu used
-    mvbg_current_trim();
-    void audio_vbg_current_trim();        //audio used
-    audio_vbg_current_trim();
+    clock_dump();
+
+    extern void ic_vbg_current_trim();
+    ic_vbg_current_trim();
+
 
     //Register debugger interrupt
     request_irq(0, 2, exception_irq_handler, 0);
@@ -279,6 +278,7 @@ void setup_arch()
 
     __crc16_mutex_init();
 
+    ASSERT((u32)local_irq_disable < 0x120000);
     app_main();
 }
 

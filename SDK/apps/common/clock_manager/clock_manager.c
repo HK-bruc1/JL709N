@@ -278,7 +278,7 @@ int clock_unlock(char *name)
         return -1;
     }
 
-    if (clk_locker.name == hash) {
+    if (clk_locker.name != hash) {
         /* ASSERT(0, "locker owner is %s", clk_locker.name); */
         CLOCK_MANAGER_EXIT_CRITICAL();
         return -2;

@@ -187,6 +187,8 @@ u8 app_audio_bt_volume_update(u8 *btaddr, u8 state);
 
 void app_audio_bt_volume_save(u8 state);
 
+void audio_fade_in_fade_out(u8 left_vol, u8 right_vol);
+
 int audio_digital_vol_default_init(void);
 
 void volume_up_down_direct(s16 value);
@@ -195,9 +197,6 @@ void audio_volume_list_init(u8 cfg_en);
 
 void dac_power_on(void);
 void dac_power_off(void);
-
-void mic_capless_trim_init(int update);
-void mic_capless_trim_run(void);
 
 /*打印audio模块的数字模拟增益：DAC/ADC*/
 void audio_config_dump();
@@ -252,6 +251,17 @@ s16 app_audio_volume_max_query(audio_vol_index_t index);
 *********************************************************************
 */
 void audio_app_mute_en(u8 mute_en);
+
+/*
+*********************************************************************
+*          			Audio Volume Offset
+* Description: 音量偏移
+* Arguments  : offset 音量偏移大小
+* Return	 : None.
+* Note(s)    : None.
+*********************************************************************
+*/
+void audio_app_set_vol_offset_dB(float offset_dB);
 
 void dac_node_write_callback_add(const char *name, u8 scene, void (*cb)(void *, int));
 

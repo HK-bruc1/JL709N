@@ -28,6 +28,8 @@
 #include "effects/audio_virtual_surround_pro.h"
 #include "effects/audio_multiband_limiter.h"
 #include "effects/pcm_delay.h"
+#include "effects/audio_virtual_bass_classic.h"
+#include "effects/audio_vocal_remove.h"
 
 /* 左右声道按照不同比例混合参数更新 */
 int stero_mix_update_parm(u8 mode_index, char *node_name, u8 cfg_index);
@@ -35,8 +37,10 @@ int stero_mix_update_parm(u8 mode_index, char *node_name, u8 cfg_index);
 int surround_effect_update_parm(u8 mode_index, char *node_name, u8 cfg_index);
 /* 分频器参数更新 */
 int crossover_update_parm(u8 mode_index, char *node_name, u8 cfg_index);
-/* 多带合并参数更新 */
+/* 3带合并参数更新 */
 int band_merge_update_parm(u8 mode_index, char *node_name, u8 cfg_index);
+/* 2带合并参数更新 */
+int two_band_merge_update_parm(u8 mode_index, char *node_name, u8 cfg_index);
 /* drc参数更新 */
 int drc_update_parm(u8 mode_index, char *node_name, u8 cfg_index);
 /* 高低音参数更新 */
@@ -69,6 +73,8 @@ int spectrum_update_parm(u8 mode_index, char *node_name, u8 cfg_index);
 int stereo_widener_update_parm(u8 mode_index, char *node_name, u8 cfg_index);
 /* 虚拟低音参数更新 */
 int virtual_bass_update_parm(u8 mode_index, char *node_name, u8 cfg_index);
+/* Multi Frequency Generator参数更新 */
+int virtual_bass_classic_update_parm(u8 mode_index, char *node_name, u8 cfg_index);
 /* 变声参数更新 */
 int voice_changer_update_parm(u8 mode_index, char *node_name, u8 cfg_index);
 /* 声道扩展参数更新 */
@@ -77,6 +83,8 @@ int channel_expander_update_parm(u8 mode_index, char *node_name, u8 cfg_index);
 int eq_update_parm(u8 mode_index, char *node_name, u8 cfg_index);
 /* eq系数表更新*/
 int eq_update_tab(u8 mode_index, char *node_name, u8 cfg_index);
+/* 软件EQ参数更新接口 */
+int sw_eq_update_parm(u8 mode_index, char *node_name, u8 cfg_index);
 /* 谐波激励参数更新 */
 int harmonic_exciter_update_parm(u8 mode_index, char *node_name, u8 cfg_index);
 /* MDRC参数更新 */
@@ -91,4 +99,6 @@ int limiter_update_parm(u8 mode_index, char *node_name, u8 cfg_index);
 int multiband_limiter_update_parm(u8 mode_index, char *node_name, u8 cfg_index);
 /*PCM Delay 参数更新 */
 int pcm_delay_update_parm(u8 mode_index, char *node_name, u8 cfg_index);
+/*Vocal Remover 参数更新*/
+int vocal_remover_update_parm(u8 mode_index, char *node_name, u8 cfg_index);
 #endif

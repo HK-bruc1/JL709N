@@ -125,6 +125,8 @@ enum {
     APP_MSG_BT_A2DP_OPEN_MEDIA_SUCCESS,
     APP_MSG_BT_STOP_A2DP_SLIENCE,
     APP_MSG_LE_AUDIO_MODE,
+    APP_MSG_LE_AUDIO_CALL_OPEN,
+    APP_MSG_LE_AUDIO_CALL_CLOSE,
     APP_MSG_BT_OPEN_DUT,
     APP_MSG_BT_CLOSE_DUT,
     APP_MSG_CALL_ANSWER,						// 接听电话
@@ -173,6 +175,7 @@ enum {
     APP_MSG_SPEAK_TO_CHAT_SWITCH,               //智能免摘
     APP_MSG_WAT_CLICK_SWITCH,                   //广域点击
     APP_MSG_WIND_DETECT_SWITCH,                 //风噪检测
+    APP_MSG_ADAPTIVE_VOL_SWITCH,                 //音量自适应
     APP_MSG_FIT_DET_SWITCH,
     APP_MSG_IMU_TRIM_START,                     //开始陀螺仪校准
     APP_MSG_IMU_TRIM_STOP,                      //关闭陀螺仪校准

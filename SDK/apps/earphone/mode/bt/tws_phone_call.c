@@ -31,6 +31,7 @@
 #include "vol_sync.h"
 #include "audio_config.h"
 #include "bt_slience_detect.h"
+#include "clock_manager/clock_manager.h"
 #if TCFG_SMART_VOICE_ENABLE
 #include "asr/jl_kws.h"
 #include "smart_voice/smart_voice.h"
@@ -304,7 +305,7 @@ int bt_phone_income(u8 after_conn, u8 *bt_addr)
         }
 #endif
 
-        printf("inband_ringtone=0x%x\n", g_bt_hdl.inband_ringtone);
+        printf("inband_ringtone = 0x%x,after_conn = %d\n", g_bt_hdl.inband_ringtone, after_conn);
         g_bt_hdl.phone_ring_flag = 1;
         g_bt_hdl.phone_income_flag = 1;
 
@@ -322,8 +323,6 @@ int bt_phone_income(u8 after_conn, u8 *bt_addr)
 #if TCFG_BT_PHONE_NUMBER_ENABLE
                 if (after_conn) {
                     phone_ring_play_start();
-                } else {
-                    phone_income_num_check(NULL);
                 }
 #else
                 phone_ring_play_start();
@@ -489,7 +488,11 @@ int bt_phone_esco_play(u8 *bt_addr)
 #if TCFG_AUDIO_SOMATOSENSORY_ENABLE && SOMATOSENSORY_CALL_EVENT
     somatosensory_open();
 #endif
-
+#if defined(CONFIG_CPU_BR52)
+    if (CONFIG_AES_CCM_FOR_EDR_ENABLE) {
+        clock_alloc("aes_esco_play", 128 * 1000000L);
+    }
+#endif
     a2dp_player_close(bt_addr);
     bt_stop_a2dp_slience_detect(bt_addr);
     a2dp_media_close(bt_addr);
@@ -523,7 +526,10 @@ int bt_phone_esco_play(u8 *bt_addr)
         log_info("dec_begin,dump_packet clear\n");
         esco_dump_packet = ESCO_DUMP_PACKET_DEFAULT;
     }
-
+#if TCFG_BT_PHONE_NUMBER_ENABLE
+    y_printf("play the calling number\n");
+    phone_income_num_check(NULL);
+#endif
     tws_page_scan_deal_by_esco(1);
     pbg_user_mic_fixed_deal(1);
     return 0;
@@ -537,6 +543,12 @@ int bt_phone_esco_stop(u8 *bt_addr)
         puts("esco_player_is_close\n");
         return 0;
     }
+
+#if defined(CONFIG_CPU_BR52)
+    if (CONFIG_AES_CCM_FOR_EDR_ENABLE) {
+        clock_free("aes_esco_play");
+    }
+#endif
 #if TCFG_KWS_VOICE_RECOGNITION_ENABLE
     /* 处理来电时挂断电话，先跑释放资源再收到handup命令的情况
      * 避免先开smart voice，再关闭"yes/no"，导致出错*/
@@ -560,7 +572,6 @@ int bt_phone_esco_stop(u8 *bt_addr)
     if (app_var.goto_poweroff_flag) {
         return 0;
     }
-
     tws_page_scan_deal_by_esco(0);
     pbg_user_mic_fixed_deal(0);
     return 0;
@@ -859,7 +870,9 @@ static int bt_phone_status_event_handler(int *msg)
         break;
     case BT_STATUS_PHONE_NUMBER:
         log_info("BT_STATUS_PHONE_NUMBER\n");
+#if TCFG_BT_PHONE_NUMBER_ENABLE
         phone_number = (u8 *)bt->value;
+        printf("phone_number = %s\n", phone_number);
         if (g_bt_hdl.phone_num_flag == 1) {
             break;
         }
@@ -876,10 +889,11 @@ static int bt_phone_status_event_handler(int *msg)
             }
         }
         if (g_bt_hdl.income_phone_len > 0) {
-            g_bt_hdl.phone_num_flag = 1;
+            g_bt_hdl.phone_num_flag = 1;   //等esco建立后开始来电号码的播报
         } else {
             log_info("PHONE_NUMBER len err\n");
         }
+#endif
         break;
     case BT_STATUS_INBAND_RINGTONE:
         log_info("BT_STATUS_INBAND_RINGTONE\n");

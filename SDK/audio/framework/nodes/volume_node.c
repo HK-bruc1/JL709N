@@ -128,6 +128,20 @@ void audio_digital_vol_cfg_init(dvol_handle *dvol, struct volume_cfg *vol_cfg) /
 #endif
         }
 
+        if (dvol->vol_table_default) {
+            extern const u16 default_dig_vol_table[];
+            dvol->min_vol = default_dig_vol_table[0];
+            dvol->max_vol = default_dig_vol_table[dvol->vol_limit - 1];
+        } else {
+            if (dvol->vol_table) {
+                dvol->min_vol = 0;//(s16)(eq_db2mag(dvol->vol_table[0]) *  DVOL_MAX_FLOAT);//dB转换倍数
+                dvol->max_vol = (s16)(eq_db2mag(dvol->vol_table[dvol->vol_limit - 1]) *  DVOL_MAX_FLOAT);
+            } else {
+                dvol->min_vol = 0;//(s16)(eq_db2mag(dvol->cfg_vol_min) *  DVOL_MAX_FLOAT);//dB转换倍数
+                dvol->max_vol = (s16)(eq_db2mag(dvol->cfg_vol_max) *  DVOL_MAX_FLOAT);
+            }
+        }
+
         dvol->vol_fade = 0; //从0开始淡入到目标音量
         if ((dvol->cfg_vol_min == -45) && (dvol->cfg_level_max == 31) && (dvol->cfg_vol_max == 0)) {
             dvol-> vol_table_default = 1; //使用默认的音量表
@@ -438,6 +452,14 @@ static int volume_ioc_update_parm(struct volume_hdl *hdl, int parm)
         if (hdl && hdl->dvol_hdl) {
             audio_digital_vol_mute_set(hdl->dvol_hdl, mute_en);
             log_debug("SET MUTE mute update success : %d\n", mute_en);
+            ret = true;
+        }
+        break;
+    case VOLUME_NODE_CMD_SET_OFFSET:
+        float offset_dB = (float)(value / 100.f);
+        if (hdl && hdl->dvol_hdl) {
+            audio_digital_vol_offset_dB_set(hdl->dvol_hdl, offset_dB);
+            log_debug("SET vol offset update success : %d / 100\n", (int)(offset_dB * 100));
             ret = true;
         }
         break;

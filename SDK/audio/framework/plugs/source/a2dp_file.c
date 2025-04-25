@@ -298,10 +298,12 @@ static int a2dp_ioc_get_fmt(struct a2dp_file_hdl *hdl, struct stream_fmt *fmt)
         fmt->coding_type = AUDIO_CODING_SBC;
         code_type = "SBC";
         break;
+#if (defined(TCFG_BT_SUPPORT_AAC) && TCFG_BT_SUPPORT_AAC)
     case A2DP_CODEC_MPEG24:
         fmt->coding_type = AUDIO_CODING_AAC;
         code_type = "AAC";
         break;
+#endif
 #if (defined(TCFG_BT_SUPPORT_LDAC) && TCFG_BT_SUPPORT_LDAC)
     case A2DP_CODEC_LDAC:
         fmt->coding_type = AUDIO_CODING_LDAC;
@@ -368,6 +370,7 @@ __again:
     /*put_buf(packet, head_len + 8);*/
     u8 *frame = packet + head_len;
     if (frame[0] == 0x47) {    				//常见mux aac格式
+#if (defined(TCFG_BT_SUPPORT_AAC) && TCFG_BT_SUPPORT_AAC)
         u8 sr = (frame[5] & 0x3C) >> 2;
         /* u8 ch = ((frame[5] & 0x3) << 2) | ((frame[6] & 0xC0) >> 6); */
         fmt->channel_mode = AUDIO_CH_LR;
@@ -377,6 +380,7 @@ __again:
         /* u8 ch = ((frame[3] & 0x78) >> 3) ; */
         fmt->channel_mode = AUDIO_CH_LR;
         fmt->sample_rate = aac_sample_rates[sr];
+#endif
     } else if (frame[0] == 0x9C) {          //sbc 格式
         /*
          * 检查数据是否为AAC格式,
@@ -699,6 +703,9 @@ static void a2dp_frame_pack_timestamp(struct a2dp_file_hdl *hdl, struct stream_f
     int frame_delay = (timestamp - (frame->timestamp * 625 * TIME_US_FACTOR)) / 1000 / TIME_US_FACTOR;
     /*int distance_time = (int)(timestamp - (frame->timestamp * 625 * TIME_US_FACTOR)) / 1000 / TIME_US_FACTOR - delay_time;*/
     int distance_time = frame_delay - delay_time;
+    if (frame->flags & FRAME_FLAG_FILL_PACKET) { /*补包数据不进行延时调整*/
+        distance_time = 0;
+    }
     a2dp_audio_delay_offset_update(hdl->ts_handle, distance_time);
     frame->flags |= (FRAME_FLAG_TIMESTAMP_ENABLE | FRAME_FLAG_UPDATE_TIMESTAMP | FRAME_FLAG_UPDATE_DRIFT_SAMPLE_RATE);
     a2dp_stream_mark_next_timestamp(hdl->stream_ctrl, timestamp + PCM_SAMPLE_TO_TIMESTAMP(pcm_frames, hdl->sample_rate));
