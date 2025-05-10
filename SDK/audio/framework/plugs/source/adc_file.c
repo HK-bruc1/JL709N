@@ -14,6 +14,7 @@
 #include "asm/audio_common.h"
 #include "mic_effect.h"
 #include "pc_mic_recoder.h"
+#include "btstack/avctp_user.h"
 #if TCFG_AUDIO_ANC_ENABLE
 #include "audio_anc.h"
 #endif
@@ -153,6 +154,7 @@ void audio_adc_file_set_mic_en_map(u8 mic_en_map)
 }
 
 
+__AUDIO_ADC_BANK_CODE
 void audio_adc_file_global_cfg_init(void)
 {
     memcpy(&esco_adc_file_g.cfg, &esco_adc_f.cfg, sizeof(struct adc_file_cfg));
@@ -211,6 +213,7 @@ void audio_all_adc_file_init(void)
 #endif
 }
 
+__AUDIO_INIT_BANK_CODE
 void audio_adc_file_init(void)  //通话的ADC节点配置
 {
     u32 i;
@@ -279,6 +282,7 @@ void audio_adc_file_init(void)  //通话的ADC节点配置
     audio_adc_file_global_cfg_init();
 }
 
+__AUDIO_ADC_BANK_CODE
 void audio_adc_cfg_init(struct adc_file_common *adc_f)  //通话外其他ADC节点读配置
 {
     if (!adc_f->read_flag) {
@@ -512,14 +516,10 @@ static void *adc_init(void *source_node, struct stream_node *node)
     node->type |= NODE_TYPE_IRQ;
 
 
-#if ((defined TCFG_CALL_KWS_SWITCH_ENABLE) && TCFG_CALL_KWS_SWITCH_ENABLE)
-    extern void smart_voice_mcu_mic_suspend();
-    smart_voice_mcu_mic_suspend();
-#endif
-
     return hdl;
 }
 
+__AUDIO_ADC_BANK_CODE
 static void adc_ioc_get_fmt(struct adc_file_hdl *hdl, struct stream_fmt *fmt)
 {
     /*
@@ -640,6 +640,7 @@ int adc_file_mic_open(struct adc_mic_ch *mic, int ch) //用于打开通话使用
     return 0;
 }
 
+__AUDIO_ADC_BANK_CODE
 int adc_file_cfg_mic_open(struct adc_mic_ch *mic, int ch, struct adc_file_common *adc_f) //用于打开通话外其他mic
 {
     struct mic_open_param mic_param = {0};
@@ -686,11 +687,16 @@ static void adc_open_task(void *_hdl)
 
 }
 
+__AUDIO_ADC_BANK_CODE
 static int adc_file_ioc_start(struct adc_file_hdl *hdl)
 {
     int ret = 0;
     if (hdl->start == 0) {
         hdl->start = 1;
+#if ((defined TCFG_CALL_KWS_SWITCH_ENABLE) && TCFG_CALL_KWS_SWITCH_ENABLE)
+        extern void smart_voice_mcu_mic_suspend();
+        smart_voice_mcu_mic_suspend();
+#endif
         hdl->dump_cnt = 0;
         //不启动ANC动态MIC增益时，由用户自己保证ANC与通话复用的ADC增益一致
 #if TCFG_AUDIO_ANC_ENABLE && TCFG_AUDIO_DYNAMIC_ADC_GAIN
@@ -746,10 +752,18 @@ static int adc_file_ioc_start(struct adc_file_hdl *hdl)
     return ret;
 }
 
+__AUDIO_ADC_BANK_CODE
 static int adc_file_ioc_stop(struct adc_file_hdl *hdl)
 {
     if (hdl->start) {
         hdl->start = 0;
+#if ((defined TCFG_CALL_KWS_SWITCH_ENABLE) && TCFG_CALL_KWS_SWITCH_ENABLE)
+        extern u16 jl_call_kws_get_status();
+        extern int audio_phone_call_kws_start(void);
+        if (jl_call_kws_get_status() == BT_STATUS_PHONE_INCOME) {
+            audio_phone_call_kws_start();
+        }
+#endif
 #if TCFG_AUDIO_ANC_ENABLE && TCFG_AUDIO_DYNAMIC_ADC_GAIN
         anc_dynamic_micgain_stop();
 #endif
@@ -785,6 +799,7 @@ static int adc_file_ioc_stop(struct adc_file_hdl *hdl)
     return 0;
 }
 
+__AUDIO_ADC_BANK_CODE
 static int adc_file_ioc_update_parm(struct adc_file_hdl *hdl, int parm)
 {
     int i;

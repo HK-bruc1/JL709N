@@ -167,14 +167,17 @@ u32 lpctmu_get_ana_cur_level(u32 ch)
     return level;
 }
 
-void lpctmu_isel_trim(u8 ch)
+void lpctmu_isel_trim(u32 ch)
 {
     SFR(P11_LPCTM0->ANA1, 4, 4, ch + 1);//使能对应通道
 
     u32 diff, diff_min = -1;
-    u8 aim_cur_level;
+    u32 aim_cur_level;
+
     if (__this->pdata->aim_charge_khz < 8) {
         aim_cur_level = __this->pdata->aim_charge_khz;
+    } else if (__this->ch_fixed_isel[ch]) {
+        aim_cur_level = __this->ch_fixed_isel[ch];
     } else {
         for (u8 cur_level = 0; cur_level < 8; cur_level ++) {
             SFR(P11_LPCTM0->ANA0, 1, 3, cur_level);

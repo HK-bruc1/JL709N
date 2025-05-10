@@ -99,9 +99,9 @@ DEFINES := \
 	-DCONFIG_RELEASE_ENABLE \
 	-DCONFIG_EARPHONE_CASE \
 	-DCONFIG_CPU_BR52 \
-	-DCONFIG_USB_SUPPORT_MRX_TX \
 	-DCONFIG_IIC_VERSION2 \
 	-DLWIP_USE_BT \
+	-DDLOG_PRINT_FUNC_USE_MACRO=0 \
 	-DCONFIG_NEW_BREDR_ENABLE \
 	-DCONFIG_NEW_MODEM_ENABLE \
 	-DCONFIG_NEW_TWS_FORWARD_ENABLE \
@@ -173,15 +173,19 @@ INCLUDES := \
 	-Iinterface/btstack/third_party/common \
 	-Iinterface/btstack/third_party \
 	-Iinterface/utils \
+	-Iinterface/utils/generic \
 	-Iinterface/utils/device \
 	-Iinterface/utils/fs \
-	-Iinterface/utils/generic \
 	-Iinterface/utils/math/cpu/br52 \
+	-Iinterface/net/mbedtls_3_4_0 \
 	-Iinterface/btstack/third_party/rcsp \
 	-Iinterface/media/media_new \
 	-Iinterface/media/media_new/media \
 	-Iinterface/media/media_new/media/cpu/br52 \
 	-Iinterface/media/media_new/media/cpu/br52/asm \
+	-Iinterface/net/lwip_2_2_0/lwip/src/include \
+	-Iinterface/net/lwip_2_2_0/lwip/port \
+	-Iinterface/net/lwip_2_2_0/lwip/app \
 	-Iapps/earphone \
 	-Iapps/earphone/include \
 	-Iapps/earphone/include/wireless_mic \
@@ -212,6 +216,7 @@ INCLUDES := \
 	-Iaudio/common \
 	-Iaudio/effect \
 	-Iapps/common/device/sensor/imu_sensor \
+	-Iinterface/net/lwip_2_2_0/lwip/src \
 	-Iapps/common/third_party_profile/jieli/rcsp \
 	-Iapps/common/third_party_profile/jieli/rcsp/adv \
 	-Iapps/common/third_party_profile/jieli/rcsp/rcsp_functions \
@@ -248,14 +253,6 @@ INCLUDES := \
 	-Iinterface/btstack/third_party/le_audio \
 	-Iinterface/btstack/third_party/broadcast \
 	-Iaudio/le_audio \
-	-Iapps/common/third_party_profile/tuya_protocol \
-	-Iapps/common/third_party_profile/tuya_protocol/app/demo \
-	-Iapps/common/third_party_profile/tuya_protocol/app/product_test \
-	-Iapps/common/third_party_profile/tuya_protocol/app/uart_common \
-	-Iapps/common/third_party_profile/tuya_protocol/extern_components/mbedtls \
-	-Iapps/common/third_party_profile/tuya_protocol/port \
-	-Iapps/common/third_party_profile/tuya_protocol/sdk/include \
-	-Iapps/common/third_party_profile/tuya_protocol/sdk/lib \
 	-Iapps/common/third_party_profile/bt_fmy \
 	-Iinterface/btstack \
 	-Iapps/common/device/usb \
@@ -350,6 +347,7 @@ c_SRC_FILES := \
 	apps/common/device/sensor/ir_sensor/ir_manage.c \
 	apps/common/device/sensor/ir_sensor/jsa1221.c \
 	apps/common/device/sensor/ntc/ntc_det.c \
+	apps/common/device/storage_device/norflash/norflash.c \
 	apps/common/device/storage_device/norflash/norflash_sfc.c \
 	apps/common/device/usb/demo/host/udisk_block_test.c \
 	apps/common/device/usb/device/cdc.c \
@@ -457,6 +455,7 @@ c_SRC_FILES := \
 	apps/common/third_party_profile/jieli/rcsp/rcsp_functions/rcsp_manage.c \
 	apps/common/third_party_profile/jieli/rcsp/rcsp_functions/rcsp_task.c \
 	apps/common/third_party_profile/jieli/rcsp/rcsp_interface.c \
+	apps/common/third_party_profile/jieli/rcsp/rcsp_simplified/rcsp_interface_simplified.c \
 	apps/common/third_party_profile/jieli/rcsp/server/functions/browser/rcsp_browser.c \
 	apps/common/third_party_profile/jieli/rcsp/server/functions/device_info/device_status_cmd/rcsp_bt_func.c \
 	apps/common/third_party_profile/jieli/rcsp/server/functions/device_info/device_status_cmd/rcsp_fm_func.c \
@@ -554,38 +553,6 @@ c_SRC_FILES := \
 	apps/common/third_party_profile/realme_protocol/realme_platform_api.c \
 	apps/common/third_party_profile/realme_protocol/realme_protocol.c \
 	apps/common/third_party_profile/swift_pair/swift_pair_protocol.c \
-	apps/common/third_party_profile/tuya_protocol/app/demo/tuya_app_func.c \
-	apps/common/third_party_profile/tuya_protocol/app/demo/tuya_ble_app_demo.c \
-	apps/common/third_party_profile/tuya_protocol/app/demo/tuya_ota.c \
-	apps/common/third_party_profile/tuya_protocol/app/product_test/tuya_ble_app_production_test.c \
-	apps/common/third_party_profile/tuya_protocol/app/uart_common/tuya_ble_app_uart_common_handler.c \
-	apps/common/third_party_profile/tuya_protocol/extern_components/mbedtls/aes.c \
-	apps/common/third_party_profile/tuya_protocol/extern_components/mbedtls/ccm.c \
-	apps/common/third_party_profile/tuya_protocol/extern_components/mbedtls/hmac.c \
-	apps/common/third_party_profile/tuya_protocol/extern_components/mbedtls/md5.c \
-	apps/common/third_party_profile/tuya_protocol/extern_components/mbedtls/sha1.c \
-	apps/common/third_party_profile/tuya_protocol/extern_components/mbedtls/sha256.c \
-	apps/common/third_party_profile/tuya_protocol/port/tuya_ble_port.c \
-	apps/common/third_party_profile/tuya_protocol/port/tuya_ble_port_JL.c \
-	apps/common/third_party_profile/tuya_protocol/port/tuya_ble_port_peripheral.c \
-	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_api.c \
-	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_bulk_data.c \
-	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_data_handler.c \
-	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_event.c \
-	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_event_handler.c \
-	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_event_handler_weak.c \
-	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_feature_weather.c \
-	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_gatt_send_queue.c \
-	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_heap.c \
-	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_main.c \
-	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_mem.c \
-	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_mutli_tsf_protocol.c \
-	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_queue.c \
-	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_storage.c \
-	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_unix_time.c \
-	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_utils.c \
-	apps/common/third_party_profile/tuya_protocol/tuya_event.c \
-	apps/common/third_party_profile/tuya_protocol/tuya_protocol.c \
 	apps/common/third_party_profile/ximalaya_protocol/xmly_ble.c \
 	apps/common/third_party_profile/ximalaya_protocol/xmly_config.c \
 	apps/common/third_party_profile/ximalaya_protocol/xmly_platform_api.c \
@@ -624,6 +591,7 @@ c_SRC_FILES := \
 	apps/earphone/log_config/lib_btstack_config.c \
 	apps/earphone/log_config/lib_driver_config.c \
 	apps/earphone/log_config/lib_media_config.c \
+	apps/earphone/log_config/lib_net_config.c \
 	apps/earphone/log_config/lib_system_config.c \
 	apps/earphone/log_config/lib_update_config.c \
 	apps/earphone/message/adapter/app_msg.c \
@@ -690,6 +658,7 @@ c_SRC_FILES := \
 	apps/earphone/ui/led/led_config.c \
 	apps/earphone/ui/led/led_ui_msg_handler.c \
 	apps/earphone/user_cfg.c \
+	audio/CVP/audio_aec.c \
 	audio/CVP/audio_cvp.c \
 	audio/CVP/audio_cvp_3mic.c \
 	audio/CVP/audio_cvp_ais_3mic.c \
@@ -731,6 +700,7 @@ c_SRC_FILES := \
 	audio/common/demo/codec_demo/audio_opus_codec_demo.c \
 	audio/common/demo/codec_demo/audio_sbc_codec_demo.c \
 	audio/common/demo/codec_demo/audio_speex_codec_demo.c \
+	audio/common/demo/hw_math_v2_demo.c \
 	audio/common/frame_length_adaptive.c \
 	audio/common/icsd/adjdcc/icsd_adjdcc_config.c \
 	audio/common/icsd/adt/icsd_adt.c \
@@ -943,6 +913,8 @@ c_SRC_FILES := \
 	cpu/br52/power/power_gate.c \
 	cpu/br52/power/power_port.c \
 	cpu/br52/setup.c \
+	cpu/br52/ui_driver/led7/led7_driver.c \
+	cpu/br52/ui_driver/ui_common.c \
 	cpu/components/gpadc_battery.c \
 	cpu/components/iic_api.c \
 	cpu/components/iic_soft.c \
@@ -950,7 +922,6 @@ c_SRC_FILES := \
 	cpu/components/ir_encoder.c \
 	cpu/components/led_api.c \
 	cpu/components/rdec_soft.c \
-	cpu/components/touch/lp_touch_key_range_algo.c \
 	cpu/components/touch/lp_touch_key_tool.c \
 	cpu/components/two_io_led.c \
 	cpu/config/gpio_file_parse.c \

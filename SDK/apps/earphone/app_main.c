@@ -361,8 +361,10 @@ static struct app_mode *app_task_init()
     app_var_init();
     app_version_check();
 
+#ifndef CONFIG_CPU_BR56
     sdfile_init();
     syscfg_tools_init();
+#endif
     cfg_file_parse(0);
 
     jlstream_init();
@@ -374,6 +376,10 @@ static struct app_mode *app_task_init()
 #if (defined(TCFG_DEBUG_DLOG_ENABLE) && TCFG_DEBUG_DLOG_ENABLE)
     dlog_init();
     dlog_enable(1);
+    extern void dlog_uart_auto_enable_init(void);
+    extern int dlog_uart_output_set(enum DLOG_OUTPUT_TYPE type);
+    dlog_uart_output_set(DLOG_OUTPUT_2_FLASH | dlog_output_type_get());
+    dlog_uart_auto_enable_init();
 #endif
 
     key_driver_init();
@@ -577,6 +583,24 @@ struct app_mode *app_mode_switch_handler(int *msg)
         return next_mode;
     }
 }
+
+#if 0
+void timer_no_response_callback(const char *task_name, void *func, u32 msec, void *timer, u32 curr_msec)
+{
+    extern const char *pcTaskName(void *pxTCB);
+    extern TaskHandle_t task_get_current_handle(u8 cpu_id);
+    if (CPU_CORE_NUM == 2) {
+        TaskHandle_t task0 = task_get_current_handle(0);
+        TaskHandle_t task1 = task_get_current_handle(1);
+        printf("timer_no_response: %s, %p, %d, %p, %d, c0:%s, c1:%s\n", task_name, func, msec, timer, curr_msec, pcTaskName(task0), pcTaskName(task1));
+    } else {
+        TaskHandle_t task0 = task_get_current_handle(0);
+        printf("timer_no_response: %s, %p, %d, %p, %d, c:%s\n", task_name, func, msec, timer, curr_msec, pcTaskName(task0));
+    }
+    //用于debug任务无响应情况
+    task_trace_info_dump(task_name);
+}
+#endif
 
 #if 0
 static void test_printf(void *_arg)

@@ -79,8 +79,15 @@
 #endif
 
 #if THIRD_PARTY_PROTOCOLS_SEL && (TCFG_USER_BLE_ENABLE == 0)
-#error "开启 le audio 功能需要使能 TCFG_USER_BLE_ENABLE"
+#error "开启 第三方协议功能 需要使能 TCFG_USER_BLE_ENABLE"
 #endif
+
+#ifndef TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
+// 三方协议简化版本，目前仅适用于RCSP
+#define TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED				0
+#endif
+//代码放RAM压缩宏，在RAM资源足够的情况下将代码放RAM进行压缩
+#define TCFG_CODE_TO_RAM_COMPRESS_ENABLE					0
 
 //*********************************************************************************//
 //                                  le_audio 配置                                       //
@@ -106,8 +113,12 @@
 #if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
 
 #if (THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN)     // rcsp与le audio共用 BLE ACL 时，使用不同地址
+
 #undef  TCFG_BT_BLE_BREDR_SAME_ADDR
 #define  TCFG_BT_BLE_BREDR_SAME_ADDR 0x0
+#if TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED && TCFG_RCSP_DUAL_CONN_ENABLE
+#error "三方协议简化版本不支持RCSP一拖二功能"
+#endif
 #endif
 
 #ifndef TCFG_JL_UNICAST_BOUND_PAIR_EN
@@ -977,11 +988,23 @@
 #undef  TCFG_BT_SUPPORT_PBAP
 #define  TCFG_BT_SUPPORT_PBAP 0x1
 #endif
-#define  TCFG_BT_SUPPORT_MAP 0x0
+#define  TCFG_BT_SUPPORT_MAP 0x1
 #define  TCFG_BLE_BRIDGE_EDR_ENALBE 0x0   //ios 一键连接，ctkd
 #if TCFG_BLE_BRIDGE_EDR_ENALBE   //一键连接必须同地址
 #undef  TCFG_BT_BLE_BREDR_SAME_ADDR
 #define  TCFG_BT_BLE_BREDR_SAME_ADDR 0x1
+#endif
+
+#define TCFG_IFLYTEK_ENABLE			0
+#ifdef TCFG_BT_SUPPORT_PAN
+#if TCFG_BT_SUPPORT_PAN
+#undef TCFG_IFLYTEK_ENABLE
+#define TCFG_IFLYTEK_ENABLE			1
+#endif
+#endif
+#if TCFG_IFLYTEK_ENABLE//目前耳机没有rtc，先用蓝牙时间转UTC再转GMT(earphone.c)
+#undef  TCFG_BT_SUPPORT_MAP
+#define  TCFG_BT_SUPPORT_MAP 0x1
 #endif
 
 //*********************************************************************************//
@@ -992,18 +1015,39 @@
 #define TCFG_CHARGE_CUR_MAX         0//烧写器电流筛选最高值 -- 配置0不使能筛选,根据方案自行配置筛选范围
 #endif
 
+//*********************************************************************************//
+//                   NTC配置                                      //
+//*********************************************************************************//
+#if NTC_DET_EN && NTC_DET_PULLUP_TYPE   //ntc如果选择内部上拉的，检测IO要选择对应的内部上拉引脚，具体看各芯片方案的原理图
+#if defined(CONFIG_CPU_BR56) && (NTC_DETECT_IO != IO_PORTC_01)
+#error "710 NTC_DETECT_IO must be IO_PORTC_01"
+#elif defined(CONFIG_CPU_BR52) && (NTC_DETECT_IO != IO_PORTC_03)
+#error "709 NTC_DETECT_IO must be IO_PORTC_03"
+#elif defined(CONFIG_CPU_BR50) && (NTC_DETECT_IO != IO_PORTC_05)
+#error "708 NTC_DETECT_IO must be IO_PORTC_05"
+#endif
+#endif
 
 //*********************************************************************************//
 //                    异常记录/离线log配置                                      //
 //*********************************************************************************//
 #define TCFG_CONFIG_DEBUG_RECORD_ENABLE    0
 
-// #if !TCFG_DEBUG_UART_ENABLE
+#if !TCFG_DEBUG_UART_ENABLE
 #define TCFG_DEBUG_DLOG_ENABLE             0      // 离线log功能
 #define TCFG_DEBUG_DLOG_FLASH_SEL          0      // 选择log保存到内置flash还是外置flash; 0:内置flash; 1:外置flash
+#if TCFG_DEBUG_DLOG_FLASH_SEL
+#if (!defined(TCFG_NORFLASH_DEV_ENABLE) || (TCFG_NORFLASH_DEV_ENABLE == 0))
+#undef TCFG_NORFLASH_DEV_ENABLE
+#define TCFG_NORFLASH_DEV_ENABLE           1
+#endif
+#endif
 #define TCFG_DEBUG_DLOG_RESET_ERASE        0      // 开机擦除flash的log数据
 #define TCFG_DEBUG_DLOG_AUTO_FLUSH_TIMEOUT (30)   // 主动刷新的超时时间(当指定时间没有刷新过缓存数据到flash, 则主动刷新)(单位秒)
-// #endif
+#if ((TCFG_DEBUG_DLOG_ENABLE) && (!defined(DLOG_PRINT_FUNC_USE_MACRO) || (DLOG_PRINT_FUNC_USE_MACRO == 0)))
+#error "DLOG_PRINT_FUNC_USE_MACRO must be enable"
+#endif
+#endif
 
 //*********************************************************************************//
 //                    关中断时间过长函数追踪配置                                      //

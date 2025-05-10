@@ -44,6 +44,8 @@ const int CONFIG_LMP_CONNECTION_LIMIT_NUM = 1;
 		return 0;
 	}
 #endif
+const int CONFIG_TWS_PURE_MONITOR_MODE = TWS_PURE_MONITOR_MODE; /*自适应延时策略使用*/
+
 #if TCFG_TWS_AUDIO_SHARE_ENABLE
 	const int CONFIG_TWS_AUDIO_SHARE_ENABLE  = 1;
 #else
@@ -370,7 +372,11 @@ const int config_delete_link_key          = 1;           //配置是否连接失
 	#endif
 
 	#if (THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN)
-	    #define RCSP_MODE_LE_FEATURES (LE_ENCRYPTION | LE_DATA_PACKET_LENGTH_EXTENSION | LE_2M_PHY | LL_FEAT_LE_EXT_ADV)
+		#if TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
+			#define RCSP_MODE_LE_FEATURES (LE_ENCRYPTION)
+		#else
+			#define RCSP_MODE_LE_FEATURES (LE_ENCRYPTION | LE_DATA_PACKET_LENGTH_EXTENSION | LE_2M_PHY | LL_FEAT_LE_EXT_ADV)
+		#endif
     #else
        #define RCSP_MODE_LE_FEATURES 0
 	#endif
@@ -383,8 +389,13 @@ const int config_delete_link_key          = 1;           //配置是否连接失
        #define LE_AUDIO_BIS_RX_LE_ROLE     0
 	#endif
 
+#if TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
+	const int config_btctler_le_roles    = (LE_SLAVE | LE_ADV);
+	const uint64_t config_btctler_le_features = LE_ENCRYPTION;
+#else
 	const int config_btctler_le_roles    = (LE_SLAVE  | LE_ADV|LE_AUDIO_BIS_RX_LE_ROLE);
 	const uint64_t config_btctler_le_features = LE_AUDIO_CIS_LE_FEATURES|DEFAULT_LE_FEATURES|RCSP_MODE_LE_FEATURES|LE_AUDIO_BIS_RX_LE_FEATURES;
+#endif
 
 #else /* TCFG_USER_BLE_ENABLE */
 	const int config_btctler_le_roles    = 0;
@@ -393,7 +404,11 @@ const int config_delete_link_key          = 1;           //配置是否连接失
 
 
 // Slave multi-link
+#if TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
+const int config_btctler_le_slave_multilink = 0;
+#else
 const int config_btctler_le_slave_multilink = 1;
+#endif
 
 // Master multi-link
 const int config_btctler_le_master_multilink = 0;
@@ -422,12 +437,12 @@ const int config_bb_optimized_ctrl = VENDOR_BB_ISO_DIRECT_PUSH;//BIT(7);//|BIT(8
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
     #define TWS_LE_AUDIO_LE_ROLE_SW_EN (0)
 #elif (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
-    #define TWS_LE_AUDIO_LE_ROLE_SW_EN (1)
+    #define TWS_LE_AUDIO_LE_ROLE_SW_EN (0)
 #else
     #define TWS_LE_AUDIO_LE_ROLE_SW_EN (0)
 #endif
 
-#if (THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN)
+#if (THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN) && !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
     #define TWS_RCSP_LE_ROLE_SW_EN (1)
 #else
     #define TWS_RCSP_LE_ROLE_SW_EN (0)
