@@ -174,7 +174,6 @@ typedef enum _UPDATE_STATE_T {
     UPDATE_CH_INIT,
     UPDATE_CH_SUCESS_REPORT,
     UPDATE_CH_EXIT,
-    UPDATE_CH_SAME,
 } UPDATE_STATE_T;
 
 struct update_target {
@@ -193,5 +192,9 @@ extern const struct update_target update_target_end[];
 
 #define list_for_each_update_target(p) \
     for (p = update_target_begin; p < update_target_end; p++)
+
+u32 dual_bank_update_bp_info_get(void);
+void norflash_set_write_protect_en(void);
+void norflash_set_write_protect_remove(void);
 
 #endif

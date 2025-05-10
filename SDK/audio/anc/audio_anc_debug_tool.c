@@ -1,4 +1,10 @@
 
+#ifdef SUPPORT_MS_EXTENSIONS
+#pragma   bss_seg(".audio_anc_debug_tool.data.bss")
+#pragma  data_seg(".audio_anc_debug_tool.data")
+#pragma const_seg(".audio_anc_debug_tool.text.const")
+#pragma  code_seg(".audio_anc_debug_tool.text")
+#endif/*SUPPORT_MS_EXTENSIONS*/
 /****************************************************
 				audio_anc_debug_tool.c
 *	ANC debug 工具，用SPP代替有线串口打印关键debug数据
@@ -12,11 +18,13 @@
 #include "generic/circular_buf.h"
 #include "system/task.h"
 #include "timer.h"
-#include "asm/crc16.h"
+#include "crc.h"
 
 #if TCFG_ANC_TOOL_DEBUG_ONLINE && TCFG_AUDIO_ANC_ENABLE
 
 #include "audio_anc.h"
+
+#if TCFG_AUDIO_ANC_BASE_DEBUG_ENABLE
 
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
 #include "rt_anc_app.h"
@@ -252,12 +260,14 @@ int audio_anc_debug_user_cmd_process(u8 *data, int len)
         /* put_buf(data_p, data_len); */
         break;
 
+#if ANC_HOWLING_DETECT_EN
     case 11:
         //开关啸叫检测
         void audio_anc_howl_det_toggle_demo();
         audio_anc_howl_det_toggle_demo();
         break;
-#if TCFG_AUDIO_ANC_ENV_NOISE_DET_ENABLE
+#endif
+#if TCFG_AUDIO_ANC_ENV_ADAPTIVE_GAIN_ENABLE
     case 12:
         //开关环境自适应
         /* void audio_anc_env_det_toggle_demo(); */
@@ -266,11 +276,13 @@ int audio_anc_debug_user_cmd_process(u8 *data, int len)
         audio_anc_env_adaptive_gain_demo();
         break;
 #endif
+#if TCFG_AUDIO_ANC_ENABLE && (!(defined CONFIG_CPU_BR36))
     case 13:
         if (data_len == 4) {
             audio_anc_fade_ctr_set(ANC_FADE_MODE_USER, AUDIO_ANC_FDAE_CH_FF, (u16)f_param);
         }
         break;
+#endif
 #if TCFG_AUDIO_ANC_ENV_NOISE_DET_ENABLE
     case 14:
         extern float avc_alpha_db;
@@ -325,6 +337,8 @@ void audio_anc_debug_test(void)
     }
     free(buf);
 }
+#endif
+
 #endif
 
 #endif/*TCFG_ANC_TOOL_DEBUG_ONLINE*/

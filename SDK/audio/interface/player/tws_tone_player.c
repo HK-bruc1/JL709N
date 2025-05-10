@@ -14,6 +14,7 @@
 #include "reference_time.h"
 #include "classic/tws_api.h"
 #include "app_config.h"
+#include "audio_time.h"
 
 #if TCFG_USER_TWS_ENABLE
 
@@ -59,8 +60,6 @@ static u8 g_tws_tone_adding = 0;
 static void tws_tone_reference_clock_close(u8 id);
 static void tws_play_tone_try_timeout(void *arg);
 extern int ring_player_start(struct tone_player *player);
-extern int tws_conn_system_clock_init(u8 factor);
-extern u32 tws_conn_master_to_local_time(u32 usec);
 
 static int tws_player_callback(int fname_uuid, u32 func_uuid, enum stream_event event)
 {
@@ -377,24 +376,14 @@ static void tws_play_tone_try_timeout(void *arg)
 
 int tws_play_tone_file(const char *file_name, int delay_msec)
 {
-#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))  //le_audio工程不支持tws同步叠加播放提示音
-    return __tws_play_tone_file(&file_name, 1, delay_msec, STREAM_SCENE_TONE,
-                                STREAM_COEXIST_DISABLE, 0);
-#else
     return __tws_play_tone_file(&file_name, 1, delay_msec, STREAM_SCENE_TONE,
                                 STREAM_COEXIST_AUTO, 0);
-#endif
 }
 
 int tws_play_tone_file_callback(const char *file_name, int delay_msec, u32 func_uuid)
 {
-#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))  //le_audio工程不支持tws同步叠加播放提示音
-    return __tws_play_tone_file(&file_name, 1, delay_msec, STREAM_SCENE_TONE,
-                                STREAM_COEXIST_DISABLE, func_uuid);
-#else
     return __tws_play_tone_file(&file_name, 1, delay_msec, STREAM_SCENE_TONE,
                                 STREAM_COEXIST_AUTO, func_uuid);
-#endif
 }
 
 int tws_play_ring_file(const char *file_name, int delay_msec)

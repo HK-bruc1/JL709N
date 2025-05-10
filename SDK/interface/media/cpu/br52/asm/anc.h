@@ -4,7 +4,7 @@
 #include "generic/typedef.h"
 #include "system/task.h"
 #include "media/audio_def.h"
-#include "asm/audio_adc.h"
+#include "audio_adc.h"
 
 enum {
     ANCDB_ERR_CRC = 1,
@@ -587,6 +587,7 @@ typedef struct {
     void (*biquad2ab)(float gain, float f, float fs, float q, double *a0, double *a1, double *a2, double *b0, double *b1, double *b2, u8 type);
     void (*mult_gain_set)(u8 gain_id, void *buf, int len);
 
+    u8 adt_state;//智能免摘开启状态
 } audio_anc_t;
 
 //ANC场景自适应相关结构体
@@ -941,7 +942,5 @@ void audio_anc_dma_add_output_handler(const char *name, void (*output)(void));
 
 /* 删除ANC DMA输出回调函数 */
 void audio_anc_dma_del_output_handler(const char *name);
-
-void audio_anc_biquad2ab_double(anc_fr_t *iir, double *out_coeff, u8 order, int alogm);
 
 #endif/*_ANC_H_*/

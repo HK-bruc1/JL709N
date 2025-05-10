@@ -422,16 +422,31 @@ static void audio_aec_task(void *priv)
 
                 /*6.数据导出*/
                 if (CONST_AEC_EXPORT) {
-                    aec_uart_fill(0, aec_hdl->mic, 512);		//主mic数据
-                    aec_uart_fill(1, aec_hdl->mic_ref, 512);	//副mic数据
-                    aec_uart_fill(2, aec_hdl->pFar, 512);	//扬声器数据
-                    if (aec_hdl->mic_num == 3) {
+                    aec_uart_fill(0, aec_hdl->mic, 512);            //主mic数据
+                    if (aec_hdl->mic_num == 1) {
+                        aec_uart_fill(1, aec_hdl->pFar, 512);       //扬声器数据
+                        aec_uart_fill(2, aec_hdl->out, out_len);        //算法运算结果
+                    } else if (aec_hdl->mic_num == 2) {
+                        if (CONST_AEC_EXPORT == 3) {
+                            aec_uart_fill(1, aec_hdl->pFar, 512);
+                        } else {
+                            aec_uart_fill(1, aec_hdl->mic_ref, 512);
+                        }
+
+                        if (CONST_AEC_EXPORT == 1) {
+                            aec_uart_fill(2, aec_hdl->pFar, 512);
+                        } else {
+                            aec_uart_fill(2, aec_hdl->out, out_len);
+                        }
+                    } else {
+                        aec_uart_fill(1, aec_hdl->mic_ref, 512);    //副mic数据
                         aec_uart_fill(2, aec_hdl->mic_ref_1, 512);  //扬声器数据
-                        aec_uart_fill(3, aec_hdl->pFar, 512);    //扬声器数据
-                        aec_uart_fill(4, aec_hdl->out, out_len); //算法运算结果
+                        aec_uart_fill(3, aec_hdl->pFar, 512);       //扬声器数据
+                        aec_uart_fill(4, aec_hdl->out, out_len);    //算法运算结果
                     }
                     aec_uart_write();
                 }
+
                 bulk->used = 0;
                 if (aec_hdl->mic_num >= 2) {
                     bulk_ref->used = 0;
@@ -500,6 +515,9 @@ int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int
 #if TCFG_AUDIO_CVP_SYNC
     audio_cvp_sync_open(init_param->sample_rate);
 #endif/*TCFG_AUDIO_CVP_SYNC*/
+
+    /*初始化dac read的资源*/
+    audio_dac_read_init();
 
     aec_hdl->output_way = 0;
     aec_hdl->fm_tx_start = 0;
@@ -630,6 +648,9 @@ void audio_aec_close(void)
         //在AEC关闭之后再关，否则还会跑cvp_sync_run,导致越界
         audio_cvp_sync_close();
 #endif/*TCFG_AUDIO_CVP_SYNC*/
+
+        /*释放dac read的资源*/
+        audio_dac_read_exit();
 
         if (CONST_AEC_EXPORT) {
             aec_uart_close();

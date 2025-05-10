@@ -3,9 +3,6 @@
 
 #include "AudioEffect_DataType.h"
 
-extern const int butterworth_iir_filter_coeff_type_select; //0 float 1 int
-extern const int virtual_bass_run_mode;
-
 #ifdef WIN32
 
 #define AT_VBSS(x)
@@ -28,11 +25,7 @@ typedef struct _VirtualBassParam {
     int boost;
     int fc;
     int ReserveLowFreqEnable;
-    int noisegate_attack_time;
-    int noisegate_release_time;
-    int noisegate_hold_time;
-    float threshold;
-    int resever[3];
+    int Reserved[7];
     int channel;
     int SampleRate;
     af_DataType pcm_info;

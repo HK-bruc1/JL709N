@@ -52,12 +52,6 @@
 //*********************************************************************************//
 //                                  AI配置                                         //
 //*********************************************************************************//
-#ifdef TCFG_BT_RCSP_DUAL_CONN_ENABLE
-#define TCFG_RCSP_DUAL_CONN_ENABLE							TCFG_BT_RCSP_DUAL_CONN_ENABLE// RCSP一拖二功能开关
-#else
-#define TCFG_RCSP_DUAL_CONN_ENABLE                          0
-#endif
-
 #define    RCSP_MODE_EN             (1 << 0)
 #define    TRANS_DATA_EN            (1 << 1)
 #define    LL_SYNC_EN               (1 << 2)
@@ -75,6 +69,7 @@
 #define    ONLINE_DEBUG_EN          (1 << 14)
 #define    CUSTOM_DEMO_EN           (1 << 15)   // 第三方协议的demo，用于示例客户开发自定义协议
 #define    XIMALAYA_EN              (1 << 16)
+#define    AURACAST_APP_EN          (1 << 17)
 
 #if TCFG_THIRD_PARTY_PROTOCOLS_ENABLE
 #define THIRD_PARTY_PROTOCOLS_SEL  TCFG_THIRD_PARTY_PROTOCOLS_SEL
@@ -108,7 +103,6 @@
 #error "开启 le audio 功能需要使能 TCFG_USER_BLE_ENABLE"
 #endif
 
-
 #if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
 
 #if (THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN)     // rcsp与le audio共用 BLE ACL 时，使用不同地址
@@ -116,9 +110,16 @@
 #define  TCFG_BT_BLE_BREDR_SAME_ADDR 0x0
 #endif
 
+#ifndef TCFG_JL_UNICAST_BOUND_PAIR_EN
+#define TCFG_JL_UNICAST_BOUND_PAIR_EN 0				// 可通过JL小板实现耳机和Dongle的绑定配对
+#endif
+
 // #undef TCFG_LOWPOWER_LOWPOWER_SEL
 // #define  TCFG_LOWPOWER_LOWPOWER_SEL 0x0//低功耗连接还有问题
 #endif
+
+
+#define ATT_OVER_EDR_DEMO_EN          0
 
 #define LE_AUDIO_STREAM_ENABLE 	(TCFG_LE_AUDIO_APP_CONFIG)
 
@@ -149,10 +150,22 @@
 #define TCFG_AUDIO_LINEIN_ENABLE   TCFG_APP_LINEIN_EN
 #endif
 
-#if TCFG_APP_PC_EN || TCFG_APP_LINEIN_EN
+#ifndef TCFG_MUSIC_PLAYER_ENABLE
+#define TCFG_MUSIC_PLAYER_ENABLE   TCFG_APP_MUSIC_EN
+#endif
+
+#if TCFG_APP_MUSIC_EN
+#define TCFG_DEV_MANAGER_ENABLE					  			1
+#elif TCFG_APP_PC_EN || TCFG_APP_LINEIN_EN
 #define TCFG_DEV_MANAGER_ENABLE					  			0
 #else
 #define TCFG_DEV_MANAGER_ENABLE					  			0
+#endif
+
+#if TCFG_APP_MUSIC_EN
+#define TCFG_FILE_MANAGER_ENABLE							1
+#else
+#define TCFG_FILE_MANAGER_ENABLE							0
 #endif
 
 #if (THIRD_PARTY_PROTOCOLS_SEL & FMNA_EN)
@@ -167,6 +180,8 @@
 //                          	文件系统相关配置                                   //
 //*********************************************************************************//
 #if (THIRD_PARTY_PROTOCOLS_SEL & REALME_EN)
+#define CONFIG_FATFS_ENABLE                                 1
+#elif TCFG_SD0_ENABLE || TCFG_SD1_ENABLE || TCFG_UDISK_ENABLE || TCFG_NOR_FAT
 #define CONFIG_FATFS_ENABLE                                 1
 #else
 #define CONFIG_FATFS_ENABLE                                 0
@@ -224,13 +239,9 @@
 #define    BT_MIC_EN                 1
 #define    TCFG_ENC_SPEEX_ENABLE     0
 #define    OTA_TWS_SAME_TIME_ENABLE  0     //是否支持TWS同步升级
-#elif (THIRD_PARTY_PROTOCOLS_SEL & LL_SYNC_EN)
-#define    OTA_TWS_SAME_TIME_ENABLE  1
-#define    OTA_TWS_SAME_TIME_NEW     1     //使用新的tws ota流程
-#define    TCFG_ENC_SPEEX_ENABLE     0
-#elif (THIRD_PARTY_PROTOCOLS_SEL & TUYA_DEMO_EN)
-#define    OTA_TWS_SAME_TIME_ENABLE  1
-#define    OTA_TWS_SAME_TIME_NEW     1     //使用新的tws ota流程
+#elif (THIRD_PARTY_PROTOCOLS_SEL & (LL_SYNC_EN | TUYA_DEMO_EN))
+#define    OTA_TWS_SAME_TIME_ENABLE  (TCFG_USER_TWS_ENABLE)
+#define    OTA_TWS_SAME_TIME_NEW     (TCFG_USER_TWS_ENABLE)     //使用新的tws ota流程
 #define    TCFG_ENC_SPEEX_ENABLE     0
 #else
 #define    OTA_TWS_SAME_TIME_ENABLE  0
@@ -265,6 +276,17 @@
 #if (CONFIG_BT_MODE == BT_NORMAL) && (!TCFG_NORMAL_SET_DUT_MODE)
 //enable dut mode,need disable sleep(TCFG_LOWPOWER_LOWPOWER_SEL = 0)
 // #define TCFG_NORMAL_SET_DUT_MODE                  0
+#if TCFG_NORMAL_SET_DUT_MODE
+#undef  TCFG_LOWPOWER_LOWPOWER_SEL
+#define TCFG_LOWPOWER_LOWPOWER_SEL                0
+
+#undef  TCFG_AUTO_SHUT_DOWN_TIME
+#define TCFG_AUTO_SHUT_DOWN_TIME		          0
+
+#undef  TCFG_USER_TWS_ENABLE
+#define TCFG_USER_TWS_ENABLE                      0     //tws功能使能
+
+#endif
 
 #else
 #undef TCFG_BT_DUAL_CONN_ENABLE
@@ -493,8 +515,13 @@
 
 
 #if TCFG_APP_MUSIC_EN
+#if TCFG_SD0_ENABLE
 #define CONFIG_SD_UPDATE_ENABLE
+#endif
+#if TCFG_USB_HOST_ENABLE && TCFG_UDISK_ENABLE
 #define CONFIG_USB_UPDATE_ENABLE
+#endif
+#define TCFG_DEV_UPDATE_IF_NOFILE_ENABLE   0//0：设备上线直接查找升级文件 1：无音乐文件时才查找升级文件
 #endif
 //*********************************************************************************//
 //                                 Audio配置                                        //
@@ -800,8 +827,8 @@
 #error "开辅听需要固定全局输出采样率"
 #endif
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_JL_UNICAST_SINK_EN)))
-#if (TCFG_AUDIO_GLOBAL_SAMPLE_RATE != 48000)
-#error "open LE_AUDIO_JL_UNICAST TCFG_AUDIO_GLOBAL_SAMPLE_RATE 需要设置48000"
+#if ((TCFG_AUDIO_GLOBAL_SAMPLE_RATE % 16000 ) != 0)
+#error "open LE_AUDIO_JL_UNICAST TCFG_AUDIO_GLOBAL_SAMPLE_RATE 需要设置采样率为16k的倍数，方便做变采样给通话算法处理"
 #endif
 #endif
 
@@ -922,7 +949,7 @@
 
 #if APP_ONLINE_DEBUG
 #undef THIRD_PARTY_PROTOCOLS_SEL
-#if (TCFG_THIRD_PARTY_PROTOCOLS_ENABLE && (TCFG_THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | CUSTOM_DEMO_EN | XIMALAYA_EN))) || ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+#if (TCFG_THIRD_PARTY_PROTOCOLS_ENABLE && (TCFG_THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | CUSTOM_DEMO_EN | XIMALAYA_EN | AURACAST_APP_EN))) || ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 #define THIRD_PARTY_PROTOCOLS_SEL  (TCFG_THIRD_PARTY_PROTOCOLS_SEL | ONLINE_DEBUG_EN)
 #else
 #define THIRD_PARTY_PROTOCOLS_SEL  (ONLINE_DEBUG_EN)

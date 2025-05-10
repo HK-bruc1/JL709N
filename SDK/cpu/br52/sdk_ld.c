@@ -127,6 +127,12 @@ SECTIONS
         *(.math_fast_funtion_code)
 
 		. = ALIGN(4);
+        _SPI_CODE_START = . ;
+        *(.spi_code)
+		. = ALIGN(4);
+        _SPI_CODE_END = . ;
+
+		. = ALIGN(4);
 	} > ram0
 
 	__report_overlay_begin = .;
@@ -154,6 +160,11 @@ SECTIONS
         app_mode_begin = .;
 		KEEP(*(.app_mode))
         app_mode_end = .;
+
+		. = ALIGN(4);
+        prot_flash_begin = .;
+        KEEP(*(.prot_flash))
+        prot_flash_end = .;
 
 		. = ALIGN(4);
         #include "btctrler/crypto/data.ld"

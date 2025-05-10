@@ -22,7 +22,7 @@
 #include "audio_anc_debug_tool.h"
 #include "icsd_demo.h"
 #if TCFG_ANC_BOX_ENABLE
-#include "asm/chargestore.h"
+#include "chargestore/chargestore.h"
 #endif
 
 #if TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN

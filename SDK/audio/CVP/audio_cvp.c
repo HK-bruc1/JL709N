@@ -205,7 +205,7 @@ struct audio_aec_hdl {
     u8 input_clear;			//清0输入数据标志
     u16 dump_packet;		//前面如果有杂音，丢掉几包
 
-#if TCFG_SUPPORT_MIC_CAPLESS
+#if ((TCFG_SUPPORT_MIC_CAPLESS)&&(AUDIO_MIC_CAPLESS_VERSION < MIC_CAPLESS_VER3))
     void *dcc_hdl;
 #endif
     struct aec_s_attr attr;
@@ -255,7 +255,8 @@ static int audio_aec_probe(short *talk_mic, short *talk_ref_mic, short *mic3, sh
     if (aec_hdl->pre.pre_gain_en) {
         GainProcess_16Bit(talk_mic, talk_mic, aec_hdl->pre.talk_mic_gain, 1, 1, 1, len >> 1);
     }
-#if TCFG_SUPPORT_MIC_CAPLESS
+
+#if ((TCFG_SUPPORT_MIC_CAPLESS)&&(AUDIO_MIC_CAPLESS_VERSION < MIC_CAPLESS_VER3))
     if (aec_hdl->dcc_hdl) {
         audio_dc_offset_remove_run(aec_hdl->dcc_hdl, (void *)talk_mic, len);
     }
@@ -458,7 +459,7 @@ static void audio_aec_param_init(struct aec_s_attr *p)
     p->aec_tail_length = AEC_TAIL_LENGTH;
     p->ES_OverSuppressThr = 0.02f;
     p->ES_OverSuppress = 2.f;
-
+    p->TDE_EngThr = -80.f;
     if (CONST_SMS_DNS_VERSION == SMS_DNS_V200) {
         p->AEC_Process_MaxFrequency = 8000;
         p->AEC_Process_MinFrequency = 0;
@@ -503,6 +504,9 @@ int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int
 
     overlay_load_code(OVERLAY_AEC);
     aec_code_movable_load();
+
+    /*初始化dac read的资源*/
+    audio_dac_read_init();
 
     aec_hdl->dump_packet = AEC_OUT_DUMP_PACKET;
     aec_hdl->inbuf_clear_cnt = AEC_IN_DUMP_PACKET;
@@ -594,7 +598,7 @@ int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int
 
     /* clk_set("sys", 0); */
 
-#if TCFG_SUPPORT_MIC_CAPLESS
+#if ((TCFG_SUPPORT_MIC_CAPLESS)&&(AUDIO_MIC_CAPLESS_VERSION < MIC_CAPLESS_VER3))
     if (audio_adc_file_get_mic_mode(0) == AUDIO_MIC_CAPLESS_MODE) {
         aec_hdl->dcc_hdl = audio_dc_offset_remove_open(sample_rate, 1);
     }
@@ -707,7 +711,10 @@ void audio_aec_close(void)
         audio_cvp_sync_close();
 #endif/*TCFG_AUDIO_CVP_SYNC*/
 
-#if TCFG_SUPPORT_MIC_CAPLESS
+        /*释放dac read的资源*/
+        audio_dac_read_exit();
+
+#if ((TCFG_SUPPORT_MIC_CAPLESS)&&(AUDIO_MIC_CAPLESS_VERSION < MIC_CAPLESS_VER3))
         if (aec_hdl->dcc_hdl) {
             audio_dc_offset_remove_close(aec_hdl->dcc_hdl);
             aec_hdl->dcc_hdl = NULL;

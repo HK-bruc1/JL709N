@@ -27,7 +27,7 @@
 ================================================================*/
 
 #include "asm/anc.h"
-#include "asm/dac.h"
+#include "audio_dac.h"
 #include "app_config.h"
 #include "icsd_anc.h"
 #include "icsd_anc_interactive.h"

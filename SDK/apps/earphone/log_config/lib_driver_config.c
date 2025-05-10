@@ -269,6 +269,30 @@ const char log_tag_const_d_UART  = CONFIG_DEBUG_LIB(FALSE);
 const char log_tag_const_w_UART  = CONFIG_DEBUG_LIB(TRUE);
 const char log_tag_const_e_UART  = CONFIG_DEBUG_LIB(TRUE);
 
+const char log_tag_const_v_IIC  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_i_IIC  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_d_IIC  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_w_IIC  = CONFIG_DEBUG_LIB(TRUE);
+const char log_tag_const_e_IIC  = CONFIG_DEBUG_LIB(TRUE);
+
+const char log_tag_const_v_SPI  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_i_SPI  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_d_SPI  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_w_SPI  = CONFIG_DEBUG_LIB(TRUE);
+const char log_tag_const_e_SPI  = CONFIG_DEBUG_LIB(TRUE);
+
+const char log_tag_const_v_EXTI  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_i_EXTI  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_d_EXTI  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_w_EXTI  = CONFIG_DEBUG_LIB(TRUE);
+const char log_tag_const_e_EXTI  = CONFIG_DEBUG_LIB(TRUE);
+
+const char log_tag_const_v_GPIO  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_i_GPIO  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_d_GPIO  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_w_GPIO  = CONFIG_DEBUG_LIB(FALSE);
+const char log_tag_const_e_GPIO  = CONFIG_DEBUG_LIB(TRUE);
+
 const char log_tag_const_v_GPTIMER  = CONFIG_DEBUG_LIB(FALSE);
 const char log_tag_const_i_GPTIMER  = CONFIG_DEBUG_LIB(FALSE);
 const char log_tag_const_d_GPTIMER  = CONFIG_DEBUG_LIB(FALSE);
@@ -287,8 +311,3 @@ const char log_tag_const_d_GPADC  = CONFIG_DEBUG_LIB(FALSE);
 const char log_tag_const_w_GPADC  = CONFIG_DEBUG_LIB(FALSE);
 const char log_tag_const_e_GPADC  = CONFIG_DEBUG_LIB(TRUE);
 
-const char log_tag_const_v_EXTI  = CONFIG_DEBUG_LIB(FALSE);
-const char log_tag_const_i_EXTI  = CONFIG_DEBUG_LIB(FALSE);
-const char log_tag_const_d_EXTI  = CONFIG_DEBUG_LIB(FALSE);
-const char log_tag_const_w_EXTI  = CONFIG_DEBUG_LIB(FALSE);
-const char log_tag_const_e_EXTI  = CONFIG_DEBUG_LIB(TRUE);

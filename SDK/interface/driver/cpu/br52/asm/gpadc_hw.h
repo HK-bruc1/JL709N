@@ -248,4 +248,3 @@ enum AD_CH {
 #define GPADC_CON_ADC_ASEL_     3
 
 #endif  /*GPADC_HW_H*/
-

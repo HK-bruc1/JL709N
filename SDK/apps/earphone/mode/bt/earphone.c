@@ -1,3 +1,4 @@
+
 #ifdef SUPPORT_MS_EXTENSIONS
 #pragma bss_seg(".earphone.data.bss")
 #pragma data_seg(".earphone.data")
@@ -91,7 +92,8 @@
 
 #if TCFG_APP_BT_EN
 
-#if (THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN | XIMALAYA_EN))
+#if (THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN | TUYA_DEMO_EN | XIMALAYA_EN | AURACAST_APP_EN)) || (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+
 #include "multi_protocol_main.h"
 #endif
 
@@ -127,7 +129,7 @@ extern void clr_device_in_page_list();
 #define EDGE_SLECT_POART_OPEN  {JL_PORTC->DIR &= ~BIT(7);JL_PORTC->SPL |= BIT(7);}
 #define EDGE_SLECT_POART_CLOSE {JL_PORTC->DIR |= BIT(7);JL_PORTC->SPL &= ~BIT(7);}
 
-#elif defined(CONFIG_CPU_BR52)//JL709
+#elif defined(CONFIG_CPU_BR52) || defined(CONFIG_CPU_BR56)//JL709 or JL710
 
 #define OPTIMIZATION_CONN_NOISE    1//回连噪声优化,默认开启
 #define BT_RF_CURRENT_BALANCE_SUPPORT_NOT_PORT//不需要io
@@ -138,6 +140,13 @@ extern void clr_device_in_page_list();
 
 #endif
 
+#ifdef CONFIG_CPU_BR56
+#define BT_TIMER  JL_TIMER2
+#define BT_IRQ_TIME_IDX  IRQ_TIME2_IDX
+#else
+#define BT_TIMER  JL_TIMER3
+#define BT_IRQ_TIME_IDX  IRQ_TIME3_IDX
+#endif
 
 void bredr_link_disturb_scan_timeout(void *priv)
 {
@@ -213,7 +222,12 @@ void clear_sniff_out_status()
 void bt_bredr_enter_dut_mode(u8 mode, u8 inquiry_scan_en)
 {
     puts("<<<<<<<<<<<<<bt_bredr_enter_dut_mode>>>>>>>>>>>>>>\n");
-    clock_alloc("DUT", SYS_48M);
+
+#if (defined CONFIG_CPU_BR56)
+    u32 curr_clk = clk_get_max_frequency();
+    y_printf("DUT test,set clock:%d\n", curr_clk);
+    clock_alloc("DUT", curr_clk);
+#endif
     bredr_set_dut_enble(1, 1);
     if (mode) {
         clr_device_in_page_list();
@@ -372,6 +386,10 @@ void bt_function_select_init()
         g_bt_hdl.bt_dual_conn_config = DUAL_CONN_SET_ONE;
     }
 #endif
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+    log_info("app_auracast en");
+    g_bt_hdl.bt_dual_conn_config = DUAL_CONN_SET_ONE;
+#endif
     bt_set_user_ctrl_conn_num((get_bt_dual_config() == DUAL_CONN_CLOSE) ? 1 : 2);
     set_lmp_support_dual_con((get_bt_dual_config() == DUAL_CONN_CLOSE) ? 1 : 2);
     bt_set_auto_conn_device_num((get_bt_dual_config() == DUAL_CONN_SET_TWO) ? 2 : 1);
@@ -480,11 +498,21 @@ static int bt_connction_status_event_handler(struct bt_event *bt)
          */
         g_bt_hdl.init_ok = 1;
         log_info("BT_STATUS_INIT_OK\n");
+
+#if TCFG_TEST_BOX_ENABLE
+        testbox_set_bt_init_ok(1);
+#endif
+
 #if TCFG_NORMAL_SET_DUT_MODE
         log_info("edr set dut mode\n");
         bredr_set_dut_enble(1, 1);
+        bt_cmd_prepare(USER_CTRL_WRITE_SCAN_ENABLE, 0, NULL);
+        bt_cmd_prepare(USER_CTRL_WRITE_CONN_ENABLE, 0, NULL);
+#if TCFG_USER_BLE_ENABLE
         log_info("ble set dut mode\n");
         ble_bqb_test_thread_init();
+#endif
+        break;
 #endif
 
 #if TCFG_BLE_AUDIO_TEST_EN
@@ -523,7 +551,7 @@ static int bt_connction_status_event_handler(struct bt_event *bt)
         }
 #endif
 
-#if (THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN | XIMALAYA_EN))
+#if (THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN | TUYA_DEMO_EN | XIMALAYA_EN | AURACAST_APP_EN)) || (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
         multi_protocol_bt_init();
 #endif
 
@@ -531,10 +559,6 @@ static int bt_connction_status_event_handler(struct bt_event *bt)
 
 #if TCFG_CHARGESTORE_ENABLE
         chargestore_set_bt_init_ok(1);
-#endif
-
-#if TCFG_TEST_BOX_ENABLE
-        testbox_set_bt_init_ok(1);
 #endif
 
 #if ((CONFIG_BT_MODE == BT_BQB)||(CONFIG_BT_MODE == BT_PER))
@@ -908,7 +932,7 @@ static void bt_no_background_exit_check(void *priv)
     bt_ble_exit();
 #endif
 
-#if (THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN | XIMALAYA_EN))
+#if (THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN | TUYA_DEMO_EN | XIMALAYA_EN | AURACAST_APP_EN))
     multi_protocol_bt_exit();
 #endif
 
@@ -937,6 +961,9 @@ static u8 bt_nobackground_exit()
         g_bt_hdl.exiting = 0;
         return 0;
     }
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+    le_audio_profile_exit();
+#endif
     bt_set_stack_exiting(1);
 #if TCFG_USER_TWS_ENABLE
     void tws_dual_conn_close();
@@ -971,6 +998,12 @@ int bt_mode_init()
 {
     log_info("bt mode\n");
 
+#if (defined CONFIG_CPU_BR56) && (CONFIG_BT_MODE == BT_FCC || CONFIG_BT_MODE == BT_BQB || TCFG_NORMAL_SET_DUT_MODE == 1)
+    u32 curr_clk = clk_get_max_frequency();
+    y_printf("DUT test,set clock:%d\n", curr_clk);
+    clock_alloc("DUT", curr_clk);
+#endif
+
 #if (TCFG_BT_BACKGROUND_ENABLE)      //后台返回到蓝牙模式如果是通过模式切换返回的还是要播放提示音
     if (g_bt_hdl.background.backmode == BACKGROUND_GOBACK_WITH_MODE_SWITCH && !bt_background_switch_mode_check())
 #endif  //endif TCFG_BLUETOOTH_BACK_MODE
@@ -981,7 +1014,7 @@ int bt_mode_init()
 
 #if OPTIMIZATION_CONN_NOISE
 #ifdef BT_RF_CURRENT_BALANCE_SUPPORT_NOT_PORT
-    if (JL_TIMER3->CON & 0b11) {
+    if (BT_TIMER->CON & 0b11) {
         ASSERT(0, "bt_edge_TIMER use ing\n");
     }
 #else
@@ -1066,6 +1099,19 @@ int bt_mode_try_exit()
 
 int bt_mode_exit()
 {
+    /*~~~~~~~~~~~~ start: 临时修改，库内没关OCH，库内改好请删除~~~~~~~~~~~~~~~~~~*/
+#if OPTIMIZATION_CONN_NOISE
+#ifdef BT_RF_CURRENT_BALANCE_SUPPORT_NOT_PORT
+#else
+#if CONFIG_CPU_BR50 || CONFIG_CPU_BR52
+#if (BT_RF_CURRENT_BALANCE_SUPPORT_ONLY_ONE_PORT == 0)
+    gpio_och_disable_output_signal(RF_RXTX_STATE_PROT, 16);
+#endif
+    gpio_och_disable_output_signal(RF_RXTX_STATE_PROT, 17);
+#endif
+#endif
+#endif
+    /*~~~~~~~~~~~~ end: 临时修改~~~~~~~~~~~~~~~~~~*/
     app_send_message(APP_MSG_EXIT_MODE, APP_MODE_BT);
     return 0;
 }
@@ -1079,7 +1125,11 @@ int bt_app_msg_handler(int *msg)
     switch (msg[0]) {
     case APP_MSG_VOL_UP:
         log_info("APP_MSG_VOL_UP\n");
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+        app_audio_volume_up(1);
+#else
         bt_volume_up(1);
+#endif
         bt_tws_sync_volume();
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
         data[0] = CIG_EVENT_OPID_VOLUME_UP;
@@ -1088,7 +1138,11 @@ int bt_app_msg_handler(int *msg)
         return 0;
     case APP_MSG_VOL_DOWN:
         log_info("APP_MSG_VOL_DOWN\n");
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+        app_audio_volume_down(1);
+#else
         bt_volume_down(1);
+#endif
         bt_tws_sync_volume();
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
         data[0] = CIG_EVENT_OPID_VOLUME_DOWN;
@@ -1263,11 +1317,6 @@ struct app_mode *app_enter_bt_mode(int arg)
 extern void hw_ctl_open(void);
 extern void hw_ctl_close(void);
 
-extern void rfc_off(void);
-extern void rfc_on(void);
-
-extern void tx_pwr_sel(u8 sel);
-
 extern void rx_st_ctl(void);
 extern void tx_st_ctl(void);
 #ifdef BT_RF_CURRENT_BALANCE_SUPPORT_NOT_PORT
@@ -1280,44 +1329,44 @@ enum bb_irq_edge {
 ___interrupt
 void bt_edge_isr()
 {
-    SFR(JL_TIMER3->CON, 14, 1, 1);  //clean pnding
-    if ((JL_TIMER3->CON & 0x3) == 0b10) { //rise edge mode
+    SFR(BT_TIMER->CON, 14, 1, 1);  //clean pnding
+    if ((BT_TIMER->CON & 0x3) == 0b10) { //rise edge mode
         //raise edge
-        SFR(JL_TIMER3->CON, 0, 2, 0b11);  //fall edge capture
+        SFR(BT_TIMER->CON, 0, 2, 0b11);  //fall edge capture
         /* putchar('r'); */
         rx_st_ctl();
     } else {
         //fall edge
-        SFR(JL_TIMER3->CON, 0, 2, 0b10);  //rise edge capture
+        SFR(BT_TIMER->CON, 0, 2, 0b10);  //rise edge capture
         /* putchar('R'); */
         tx_st_ctl();
     }
 }
-int btbb_irq_config(u8 btbb_sig, u8 irq_edge)//pa,pb,pc,pd,usb
+int btbb_irq_config(u8 btbb_sig, u8 irq_edge)
 {
-    /* if (JL_TIMER3->CON & 0b11) { */
-    /* ASSERT(0, "bt_edge_TIMER use ing\n"); */
-    /* } */
-    //SFR(JL_IOMC->ICH_IOMC1,0,5,btbb_sig);      //set lna_en to tmr0_cap
-    SFR(JL_IOMC->ICH_IOMC1, 15, 5, btbb_sig);   //set lna_en to tmr3_cap
-    JL_TIMER3->CON              = (\
-                                   /* dual mode     */ (0 << 16) | \
-                                   /* clear pnd     */ (1 << 14) | \
-                                   /* pwm inv       */ (0 <<  9) | \
-                                   /* psel          */ (0 <<  8) | \
-                                   /* capture sel 2 */ (0 <<  2) | \
-                                   /* mode        2 */ (0 <<  0));
-    JL_TIMER3->CNT = 0x5555;
-    JL_TIMER3->PRD = 0;
+#ifdef CONFIG_CPU_BR56
+    SFR(JL_IOMC->ICH_IOMC1, 0, 5, btbb_sig);   //set lna_en to tmr2_cap
+#else
+    SFR(JL_IOMC->ICH_IOMC1, 15, 5, btbb_sig);
+#endif
+    BT_TIMER->CON              = (\
+                                  /* dual mode     */ (0 << 16) | \
+                                  /* clear pnd     */ (1 << 14) | \
+                                  /* pwm inv       */ (0 <<  9) | \
+                                  /* psel          */ (0 <<  8) | \
+                                  /* capture sel 2 */ (0 <<  2) | \
+                                  /* mode        2 */ (0 <<  0));
+    BT_TIMER->CNT = 0x5555;
+    BT_TIMER->PRD = 0;
     if (irq_edge == 0) {                                //set tmr cap as fall edge
-        request_irq(IRQ_TIME3_IDX, 1, bt_edge_isr, 0);
-        SFR(JL_TIMER3->CON, 0, 2, 0b11);                //fall edge
+        request_irq(BT_IRQ_TIME_IDX, 1, bt_edge_isr, 0);
+        SFR(BT_TIMER->CON, 0, 2, 0b11);                //fall edge
     } else if (irq_edge == 1) {                          //set tmr cap as rise edge
-        request_irq(IRQ_TIME3_IDX, 1, bt_edge_isr, 0);
-        SFR(JL_TIMER3->CON, 0, 2, 0b10);                //rise edge
+        request_irq(BT_IRQ_TIME_IDX, 1, bt_edge_isr, 0);
+        SFR(BT_TIMER->CON, 0, 2, 0b10);                //rise edge
     } else {                                             //disable tmr cap
-        unrequest_irq(IRQ_TIME3_IDX);   // TODO
-        SFR(JL_TIMER3->CON, 0, 2, 0);  //fall edge
+        unrequest_irq(BT_IRQ_TIME_IDX);
+        SFR(BT_TIMER->CON, 0, 2, 0);  //fall edge
     }
     return 0;
 }
@@ -1327,12 +1376,12 @@ void gpio_irq_callback_rxen_pa_ctl(enum gpio_port port, u32 pin, enum gpio_irq_e
     if (edge == PORT_IRQ_EDGE_RISE) {
         //raise edge
         gpio_irq_set_edge(port, BIT(pin), PORT_IRQ_EDGE_FALL);
-        //log_info("rx raise\n");
+        //printf("rx raise\n");
         rx_st_ctl();
     } else {
         //fall edge
         gpio_irq_set_edge(port, BIT(pin), PORT_IRQ_EDGE_RISE);
-        //log_info("rx fall\n");
+        //printf("rx fall\n");
         tx_st_ctl();
     }
 }
@@ -1352,7 +1401,7 @@ struct gpio_irq_config_st gpio_irq_config_rx_off = {
 
 void bt_user_page_enable(u8 enable, u8 type)
 {
-    /* log_info("bt_user_page_enable=%d,type=%d", enable, type); */
+    /*y_printf("bt_user_page_enable=%d,type=%d", enable, type); */
     if (type == 1) { //tws quick page no doning
         return;
     }
@@ -1367,7 +1416,7 @@ void bt_user_page_enable(u8 enable, u8 type)
         EDGE_SLECT_POART_OPEN
 #endif
 #endif
-        /* log_info("gpio_irq_config open-----+++++"); */
+        /*y_printf("gpio_irq_config open-----+++++"); */
     } else {
 #ifdef BT_RF_CURRENT_BALANCE_SUPPORT_NOT_PORT
         btbb_irq_config(WL_LNAE, BB_IRQ_EDGE_DISABLE);    //9 lna_en
@@ -1378,7 +1427,7 @@ void bt_user_page_enable(u8 enable, u8 type)
 #endif
 #endif
         hw_ctl_open();
-        /* log_info("gpio_irq_config close-----+++++"); */
+        /* y_printf("btbb_irq_config close-----+++++"); */
     }
 }
 #endif

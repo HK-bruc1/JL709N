@@ -61,6 +61,18 @@ static void charge_full_deal(void)
     log_info("%s\n", __func__);
 
     charge_full_flag = 1;
+#if TCFG_REFERENCE_V_ENABLE
+    int ret;
+    u16 save_vbat_voltage, now_vbat_voltage;
+    now_vbat_voltage = gpadc_battery_get_voltage();
+    log_info("get vbat voltage: %d\n", now_vbat_voltage);
+    ret = syscfg_read(CFG_CHARGE_FULL_VBAT_VOLTAGE, &save_vbat_voltage, 2);
+    if ((ret != 2) || (now_vbat_voltage > save_vbat_voltage)) {
+        log_info("save vbat voltage: %d\n", now_vbat_voltage);
+        syscfg_write(CFG_CHARGE_FULL_VBAT_VOLTAGE, &now_vbat_voltage, 2);
+        update_vbat_full_voltage();
+    }
+#endif
     charge_close();
 
     for_each_app_charge_handler(handler) {
@@ -230,7 +242,7 @@ void charge_ldo5v_off_deal(void)
     is_idle_mode = app_in_mode(APP_MODE_IDLE);
 
     if ((get_charge_poweron_en() == 0)) {
-        wdt_init(WDT_4S);
+        wdt_init(WDT_16S);
         log_info("set wdt to 4s!\n");
 #if TCFG_CHARGESTORE_ENABLE
         if (chargestore_get_power_status()) {
@@ -295,7 +307,10 @@ void charge_ldo5v_off_deal(void)
         break;
     case LDO5V_OFF_TYPE_NORMAL_ON:
         app_var.play_poweron_tone = 0;
-        app_send_message(APP_MSG_GOTO_MODE, APP_MODE_BT);
+        app_var.goto_poweroff_flag = 0;
+        if (app_in_mode(APP_MODE_IDLE)) { //开机充电的时候,不在IDLE模式,充电拔出的时候不需要退出当前模式到蓝牙模式
+            app_send_message(APP_MSG_GOTO_MODE, APP_MODE_BT);
+        }
         break;
     }
 }

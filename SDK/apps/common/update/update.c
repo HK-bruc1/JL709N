@@ -6,7 +6,7 @@
 #endif
 #include "update.h"
 #include "update_loader_download.h"
-#include "asm/crc16.h"
+#include "crc.h"
 #include "asm/wdt.h"
 #include "os/os_api.h"
 #include "os/os_cpu.h"
@@ -412,6 +412,9 @@ static void update_param_ram_set(u8 *buf, u16 len)
 void update_mode_api_v2(UPDATA_TYPE type, void (*priv_param_fill_hdl)(UPDATA_PARM *p), void (*priv_update_jump_handle)(int type))
 {
     u16 update_param_len = UPDATA_PARM_SIZE;//sizeof(UPDATA_PARM) + UPDATE_PRIV_PARAM_LEN;
+    if (update_param_len > (u32)(&UPDATA_SIZE)) {
+        update_param_len = (u32)(&UPDATA_SIZE);
+    }
 
     UPDATA_PARM *p = malloc(update_param_len);
 
@@ -573,7 +576,7 @@ static void update_init_common_handle(int type)
 #endif
 
 #if OTA_TWS_SAME_TIME_ENABLE
-        if ((BT_UPDATA != type) && (TESTBOX_UART_UPDATA != type)) { // 测试盒升级不支持同步升级
+        if ((BT_UPDATA != type) || (TESTBOX_UART_UPDATA != type)) { // 测试盒升级不支持同步升级
             // 关闭page_scan
             lmp_hci_write_scan_enable((0 << 1) | 0);
             // 退出sniff并关闭sniff

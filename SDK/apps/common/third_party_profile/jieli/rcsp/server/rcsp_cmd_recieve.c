@@ -31,6 +31,7 @@
 #include "rcsp_manage.h"
 #include "rcsp_command.h"
 #include "adv_1t2_setting.h"
+#include "rcsp_rtc_func.h"
 
 #if TCFG_USER_TWS_ENABLE
 #include "classic/tws_api.h"
@@ -396,7 +397,7 @@ static void get_low_latency_param(void *priv, u8 OpCode, u8 OpCode_SN, u8 *data,
     JL_CMD_response_send(OpCode, JL_PRO_STATUS_SUCCESS, OpCode_SN, low_latency_param, 6, ble_con_handle, spp_remote_addr);
 }
 
-#if TCFG_RTC_ENABLE
+#if TCFG_APP_RTC_EN
 static void rcsp_alarm_ex(void *priv, u8 OpCode, u8 OpCode_SN, u8 *data, u16 len, u16 ble_con_handle, u8 *spp_remote_addr)
 {
     u16 rlen = 0;
@@ -558,9 +559,11 @@ void rcsp_cmd_recieve(void *priv, u8 OpCode, u8 OpCode_SN, u8 *data, u16 len, u1
     case JL_OPCODE_CUSTOMER_USER:
         rcsp_user_cmd_recieve(priv, OpCode, OpCode_SN, data, len, ble_con_handle, spp_remote_addr);
         break;
+#if (RCSP_MODE != RCSP_MODE_EARPHONE)
     case JL_OPCODE_ACTION_PREPARE:
         app_rcsp_task_prepare(1, data[0], OpCode_SN);
         break;
+#endif
 #if (TCFG_DEV_MANAGER_ENABLE && RCSP_FILE_OPT)
     case JL_OPCODE_FILE_TRANSFER_START:
         rcsp_file_transfer_download_start(priv, OpCode_SN, data, len);
@@ -584,7 +587,9 @@ void rcsp_cmd_recieve(void *priv, u8 OpCode, u8 OpCode_SN, u8 *data, u16 len, u1
         rcsp_file_bluk_trans_prepare(priv, OpCode_SN, data, len);
         break;
     case JL_OPCODE_DEVICE_PARM_EXTRA:
+#if (RCSP_MODE && JL_RCSP_EXTRA_FLASH_OPT)
         rcsp_device_parm_extra(priv, OpCode, OpCode_SN, data, len);
+#endif
         break;
 #endif
 #if (TCFG_DEV_MANAGER_ENABLE && JL_RCSP_SIMPLE_TRANSFER)
@@ -592,7 +597,7 @@ void rcsp_cmd_recieve(void *priv, u8 OpCode, u8 OpCode_SN, u8 *data, u16 len, u1
         rcsp_file_simple_transfer_for_small_file(priv, OpCode_SN, data, len);
         break;
 #endif
-#if TCFG_RTC_ENABLE
+#if TCFG_APP_RTC_EN
     case JL_OPCODE_ALARM_EXTRA:
         rcsp_alarm_ex(priv, OpCode, OpCode_SN, data, len, ble_con_handle, spp_remote_addr);
         break;

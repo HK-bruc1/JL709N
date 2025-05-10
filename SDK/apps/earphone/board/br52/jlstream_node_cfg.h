@@ -122,6 +122,7 @@
 #define TCFG_VOICE_CHANGER_ADV_NODE_ENABLE 0 // Voice Changer Adv
 #define TCFG_VOICE_CHANGER_NODE_ENABLE 0 // Voice Changer
 #define TCFG_WDRC_NODE_ENABLE 0 // DRC
+#define TCFG_SPATIAL_ADV_NODE_ENABLE 0
 #define EQ_SECTION_MAX 0xc // EQ_SECTION_MAX
 // ------------流程图宏定义------------
 #endif

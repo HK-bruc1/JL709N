@@ -92,6 +92,8 @@ void write_scan_conn_enable(bool scan_enable, bool conn_enable)
     }
     r_printf("write_scan_conn_enable=%d,%d\n", scan_enable, conn_enable);
 
+    r_printf("write_scan_conn_enable=%d,%d\n", scan_enable, conn_enable);
+
     lmp_hci_write_scan_enable((conn_enable << 1) | scan_enable);
 
     if ((scan_enable || conn_enable) && page_list_empty()) {
@@ -368,6 +370,9 @@ static int dual_conn_btstack_event_handler(int *_event)
     printf("dual_conn_btstack_event_handler:%d\n", event->event);
     switch (event->event) {
     case BT_STATUS_INIT_OK:
+#if TCFG_NORMAL_SET_DUT_MODE
+        break;
+#endif
         puts("dual_conn BT_STATUS_INIT_OK");
         dual_conn_page_devices_init();
 #if (TCFG_BT_BACKGROUND_ENABLE)
@@ -400,11 +405,11 @@ static int dual_conn_btstack_event_handler(int *_event)
             }
             g_dual_conn.device_num_recorded++;
         }
-#if TCFG_BT_DUAL_CONN_ENABLE
-        write_scan_conn_enable(0, 1);
-#else
-        write_scan_conn_enable(0, 0);
-#endif
+        if (get_bt_dual_config() == DUAL_CONN_CLOSE) {
+            write_scan_conn_enable(0, 0);
+        } else {
+            write_scan_conn_enable(0, 1);
+        }
         break;
 #if TCFG_BT_DUAL_CONN_ENABLE
     case BT_STATUS_SECOND_CONNECTED:

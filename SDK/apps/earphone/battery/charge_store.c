@@ -9,7 +9,7 @@
 #include "system/includes.h"
 #include "asm/cpu.h"
 #include "asm/charge.h"
-#include "asm/chargestore.h"
+#include "chargestore/chargestore.h"
 #include "user_cfg.h"
 #include "app_chargestore.h"
 #include "device/vm.h"

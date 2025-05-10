@@ -20,6 +20,7 @@
 #define AUD_DAC_TRIM_ENABLE					1
 #define TCFG_AUDIO_DAC_NOISEGATE_ENABLE     1
 #define AUDIO_DAC_MAX_SAMPLE_RATE           48000
+#define TCFG_AUDIO_DAC_PA_MODE				0
 
 /*
  * Hi-Res Audio使能LHDC/LDAC要求：
@@ -33,6 +34,10 @@
 #error "Hi-Res Audio：请将全局采样率TCFG_AUDIO_GLOBAL_SAMPLE_RATE设置到至少96000，或Disable！"
 #endif
 #endif
+//**************************************
+// 		    场景参数更新使能
+//**************************************
+#define TCFG_SCENE_UPDATE_ENABLE            0
 
 //**************************************
 // 			音频模块链接配置
@@ -45,6 +50,7 @@
 #define AFx_DRC_AT_RAM 					    0	//DRC
 #define AFx_HARMONIC_EXCITER_AT_RAM 	    0	//谐波激励
 #define AFx_DYN_EQ_AT_RAM 				    0	//动态EQ
+#define AFx_DYN_EQ_PRO_AT_RAM 				0	//动态EQ Pro
 #define AFx_NOTCH_HOWLING_AT_RAM 		    0	//啸叫抑制：陷波
 #define AFx_FREQ_SHIFT_AT_RAM	 		    0	//啸叫抑制：移频
 #define AFx_NOISEGATE_AT_RAM	 		    0	//噪声门
@@ -79,6 +85,8 @@
 /*编解码编译链接配置*/
 #define AUD_AAC_DEC_AT_RAM		        	1   //AAC解码
 #define AUDIO_LDAC_AT_RAM			     	1	//LDAC解码
+#define AUDIO_LHDC_AT_RAM			        0	//LHDCv3/v4解码 :78K左右,如果ram不够可以只放L2的段，40K左右
+#define AUDIO_LHDC_V5_AT_RAM			    0	//LHDCV5解码 : 18K左右
 #define AUDIO_MSBC_CODEC_AT_RAM		     	1	//MSBC 编解码
 #define AUDIO_CVSD_CODEC_AT_RAM		     	1	//CVSD 编解码
 #define AUDIO_JLA_CODEC_AT_RAM		     	1	//JLA 编解码
@@ -104,6 +112,7 @@
 // 			音效使能控制
 //**************************************
 #define AUDIO_VBASS_LINK_VOLUME     0 //虚拟低音与音量联动调节
+#define AUDIO_EQ_LINK_VOLUME        0 //EQ与音量联动调节
 
 //***************End********************
 //**************************************

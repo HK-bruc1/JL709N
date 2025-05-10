@@ -6,6 +6,8 @@ void bt_key_music_prev();
 void bt_key_music_next();
 void bt_key_vol_up();
 void bt_key_vol_down();
+void bt_key_rcsp_vol_up(void);
+void bt_key_rcsp_vol_down(void);
 void bt_key_call_last_on(void);
 void bt_key_call_hang_up(void);
 void bt_key_call_siri(void);

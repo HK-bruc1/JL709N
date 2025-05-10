@@ -47,20 +47,6 @@ typedef struct _CHARGE_VAR {
     u16 charge_follow_timer;
 } CHARGE_VAR;
 
-#if TCFG_BURNER_CURRENT_CALIBRATION
-struct cali_current_item {
-    u16 chgia;
-    u16 chgib;
-    u16 curra;
-    u16 currb;
-};
-
-struct cali_current_info {
-    float offset;
-    float k;
-};
-#endif
-
 #define __this 	(&charge_var)
 static CHARGE_VAR charge_var;
 static spinlock_t charge_lock;
@@ -568,6 +554,10 @@ void set_charge_mA(u16 charge_mA)
     u16 chgi;
     u16 min_chgi;
     float temp, min_div;
+#if TCFG_BURNER_CURRENT_CALIBRATION
+    int ret;
+    u8 charge_curr_cali_value = 0;
+#endif
 
     type = (charge_mA & TRICKLE_EN_FLAG) ? 1 : 0;
     charge_mA &= ~TRICKLE_EN_FLAG;
@@ -579,6 +569,15 @@ void set_charge_mA(u16 charge_mA)
             ASSERT(0, "Constant_charge_mA cann't < 15mA");
         }
     }
+#if TCFG_BURNER_CURRENT_CALIBRATION
+    if ((type == 0) && (charge_mA == TCFG_CHARGE_MA)) {
+        ret = syscfg_read_otp(CFG_CONSTANT_CURRENT_CALI, &charge_curr_cali_value, 4);
+        if (ret == 4) {
+            charge_mA = charge_curr_cali_value;
+            log_info("cali_charge_mA: %d", charge_mA);
+        }
+    }
+#endif
     min_chgi = 0;
     min_div = 2000.0f;
     for (chgi = 0; chgi < 1024; chgi++) {
@@ -598,24 +597,6 @@ void set_charge_mA(u16 charge_mA)
             min_chgi = chgi;
         }
     }
-#if TCFG_BURNER_CURRENT_CALIBRATION
-    int cali_len;
-    struct cali_current_item item;
-    struct cali_current_info cali_info;
-    memset(&cali_info, 0, sizeof(cali_info));
-    cali_len = syscfg_read_otp(CFG_CONSTANT_CURRENT_CALI, (u8 *)&item, sizeof(struct cali_current_item));
-    if (cali_len == sizeof(struct cali_current_item) && (type == 0)) {
-        cali_info.k = ((float)(item.currb - item.curra) / (float)(item.chgib - item.chgia)) / 100.0f;
-        if (cali_info.k >= 0) {
-            cali_info.offset = (item.curra - cali_info.k * item.chgia * 100.0f) / 100.0f;
-            if ((float)charge_mA >= cali_info.offset) {
-                min_chgi = ((float)charge_mA - cali_info.offset) / cali_info.k;
-            }
-        }
-        log_info("len:%d k:%d/10000 chgia:%d chgib:%d curra:%d currb:%d", cali_len, (u32)(cali_info.k * 10000), item.chgia, item.chgib, item.curra, item.currb);
-    }
-
-#endif
 
     log_info("chgi: %d", min_chgi);
     CHGV_VREF_SEL(0x4);
@@ -717,6 +698,7 @@ int charge_init(const struct charge_platform_data *data)
     CHG_CCLOOP_EN(1);
     CHG_VILOOP_EN(0);
     CHG_VILOOP2_EN(0);
+    PMU_NVDC_EN(0);
 
     //消除vbat到vpwr的漏电再判断ldo5v状态
     u8 temp = 10;

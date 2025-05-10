@@ -470,4 +470,6 @@ void audio_anc_param_reset(u8 fade_en);
 
 void audio_anc_howldet_fade_set(u16 gain);
 
+u8 anc_btspp_train_again(u8 mode, u32 dat);
+
 #endif/*AUDIO_ANC_H*/

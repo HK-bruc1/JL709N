@@ -273,6 +273,8 @@ u8 icsd_adt_alg_rtanc_run_part2(__adt_rtanc_part2_parm *_part2_parm)
     part2_parm.szpz_out = _part2_parm->szpz_out;
 
     return icsd_alg_rtanc_run_part2(&part2_parm);
+#else
+    return 0;
 #endif
 }
 

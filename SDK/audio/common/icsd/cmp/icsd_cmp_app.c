@@ -61,6 +61,7 @@ int (*cmp_printf)(const char *format, ...) = _cmp_printf;
 struct icsd_cmp_hdl *cmp_hdl = NULL;
 
 static int audio_anc_ear_adaptive_cmp_close(void);
+extern void audio_anc_biquad2ab_double(anc_fr_t *iir, double *out_coeff, u8 order, int alogm);
 
 void icsd_cmp_force_exit(void)
 {

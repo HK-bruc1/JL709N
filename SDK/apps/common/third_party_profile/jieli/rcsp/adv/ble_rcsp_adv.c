@@ -120,7 +120,7 @@ static void rcsp_adv_fill_mac_addr(u8 *mac_addr_buf)
     swapX(bt_get_mac_addr(), mac_addr_buf, 6);
 }
 
-#if (CONFIG_CPU_BR27 || CONFIG_CPU_BR28 || CONFIG_CPU_BR50) && ((RCSP_MODE == RCSP_MODE_SOUNDBOX) || (RCSP_MODE == RCSP_MODE_EARPHONE))
+#if (CONFIG_CPU_BR27 || CONFIG_CPU_BR28 || CONFIG_CPU_BR50 || CONFIG_CPU_BR56) && ((RCSP_MODE == RCSP_MODE_SOUNDBOX) || (RCSP_MODE == RCSP_MODE_EARPHONE))
 extern int JL_AES_BASE_BT;
 int JL_AES_BASE_BT = (int)JL_AES;	// add for btcon_hash, by lingxuanfeng, 20220517
 #endif

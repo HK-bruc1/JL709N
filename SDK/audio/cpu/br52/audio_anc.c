@@ -15,7 +15,7 @@
 #include "online_db_deal.h"
 #include "app_config.h"
 #include "app_tone.h"
-#include "asm/audio_adc.h"
+#include "audio_adc.h"
 #include "asm/audio_common.h"
 #include "audio_anc_coeff.h"
 #include "btstack/avctp_user.h"

@@ -160,12 +160,15 @@ ICHARGE_CURRENT_MIN = TCFG_CHARGE_CUR_MIN;
 ICHARGE_CURRENT_MAX = TCFG_CHARGE_CUR_MAX;
 #endif
 
+#if (TCFG_CHARGE_CUR_MAX && TCFG_CHARGE_CUR_MIN)
+ICHARGE_CURRENT = TCFG_CHARGE_MA;
+#endif
 #endif
 
 [BURNER_OPTIONS]
 #if ((defined(TCFG_CHARGE_CUR_MIN)) && (defined(TCFG_CHARGE_CUR_MAX)) && TCFG_CHARGE_ENABLE)
 #if (TCFG_CHARGE_CUR_MAX && TCFG_CHARGE_CUR_MIN)
-BURN_VOL_LEVEL = 5.4v;   //配置芯片vpower供电电压
+BURN_VOL_LEVEL = 5.0v;   //配置芯片vpower供电电压
 #endif
 #endif
 // #####匹配的芯片版本,请勿随意改动######
@@ -259,6 +262,12 @@ CONFIG_CUSTOM_CFG3_TYPE = CONFIG_CUSTOM_CFG3_VALUE;
 
 #ifndef CONFIG_VM_ADDR
 #define CONFIG_VM_ADDR		0
+#endif
+
+#if TCFG_VM_SIZE
+#define __VM_SIZE(size)     size##K
+#define _VM_SIZE(size)      __VM_SIZE(size)
+#define CONFIG_VM_LEAST_SIZE	_VM_SIZE(TCFG_VM_SIZE)
 #endif
 
 #ifndef CONFIG_VM_LEAST_SIZE

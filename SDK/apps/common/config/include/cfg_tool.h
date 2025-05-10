@@ -6,6 +6,7 @@
 #include "fs/sdfile.h"
 #include "asm/sfc_norflash_api.h"
 #include "sdk_config.h"
+#include "spinlock.h"
 
 #define SPP_DATA_USED_LVT				0 		//1:旧调音lvt  0:可视化配置工具55 aa a5
 
@@ -82,6 +83,9 @@ struct cfg_tool_event {
     u32 event;
     u8 *packet;
     u16 size;
+#if TCFG_USER_TWS_ENABLE
+    spinlock_t lock;
+#endif
 };
 
 // 系统信息

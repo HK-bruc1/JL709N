@@ -327,6 +327,11 @@ typedef enum {
     USER_CTRL_PAN_SEND_DATA,
     USER_CTRL_PAN_CMD_END,
 
+    //OPP功能发送命令
+    USER_CTRL_OPP_CMD_BEGIN       = 0xF5,
+    USER_CTRL_OPP_CONNECTION,
+    USER_CTRL_OPP_DISCONNECTION,
+    USER_CTRL_OPP_CMD_END,
 
     //蓝牙其他操作
     //蓝牙关闭

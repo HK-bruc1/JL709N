@@ -11,7 +11,7 @@
 #include "clock_manager/clock_manager.h"
 #include "asm/audio_src.h"
 #include "audio_config.h"
-#include "asm/audio_adc.h"
+#include "audio_adc.h"
 #include "cvp_node.h"
 #if TCFG_AUDIO_ANC_ENABLE
 #include "audio_anc.h"

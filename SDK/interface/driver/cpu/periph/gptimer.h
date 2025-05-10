@@ -86,6 +86,7 @@ u32 gptimer_set_count(u32 tid, u32 cnt);
 u32 gptimer_get_count(u32 tid);
 u32 gptimer_set_prd(u32 tid, u32 prd);
 u32 gptimer_get_prd(u32 tid);
+u32 gptimer_tick2us(u32 tid, u32 tick);
 void *gptimer_get_private_data(u32 tid);
 void gptimer_set_private_data(u32 tid, void *private_data);
 

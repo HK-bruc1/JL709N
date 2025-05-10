@@ -14,6 +14,7 @@
 #include "debug/audio_debug.h"
 #include "audio_config_def.h"
 #include "effects/voiceChanger_api.h"
+#include "scene_update.h"
 
 /*音频配置在线调试配置*/
 const int config_audio_cfg_debug_online = TCFG_CFG_TOOL_ENABLE;
@@ -29,6 +30,8 @@ const int config_ch_adapter_32bit_enable = 1;
 const int config_mixer_32bit_enable = 1;
 const int config_jlstream_fade_32bit_enable = 1;
 const int config_audio_eq_xfade_enable = 1;
+const int config_peak_rms_32bit_enable = 1;
+const int config_audio_vocal_track_synthesis_32bit_enable = 1;
 
 #if (TCFG_AUDIO_DAC_CONNECT_MODE == DAC_OUTPUT_MONO_L)
 const int config_audio_dac_channel_left_enable = 1;
@@ -40,9 +43,13 @@ const int config_audio_dac_channel_right_enable = 1;
 const int config_audio_dac_channel_left_enable = 1;
 const int config_audio_dac_channel_right_enable = 1;
 #endif
-const int config_audio_dac_power_on_mode = 0;
+#ifdef TCFG_AUDIO_DAC_POWER_ON_MODE
+const int config_audio_dac_power_on_mode = TCFG_AUDIO_DAC_POWER_ON_MODE;
+#endif
 #ifdef TCFG_AUDIO_DAC_LIGHT_CLOSE_ENABLE
 const int config_audio_dac_power_off_lite = TCFG_AUDIO_DAC_LIGHT_CLOSE_ENABLE;
+#else
+const int config_audio_dac_power_off_lite = 0;
 #endif
 #if TCFG_CFG_TOOL_ENABLE
 const int config_audio_cfg_online_enable = 1;
@@ -51,10 +58,38 @@ const int config_audio_cfg_online_enable = 0;
 #endif
 
 const int config_audio_dac_dma_buf_realloc_enable = 1;
+#ifdef TCFG_DAC_POWER_MODE
+const int config_audio_dac_power_mode = TCFG_DAC_POWER_MODE;
+#endif
 
 const int config_audio_gain_enable = TCFG_GAIN_NODE_ENABLE;
 const int config_audio_split_gain_enable = TCFG_SPLIT_GAIN_NODE_ENABLE;
 const int config_audio_stereomix_enable = TCFG_STEROMIX_NODE_ENABLE;
+
+const int config_audio_adc0_enable = TCFG_ADC0_ENABLE;
+const int config_audio_adc1_enable = TCFG_ADC1_ENABLE;
+const int config_audio_adc2_enable = 0;
+const int config_audio_adc3_enable = 0;
+const int config_audio_adc4_enable = 0;
+const int config_audio_adc5_enable = 0;
+const int config_audio_adc6_enable = 0;
+const int config_audio_adc7_enable = 0;
+const int config_audio_adc0_input_mode = TCFG_ADC0_MODE;
+const int config_audio_adc1_input_mode = TCFG_ADC1_MODE;
+const int config_audio_adc2_input_mode = 0;
+const int config_audio_adc3_input_mode = 0;
+const int config_audio_adc4_input_mode = 0;
+const int config_audio_adc5_input_mode = 0;
+const int config_audio_adc6_input_mode = 0;
+const int config_audio_adc7_input_mode = 0;
+
+/*
+ *******************************************************************
+ *						Audio CVP Config
+ *******************************************************************
+ */
+const int config_audio_cvp_ref_source = 1;/*0:DAC Internal 1:External*/
+
 /*
  *******************************************************************
  *						Audio Codec Config
@@ -78,7 +113,11 @@ const int const_audio_codec_wav_dec_bitDepth_set_en = 0;
  *						Audio SYNCTS Config
  *******************************************************************
  */
-const float FRAME_DURATION_THREAD = 0.5f;//范围0.5f~1,采样率和时间戳抖动阈值倍数
+
+const float FRAME_DURATION_THREAD = 1.5f;	//范围1.5f~2,采样率和时间戳抖动阈值倍数(丢帧检测阈值,时间戳间隔超过1.5帧，判定丢帧)
+
+const int SRC_HW_VERSION_SEL = 0;//0:srv_v2 1:src_v3
+
 
 /*
  *******************************************************************
@@ -88,7 +127,7 @@ const float FRAME_DURATION_THREAD = 0.5f;//范围0.5f~1,采样率和时间戳抖
 //输出级限幅使能
 const int config_out_dev_limiter_enable = 0;
 const float config_bandmerge_node_fade_step = 0.0f;//淡入步进 0:默认不淡入 非0：淡入步进，范围：0.01f~10.0f，建议值0.1f,步进越大，更新越快
-const int config_bandmerge_node_processing_method = 0;//0：bandmerge 拿到所有iport的数据后，一次性叠加完成。 1：逐个叠加到目标地址，不做等待
+const int config_bandmerge_node_processing_method = 1;//0：bandmerge 拿到所有iport的数据后，一次性叠加完成。 1：逐个叠加到目标地址，不做等待
 
 
 /*控制 eq_design.c中的butterworth 函数 设计的系数是定点还是浮点 */
@@ -207,9 +246,6 @@ const  int drc_run_mode                  = EFx_BW_16t16 | EFx_BW_32t16 | EFx_PRE
 #endif
 
 
-
-
-
 #ifdef TCFG_AUDIO_EFX_540E_RUN_MODE
 const int pitch_speed_run_mode       = TCFG_AUDIO_EFX_540E_RUN_MODE;
 #else
@@ -233,7 +269,35 @@ const int lfaudio_plc_run_mode       = TCFG_AUDIO_EFX_ED7F_RUN_MODE;
 const int lfaudio_plc_run_mode       = EFx_BW_16t16 | EFx_BW_32t32;
 #endif
 
+#ifdef TCFG_AUDIO_EFX_BC44_RUN_MODE
+const int  stereo_flanger_run_mode = TCFG_AUDIO_EFX_BC44_RUN_MODE | EFx_MODULE_MONO_EN | EFx_MODULE_STEREO_EN;
+#else
+const int  stereo_flanger_run_mode = EFx_BW_32t32 | EFx_BW_16t16 | EFx_MODULE_MONO_EN | EFx_MODULE_STEREO_EN;
+#endif
 
+#ifdef TCFG_AUDIO_EFX_7C2B_RUN_MODE
+const int  stereo_chorus_run_mode  = TCFG_AUDIO_EFX_7C2B_RUN_MODE | EFx_MODULE_MONO_EN | EFx_MODULE_STEREO_EN;
+#else
+const int  stereo_chorus_run_mode  = EFx_BW_32t32 | EFx_BW_16t16 | EFx_MODULE_MONO_EN | EFx_MODULE_STEREO_EN;
+#endif
+
+#ifdef TCFG_AUDIO_EFX_D2E8_RUN_MODE
+const int  stereo_phaser_run_mode  = TCFG_AUDIO_EFX_D2E8_RUN_MODE | EFx_MODULE_MONO_EN | EFx_MODULE_STEREO_EN;
+#else
+const int  stereo_phaser_run_mode  = EFx_BW_32t32 | EFx_BW_16t16 | EFx_MODULE_MONO_EN | EFx_MODULE_STEREO_EN;
+#endif
+
+#ifdef TCFG_AUDIO_EFX_AB66_RUN_MODE
+const int  pingpong_echo_run_mode  = TCFG_AUDIO_EFX_AB66_RUN_MODE;
+#else
+const int  pingpong_echo_run_mode  = EFx_BW_32t32 | EFx_BW_16t16;
+#endif
+
+#ifdef TCFG_AUDIO_EFX_97AA_RUN_MODE
+const int distortion_run_mode = TCFG_AUDIO_EFX_97AA_RUN_MODE;
+#else
+const int distortion_run_mode = EFx_BW_16t16 | EFx_BW_16t32 | EFx_BW_32t16 | EFx_BW_32t32;
+#endif
 
 const int dynamic_eq_run_mode = EFx_BW_32t32 | EFx_PRECISION_NOR; //只支持32进32出 不会优化代码预留
 
@@ -251,6 +315,22 @@ const int iir_filter_run_mode = 0  //不支持32进16出
 #endif
                                 ;
 
+#ifdef TCFG_AUDIO_EFX_BFE4_RUN_MODE
+const int frequency_compressor_run_mode  = TCFG_AUDIO_EFX_BFE4_RUN_MODE; //只支持16进16出与32进32出
+#else
+const int frequency_compressor_run_mode  = EFx_BW_16t32 | EFx_BW_32t32;
+#endif
+
+#ifdef TCFG_AUDIO_EFX_A64E_RUN_MODE
+const int spatial_adv_run_mode       = TCFG_AUDIO_EFX_A64E_RUN_MODE;
+#else
+const int spatial_adv_run_mode       = EFx_BW_16t32 | EFx_BW_32t32;
+#endif
+
+/* 空间音频运算最大帧长：配置为1--64最大帧长；配置为2--128最大帧长 */
+const int spatial_adv_framesize_mode = 2;
+
+
 /*变声模式使能*/
 const int voicechanger_effect_v_config = (0
         | BIT(EFFECT_VOICECHANGE_PITCHSHIFT)
@@ -267,12 +347,37 @@ const int voicechanger_effect_v_config = (0
 /*mb limiter 3带使能(1.2k) */
 const int mb_limiter_3band_run_en       = 1;
 
-/*vbass noisegate 参数配置*/
-const int virtualbass_noisegate_attack_time = 50;
-const int virtualbass_noisegate_release_time = 30;
-const int virtualbass_noisegate_hold_time = 15;
-const float virtualbass_noisegate_threshold = -85.0f;
+/*Vocal Remover Configs*/
+const int audio_vocal_remover_low_cut_enable = 1;
+const int audio_vocal_remover_high_cut_enable = 1;
+const int audio_vocal_remover_preset_mode = 0; //预设参数模式[0/1]，0：预设关，使用工具节点配置 1：使用预设模式1
 
+/*
+ *******************************************************************
+ *						Audio Mic Capless Config
+ *******************************************************************
+ */
+/*
+ *          用于debug需要配置多长的mic_capless_delay
+ * 部分mic 需要更多延时才能达到稳定的电压值
+ * debug步骤：
+ * 1、打开 const_mic_capless_open_delay_debug，可打印打开adc后，mic_bias需要多长时间才能达到/接近稳定的电压值
+ * 2、将该延时配置到 open_delay_ms 中
+ * 3、关闭 const_mic_capless_open_delay_debug
+
+ * 4、打开 const_mic_capless_trim_delay_debug，可打印第一次trim后，mic_bias需要多长时间才能达到/接近稳定的电压值
+ * 5、将该延时配置到 trim_delay_ms 中
+ * 6、关闭 const_mic_capless_trim_delay_debug
+ */
+const u8 const_mic_capless_open_delay_debug = 0;
+const u8 const_mic_capless_trim_delay_debug = 0;
+
+
+const char log_tag_const_v_ALINK  = CONFIG_DEBUG_LIB(0);
+const char log_tag_const_c_ALINK  = CONFIG_DEBUG_LIB(0);
+const char log_tag_const_i_ALINK  = CONFIG_DEBUG_LIB(0);
+const char log_tag_const_d_ALINK  = CONFIG_DEBUG_LIB(0);
+const char log_tag_const_e_ALINK  = CONFIG_DEBUG_LIB(TRUE);
 
 __attribute__((weak))
 int get_system_stream_bit_width(void *par)
@@ -332,6 +437,14 @@ int audio_general_in_dev_bit_width()
 
 int audio_general_init()
 {
+#if defined(TCFG_SCENE_UPDATE_ENABLE) && TCFG_SCENE_UPDATE_ENABLE
+    //若流程中有较多音效模块（或渲染封装节点），会导致此处遍历模块耗时较长
+    get_music_pipeline_node_uuid();
+#if TCFG_MIC_EFFECT_ENABLE
+    get_mic_pipeline_node_uuid();
+#endif
+#endif
+
 #if ((defined TCFG_AUDIO_DATA_EXPORT_DEFINE) && (TCFG_AUDIO_DATA_EXPORT_DEFINE == AUDIO_DATA_EXPORT_VIA_UART))
     uartSendInit();
 #endif/*TCFG_AUDIO_DATA_EXPORT_DEFINE*/

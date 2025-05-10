@@ -21,10 +21,12 @@
  * @brief Bluetooth Module
  */
 #if TCFG_BT_DONGLE_ENABLE
-	const int CONFIG_DONGLE_SPEAK_ENABLE  = 1;
+	const int CONFIG_DONGLE_SPEAK_ENABLE  = 1;//dongle_slave
 #else
-	const int CONFIG_DONGLE_SPEAK_ENABLE  = 0;
+	const int CONFIG_DONGLE_SPEAK_ENABLE  = 0;//dongle slave
 #endif
+const int CONFIG_BTCTLER_JL_DONGLE_SOURCE_ENABLE=0;//dongle master
+const int config_master_qos_poll=0;
 #if TCFG_BT_DUAL_CONN_ENABLE
 const int CONFIG_LMP_CONNECTION_NUM = 2;
 const int CONFIG_LMP_CONNECTION_LIMIT_NUM = 2;
@@ -120,7 +122,7 @@ const int CONFIG_LNA_CHECK_VAL = -80;
 
 	const int CONFIG_BTCTLER_TWS_ENABLE     = 1;
 
-#if TCFG_TWS_AUTO_ROLE_SWITCH_ENABLE
+    #if TCFG_TWS_AUTO_ROLE_SWITCH_ENABLE
 		const int CONFIG_TWS_AUTO_ROLE_SWITCH_ENABLE = 1;
 	#else
 		const int CONFIG_TWS_AUTO_ROLE_SWITCH_ENABLE = 0;
@@ -128,13 +130,10 @@ const int CONFIG_LNA_CHECK_VAL = -80;
 
     const int CONFIG_TWS_POWER_BALANCE_ENABLE   = TCFG_TWS_POWER_BALANCE_ENABLE;
     const int CONFIG_LOW_LATENCY_ENABLE         = 1;
+    const int CONFIG_TWS_DATA_TRANS_ENABLE = 0;
 #else //TCFG_USER_TWS_ENABLE
 	#if (TCFG_USER_BLE_ENABLE)
-        #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_AURACAST_SINK_EN | LE_AUDIO_JL_AURACAST_SINK_EN)))
-		const int config_btctler_modules        = BT_MODULE_LE;
-        #else
 		const int config_btctler_modules        = BT_MODULE_CLASSIC | BT_MODULE_LE;
-        #endif
 	#else
 		const int config_btctler_modules        = BT_MODULE_CLASSIC;
 	#endif
@@ -144,25 +143,49 @@ const int CONFIG_LNA_CHECK_VAL = -80;
 	const int CONFIG_LOW_LATENCY_ENABLE     = 0;
 	const int CONFIG_TWS_POWER_BALANCE_ENABLE   = 0;
 	const int CONFIG_BTCTLER_FAST_CONNECT_ENABLE     = 0;
+    const int CONFIG_TWS_DATA_TRANS_ENABLE = 0;
 #endif//end TCFG_USER_TWS_ENABLE
 
 
 #if (TCFG_BT_SUPPORT_LHDC_V5 || TCFG_BT_SUPPORT_LHDC || TCFG_BT_SUPPORT_LDAC) //LHDC/LDAC使用较高码率时需要增大蓝牙buf
-#if CONFIG_CPU_BR36
-	// RAM较紧凑的芯片需要使用这个配置
-	const int CONFIG_A2DP_MAX_BUF_SIZE          = 30 * 1024;
-#else
-	const int CONFIG_A2DP_MAX_BUF_SIZE          = 50 * 1024;
-#endif
 	const int CONFIG_EXTWS_NACK_LIMIT_INT_CNT       = 40;
 #else
-	const int CONFIG_A2DP_MAX_BUF_SIZE          = 25 * 1024;
 	#if TWS_PURE_MONITOR_MODE
 		const int CONFIG_EXTWS_NACK_LIMIT_INT_CNT       = 63;
 	#else
 		const int CONFIG_EXTWS_NACK_LIMIT_INT_CNT       = 4;
 	#endif
 #endif
+
+const int CONFIG_A2DP_MAX_BUF_SIZE      = 25 * 1024;    //不再使用
+const int CONFIG_A2DP_AAC_MAX_BUF_SIZE  = 15 * 1024;
+const int CONFIG_A2DP_SBC_MAX_BUF_SIZE  = 25 * 1024;
+const int CONFIG_A2DP_LHDC_MAX_BUF_SIZE = 50 * 1024;
+const int CONFIG_A2DP_LDAC_MAX_BUF_SIZE = 50 * 1024;
+
+u32 get_a2dp_max_buf_size(u8 codec_type)
+{
+    //#define A2DP_CODEC_SBC        0x00
+    //#define A2DP_CODEC_MPEG12     0x01
+    //#define A2DP_CODEC_MPEG24     0x02
+    //#define A2DP_CODEC_ATRAC      0x03
+    //#define A2DP_CODEC_LDAC       0x0B
+    //#define A2DP_CODEC_LHDC_V5    0x0C
+    //#define A2DP_CODEC_APTX       0x0D
+    //#define A2DP_CODEC_LHDC       0x0E
+    //#define A2DP_CODEC_NON_A2DP   0xFF
+    u32 a2dp_max_buf_size = CONFIG_A2DP_MAX_BUF_SIZE;
+    if (codec_type == 0x0) {
+        a2dp_max_buf_size = CONFIG_A2DP_SBC_MAX_BUF_SIZE;
+    } else if (codec_type == 0x1 || codec_type == 0x2) {
+        a2dp_max_buf_size = CONFIG_A2DP_AAC_MAX_BUF_SIZE;
+    } else if (codec_type == 0xB) {
+        a2dp_max_buf_size = CONFIG_A2DP_LDAC_MAX_BUF_SIZE;
+    } else if (codec_type == 0xE || codec_type == 0xC) {
+        a2dp_max_buf_size = CONFIG_A2DP_LHDC_MAX_BUF_SIZE;
+    }
+    return a2dp_max_buf_size;
+}
 
 #if 0
 // 可重写函数实时调试qos硬件开关状态，判断当前qos是开还是关
@@ -377,7 +400,13 @@ const int config_btctler_le_master_multilink = 0;
 // LE RAM Control
 
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
-	const int config_btctler_le_hw_nums = 5;
+
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+	const int config_btctler_le_hw_nums = 8;
+#else
+	const int config_btctler_le_hw_nums = 6;
+#endif
+
 #elif ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_AURACAST_SINK_EN | LE_AUDIO_JL_AURACAST_SINK_EN)))||((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_AURACAST_SOURCE_EN | LE_AUDIO_JL_AURACAST_SOURCE_EN)))
 	const int config_btctler_le_hw_nums = 8;
 #else
@@ -392,6 +421,8 @@ const int config_bb_optimized_ctrl = VENDOR_BB_ISO_DIRECT_PUSH;//BIT(7);//|BIT(8
 
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
     #define TWS_LE_AUDIO_LE_ROLE_SW_EN (0)
+#elif (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+    #define TWS_LE_AUDIO_LE_ROLE_SW_EN (1)
 #else
     #define TWS_LE_AUDIO_LE_ROLE_SW_EN (0)
 #endif
@@ -402,9 +433,14 @@ const int config_bb_optimized_ctrl = VENDOR_BB_ISO_DIRECT_PUSH;//BIT(7);//|BIT(8
     #define TWS_RCSP_LE_ROLE_SW_EN (0)
 #endif
 
+#ifdef TCFG_BLE_HIGH_PRIORITY_ENABLE
+    const bool config_le_high_priority = TCFG_BLE_HIGH_PRIORITY_ENABLE;  //开启后ble优先级更高，esco下想保证ble一直建立连接和主从切换正常，必须置为1
+#else
+    const bool config_le_high_priority = 0;
+#endif
+
 const int config_btctler_le_afh_en = 0;
 const u32 config_vendor_le_bb = 0;
-const bool config_le_high_priority = 0;  //ecso下 想保证ble 建立连接 和 主从切换正常 必须置为1
 const bool config_tws_le_role_sw =(TWS_LE_AUDIO_LE_ROLE_SW_EN|TWS_RCSP_LE_ROLE_SW_EN);
 const int config_btctler_le_rx_nums = 20;
 const int config_btctler_le_acl_packet_length = 255;

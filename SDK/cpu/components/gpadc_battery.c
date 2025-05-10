@@ -23,6 +23,11 @@ static struct battery_data_fifo {
 } battery_fifo;
 
 
+_WEAK_
+u32 get_vddiom_voltage()
+{
+    return get_vddiom_vol();
+}
 
 _WEAK_
 u32 efuse_get_vbat_3700()
@@ -155,5 +160,5 @@ u32 gpadc_battery_get_voltage()
     }
 }
 
-#include "init.h"
-platform_initcall(gpadc_battery_init);
+/* #include "init.h" */
+/* platform_initcall(gpadc_battery_init); */

@@ -19,7 +19,8 @@
 #include "icsd_adt_app.h"
 #include "icsd_adt.h"
 #include "system/task.h"
-#include "asm/audio_adc.h"
+#include "audio_adc.h"
+#include "audio_dac.h"
 #include "audio_anc.h"
 #include "timer.h"
 #include "btstack/avctp_user.h"
@@ -800,6 +801,7 @@ int audio_acoustic_detector_open()
     //判定RTANC 模式
     int adt_function = adt_info.adt_mode;
 
+#if TCFG_AUDIO_ANC_ENV_ADAPTIVE_GAIN_ENABLE
     if (adt_info.adt_mode & ADT_REAL_TIME_ADAPTIVE_ANC_TIDY_MODE) {
         adt_function &= (~ADT_REAL_TIME_ADAPTIVE_ANC_TIDY_MODE);
         adt_function |= ADT_REAL_TIME_ADAPTIVE_ANC_MODE;
@@ -820,9 +822,13 @@ int audio_acoustic_detector_open()
             }
         }
     }
+#endif
+
     //启动需要初始化DAC READ相关变量， 避免使用上次遗留参数
     audio_dac_read_anc_reset();
-    audio_dac_set_samplerate_callback_add(&dac_hdl, audio_icsd_adt_set_sample);
+    audio_dac_set_sample_rate_callback(&dac_hdl, audio_icsd_adt_set_sample);
+    /*初始化dac read的资源*/
+    audio_dac_read_anc_init();
 
 #if ICSD_ADT_SHARE_ADC_ENABLE
     int debug_adc_sr = 16000;
@@ -1036,7 +1042,7 @@ int audio_acoustic_detector_close()
 {
     struct speak_to_chat_t *hdl = speak_to_chat_hdl;
     if (hdl) {
-        audio_dac_set_samplerate_callback_del(&dac_hdl, audio_icsd_adt_set_sample);
+        audio_dac_del_sample_rate_callback(&dac_hdl, audio_icsd_adt_set_sample);
         audio_mic_en(0, NULL, NULL);
         //set_icsd_adt_dma_done_flag(0);
         if (hdl->lib_alloc_ptr) {
@@ -1086,8 +1092,8 @@ int audio_acoustic_detector_close()
             hdl->infmt.rtanc_tool = NULL;
         }
 #endif
-
-
+        /*释放dac read的资源*/
+        audio_dac_read_anc_exit();
     }
     return 0;
 }
@@ -1685,7 +1691,7 @@ static void audio_icsd_adt_task(void *p)
             case SYNC_ICSD_ADT_SET_ANC_FADE_GAIN:
                 adt_log("mode %d set anc fade gain : %d, fade_time : %d\n", msg[3], msg[2], msg[4]);
                 if (msg[3] == ANC_FADE_MODE_ENV_ADAPTIVE_GAIN) {
-#if TCFG_AUDIO_ANC_ENV_NOISE_DET_ENABLE
+#if TCFG_AUDIO_ANC_ENV_ADAPTIVE_GAIN_ENABLE
                     audio_anc_env_adaptive_fade_gain_set(msg[2], msg[4]);
 #endif
                 } else if (msg[3] == ANC_FADE_MODE_WIND_NOISE) {
@@ -2020,7 +2026,7 @@ static int audio_icsd_adt_res_close(u16 adt_mode, u8 suspend)
             //恢复风噪检测增益
             /* if (hdl->adt_wind_gain_lvl != 16384) { */
             icsd_anc_fade_set(ANC_FADE_MODE_ENV_ADAPTIVE_GAIN, 16384);
-#if TCFG_AUDIO_ANC_ENV_NOISE_DET_ENABLE
+#if TCFG_AUDIO_ANC_ENV_ADAPTIVE_GAIN_ENABLE
             audio_anc_env_adaptive_fade_param_reset();
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
             if (anc_env_adaptive_gain_suspend) {

@@ -20,7 +20,8 @@
 #ifndef CONFIG_MEDIA_NEW_ENABLE
 #include "media/eq_config.h"
 #else
-#include "audio_eq.h"
+#include "effects/audio_eq.h"
+#include "effects/eq_config.h"
 #endif
 #endif
 

@@ -5,7 +5,7 @@
 #pragma code_seg(".adc_file.text")
 #endif
 #include "source_node.h"
-#include "asm/audio_adc.h"
+#include "audio_adc.h"
 #include "audio_config.h"
 #include "adc_file.h"
 #include "gpio_config.h"
@@ -493,10 +493,10 @@ static void adc_mic_output_handler(void *_hdl, s16 *data, int len)
         frame->len          = len;
 #if 1
         frame->flags        = FRAME_FLAG_TIMESTAMP_ENABLE | FRAME_FLAG_PERIOD_SAMPLE | FRAME_FLAG_UPDATE_TIMESTAMP;
-        frame->timestamp    = audio_jiffies_usec() * TIMESTAMP_US_DENOMINATOR;
+        frame->timestamp    = adc_hdl.timestamp * TIMESTAMP_US_DENOMINATOR;
 #else
         frame->flags        = FRAME_FLAG_SYS_TIMESTAMP_ENABLE;
-        frame->timestamp    = audio_jiffies_usec();
+        frame->timestamp    = adc_hdl.timestamp;
 #endif
 
         adc_file_fade_in(hdl, frame->data, frame->len);//淡入处理

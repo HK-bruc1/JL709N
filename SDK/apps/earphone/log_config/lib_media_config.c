@@ -14,7 +14,6 @@
 #include "app_config.h"
 #include "system/includes.h"
 #include "media/includes.h"
-#include "asm/audio_adc.h"
 #include "audio_config.h"
 #include "media/audio_def.h"
 #include "audio_config_def.h"
@@ -98,6 +97,14 @@ const u8 const_adc_async_en = 0;
 /* #else */
 /* const int config_audio_dac_mix_enable = 0; */
 /* #endif */
+const int config_audio_dac_output_channel = TCFG_AUDIO_DAC_CONNECT_MODE;
+#ifdef TCFG_AUDIO_DAC_MODE
+const int config_audio_dac_output_mode    = TCFG_AUDIO_DAC_MODE;
+#else
+const int config_audio_dac_output_mode    = 0;
+#endif
+
+
 
 //<DAC NoiseGate>
 #if (defined(TCFG_AUDIO_DAC_NOISEGATE_ENABLE) && TCFG_AUDIO_DAC_NOISEGATE_ENABLE)
@@ -106,6 +113,8 @@ const int config_audio_dac_noisefloor_optimize_enable = BIT(0) | BIT(2);
 const int config_audio_dac_noisefloor_optimize_enable = 0;
 #endif
 
+//切换采样率时保护DAC模块
+const char config_dac_samplerate_update_enter_critical = 0;
 
 //
 const unsigned char config_audio_dac_underrun_protect = 1;
@@ -354,6 +363,17 @@ const int const_audio_wma_dec16_fifo_precision = 16;  //  24 或者 16
 //***********************
 const int OPUS_SRINDEX = 0; //选择opus解码文件的帧大小，0代表一帧40字节，1代表一帧80字节，2代表一帧160字节
 
+#ifndef TCFG_DEC_OGG_OPUS_ENABLE
+#define TCFG_DEC_OGG_OPUS_ENABLE  0
+#endif
+//支持ogg_opus 类解码
+const int CONFIG_OGG_OPUS_DEC_SUPPORT = TCFG_DEC_OGG_OPUS_ENABLE; //这里使能才能进行下面两种解码方式的配置
+//设置OPUS 为raw 数据. 带8字节packet头(4字节大端包长+4字节range校验值)
+const int CONFIG_OGG_OPUS_DEC_SET_RAW_MODE = 0;
+//设置OPUS 为raw 数据 + CBR_OPUS 包长,配配置每次解码读入的包长置每次解码读入的包长可能有多帧共用TOC. 返回0设置成功;
+//使用CBR_OPUS设置包长，需要将上面的 CONFIG_OGG_OPUS_DEC_SET_RAW_MODE 置零
+const int CONFIG_OGG_OPUS_DEC_SET_CBR_PACKET_LEN = 0;
+
 //***********************
 //*		SPEEX Codec      *
 //***********************
@@ -371,6 +391,8 @@ const u32 APE_DEC_SUPPORT_LEVEL = 1;    //最高支持的层数  0:Fast   1:Norm
 /* f2a解码常量设置 */
 const int F2A_JUST_VOL = 0;  //帧长是否不超过512，置1的话，需要的buf会变小。默认置0，buf为11872.
 
+const  int   F2A_S16_USE_INT_FIFO = 0; ////16bit位宽输出的时候，是否使用int的中间缓存,配1会提高精度(不过buf会相应增加)
+
 const int WTGV2_STACK2BUF = 0;  //等于1时解码buf会加大760，栈会减小
 
 //wts解码支持采样率可选择，可以同时打开也可以单独打开
@@ -381,7 +403,7 @@ const  int  silk_fsW_enable = 1;  //支持16-24k采样率
 //* 	LC3 Codec      *
 //***********************
 //LC3帧长使能配置
-#if ((TCFG_LE_AUDIO_APP_CONFIG & ( LE_AUDIO_JL_UNICAST_SINK_EN)))
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
 const char  LC3_FRAME_LEN_SUPPORT_25_DMS = 1;	//2.5ms的帧长使能
 const char  LC3_FRAME_LEN_SUPPORT_50_DMS = 1; 	//5ms的帧长使能
 #else
@@ -393,7 +415,11 @@ const char  LC3_FRAME_LEN_SUPPORT_100_DMS = 1; 	//10ms的帧长使能
 //LC3采样率使能配置
 const char  LC3_SAMPLE_RATE_SUPPORT_8K = 0;   	//8K采样率使能
 const char  LC3_SAMPLE_RATE_SUPPORT_16K = 0;  	//16K采样率使能
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+const char  LC3_SAMPLE_RATE_SUPPORT_24K = 1;  	//24K采样率使能
+#else
 const char  LC3_SAMPLE_RATE_SUPPORT_24K = 0;  	//24K采样率使能
+#endif
 const char  LC3_SAMPLE_RATE_SUPPORT_32K = 1;  	//32K采样率使能
 const char  LC3_SAMPLE_RATE_SUPPORT_48K = 1;  	//48K/44.1K采样率使能
 const int LC3_PLC_EN = 0;  				//LC3丢包修复效果配置: 0:淡入淡出; 1:时域PLC;  2:频域PLC;  3:无任何效果，仅补静音包;
@@ -401,7 +427,7 @@ const int  LC3_PLC_FADE_OUT_START_POINT = 120;
 const int  LC3_PLC_FADE_OUT_POINTS = 120;
 const int  LC3_PLC_FADE_IN_POINTS = 120;
 const int LC3_PLC_FADE_IN_MS = 30;   	//LC3_PLC_EN = 0时有效, 淡入时间设置ms;
-#if(HW_FFT_VERSION == FFT_EXT) 			//支持非2的指数次幂点数的fft 时 置1
+#if(HW_FFT_VERSION == FFT_EXT || HW_FFT_VERSION == FFT_EXT_V2) 			//支持非2的指数次幂点数的fft 时 置1
 const int LC3_HW_FFT = 1;
 #else
 const int LC3_HW_FFT = 0;
@@ -416,8 +442,12 @@ const int LC3_DECODE_O24bit_ENABLE = 0; //控制 LC3解码输出24bit是否使�
 //* 	JLA Codec      *
 //***********************
 const int JLA_PLC_EN = 0;   			//置1做plc，置0的效果类似补静音包
-const int JLA_PLC_FADE_IN_MS = 30; 		// JLA_PLC_EN = 0时有效, 淡入时间设置ms;
-#if(HW_FFT_VERSION == FFT_EXT) 			//支持非2的指数次幂点数的fft 时 置1
+
+const int JLA_PLC_FADE_OUT_START_POINT = 480;   //丢包后维持音量的点数.
+const int JLA_PLC_FADE_OUT_POINTS = 120 * 5;    //丢包维持指定点数后,淡出的速度,音量从满幅到0需要的点数.
+const int JLA_PLC_FADE_IN_POINTS = 120 * 5;     //丢包后收到正确包淡入,淡入的速度,音量从0到满幅需要的点数.
+
+#if(HW_FFT_VERSION == FFT_EXT || HW_FFT_VERSION == FFT_EXT_V2) 			//支持非2的指数次幂点数的fft 时 置1
 const int JLA_HW_FFT = 1;
 #else
 const int JLA_HW_FFT = 0;
@@ -459,7 +489,7 @@ const int JLA_CODEC_SOFT_DECISION_ENABLE = 0;
 //***********************
 //* 	LE Audio        *
 //***********************
-#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN | LE_AUDIO_AURACAST_SINK_EN)))
 const int LE_AUDIO_TIME_ENABLE  = 1;
 #else
 const int LE_AUDIO_TIME_ENABLE  = 0;
@@ -511,6 +541,22 @@ const int config_decoder_ff_fr_end_return_event_end = 0;
 //***********************
 //* 	 EQ             *
 //***********************
+#define AUDIO_EQ_FADE_ENABLE		1	//EQ系数更新淡入淡出
+//EQ配置relase使能：使能后根据工具EQ节点用到的滤波器类型仅使能对应的滤波器，优化代码体积，无法在线修改滤波器类型
+#define AUDIO_EQ_CONFIG_RELEASE		0
+
+#if AUDIO_EQ_CONFIG_RELEASE
+const int config_audio_eq_hp_enable = EQ_CFG_TYPE_HIGH_PASS;		//High Pass
+const int config_audio_eq_lp_enable = EQ_CFG_TYPE_LOW_PASS;			//Low Pass
+const int config_audio_eq_bp_enable = EQ_CFG_TYPE_PEAKING;			//Band Pass(Peaking)
+const int config_audio_eq_hs_enable = EQ_CFG_TYPE_HIGH_SHELF;		//High Shelf
+const int config_audio_eq_ls_enable = EQ_CFG_TYPE_LOW_SHELF;		//Low Shelf
+const int config_audio_eq_hs_q_enable = EQ_CFG_TYPE_HIGH_SHELF_Q;	//High Shelf Q
+const int config_audio_eq_ls_q_enable = EQ_CFG_TYPE_LOW_SHELF_Q;	//Low Shelf Q
+const int config_audio_eq_hp_adv_enable = EQ_CFG_TYPE_HP;			//High Pass Advance：对应工具上阶数可选的Hp
+const int config_audio_eq_lp_adv_enable = EQ_CFG_TYPE_LP;			//Low Pass Advance：对应工具上阶数可选的Lp
+#else //Debug
+
 const int config_audio_eq_hp_enable = 1;		//High Pass
 const int config_audio_eq_lp_enable = 1;		//Low Pass
 const int config_audio_eq_bp_enable = 1;		//Band Pass(Peaking)
@@ -528,6 +574,8 @@ const int config_audio_eq_hp_adv_enable = 1;	//High Pass Advance：对应工具�
 const int config_audio_eq_lp_adv_enable = 1;	//Low Pass Advance：对应工具上阶数可选的Lp
 #endif
 
+#endif
+
 #if TCFG_SPEAKER_EQ_NODE_ENABLE
 #if EQ_SECTION_MAX < 10
 #undef EQ_SECTION_MAX
@@ -541,6 +589,9 @@ const int AUDIO_EQ_MAX_SECTION = EQ_SECTION_MAX;
 const int config_audio_eq_en = EQ_EN
 #if TCFG_CROSSOVER_NODE_ENABLE
                                | EQ_HW_CROSSOVER_TYPE0_EN
+#endif
+#if (AUDIO_EQ_FADE_ENABLE == 0)
+                               | EQ_FADE_DISABLE //关闭 eq fade
 #endif
                                ;
 #else
@@ -568,13 +619,19 @@ const int LPC_JUST_FADE = TCFG_MUSIC_PLC_TYPE;
 //影响plc申请的buf大小跟速度，这个值越大，申请的buf越多，速度也越快。
 //增加的buf大小是  APLC_MOV_STAKLEN *类型(16bit是 sizeof(short), 32bit 是sizeof(int))
 const int APLC_MOV_STAKLEN = 1024;
-
+//是否使能24bit数据丢包时按照16bit修复，影响ram的使用
+const int lfaudio_plc_mode24bit_16bit_en = 1;
 /*
- * 通话PLC延时配置,支持 0【延时最大】，1，2【延时最小】配置
- * 16k:0:28.5ms, 1:17ms, 2:12.5ms
- *  8k:0:24.5ms, 1:22ms, 2:18ms
+   不同配置的ram使用情况
+-----------------------------------------------------------------------
+  APLC_MOV_STAKLEN                |        0        |       1024      |
+-----------------------------------------------------------------------
+  lfaudio_plc_mode24bit_16bit_en  |   0    |   1    |    0    |   1   |
+-----------------------------------------------------------------------
+	ram(byte)                     |  7580  |  5632  |  11676  |  7680 |
+-----------------------------------------------------------------------
  */
-const  int  ESCO_PLC_DELAY_CONTROL = 0;
+
 const  int  ESCO_PLC_SUPPORT_24BIT_EN = MEDIA_24BIT_ENABLE;  //24bit开关
 
 const  int  ESCO_PLC_FADE_OUT_START_POINT = 500;	//丢包后修复过程中，维持音量的点数.即修复这么多点后，开始淡出
@@ -653,11 +710,6 @@ const int audio_effect_nsgate_pro_enable = 1;
 const int audio_effect_nsgate_pro_enable = 0;
 #endif
 
-//***********************
-//*   	Vocal Remover   *
-//***********************
-const int audio_vocal_remover_low_cut_enable = 1;
-const int audio_vocal_remover_high_cut_enable = 1;
 
 //***********************
 //*   	Others          *
