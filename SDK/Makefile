@@ -101,7 +101,7 @@ DEFINES := \
 	-DCONFIG_CPU_BR52 \
 	-DCONFIG_IIC_VERSION2 \
 	-DLWIP_USE_BT \
-	-DDLOG_PRINT_FUNC_USE_MACRO=0 \
+	-DDLOG_PRINT_FUNC_USE_MACRO=1 \
 	-DCONFIG_NEW_BREDR_ENABLE \
 	-DCONFIG_NEW_MODEM_ENABLE \
 	-DCONFIG_NEW_TWS_FORWARD_ENABLE \
@@ -233,6 +233,9 @@ INCLUDES := \
 	-Iapps/common/third_party_profile/jieli/rcsp/server/functions/sensors/sport_data_opt \
 	-Iapps/common/third_party_profile/jieli/rcsp/server/functions/sensors/sport_data_info_opt \
 	-Iapps/common/third_party_profile/jieli/rcsp/server/functions/browser \
+	-Iapps/common/third_party_profile/jieli/rcsp/server/functions/translator \
+	-Iapps/common/third_party_profile/jieli/rcsp/server/functions/pub_mutual_set_cmd \
+	-Iapps/common/third_party_profile/jieli/rcsp/server/functions/mass_data \
 	-Iapps/common/third_party_profile/jieli/rcsp/client/rcsp_m_update \
 	-Iapps/common/third_party_profile/mma_protocol \
 	-Iapps/common/third_party_profile/realme_protocol \
@@ -253,6 +256,14 @@ INCLUDES := \
 	-Iinterface/btstack/third_party/le_audio \
 	-Iinterface/btstack/third_party/broadcast \
 	-Iaudio/le_audio \
+	-Iapps/common/third_party_profile/tuya_protocol \
+	-Iapps/common/third_party_profile/tuya_protocol/app/demo \
+	-Iapps/common/third_party_profile/tuya_protocol/app/product_test \
+	-Iapps/common/third_party_profile/tuya_protocol/app/uart_common \
+	-Iapps/common/third_party_profile/tuya_protocol/extern_components/mbedtls \
+	-Iapps/common/third_party_profile/tuya_protocol/port \
+	-Iapps/common/third_party_profile/tuya_protocol/sdk/include \
+	-Iapps/common/third_party_profile/tuya_protocol/sdk/lib \
 	-Iapps/common/third_party_profile/bt_fmy \
 	-Iinterface/btstack \
 	-Iapps/common/device/usb \
@@ -474,6 +485,9 @@ c_SRC_FILES := \
 	apps/common/third_party_profile/jieli/rcsp/server/functions/file_transfer/file_simple_transfer.c \
 	apps/common/third_party_profile/jieli/rcsp/server/functions/file_transfer/file_trans_back.c \
 	apps/common/third_party_profile/jieli/rcsp/server/functions/file_transfer/file_transfer.c \
+	apps/common/third_party_profile/jieli/rcsp/server/functions/file_transfer/file_transfer_sync.c \
+	apps/common/third_party_profile/jieli/rcsp/server/functions/mass_data/mass_data.c \
+	apps/common/third_party_profile/jieli/rcsp/server/functions/pub_mutual_set_cmd/pub_mutual_set_cmd_opt.c \
 	apps/common/third_party_profile/jieli/rcsp/server/functions/rcsp_setting_opt/rcsp_adv_bluetooth.c \
 	apps/common/third_party_profile/jieli/rcsp/server/functions/rcsp_setting_opt/rcsp_setting_opt.c \
 	apps/common/third_party_profile/jieli/rcsp/server/functions/rcsp_setting_opt/rcsp_setting_sync.c \
@@ -533,6 +547,7 @@ c_SRC_FILES := \
 	apps/common/third_party_profile/jieli/rcsp/server/functions/sensors/sport_info_opt.c \
 	apps/common/third_party_profile/jieli/rcsp/server/functions/sensors/sport_info_sync.c \
 	apps/common/third_party_profile/jieli/rcsp/server/functions/sensors/sport_info_vm.c \
+	apps/common/third_party_profile/jieli/rcsp/server/functions/translator/rcsp_translator.c \
 	apps/common/third_party_profile/jieli/rcsp/server/rcsp_cmd_recieve.c \
 	apps/common/third_party_profile/jieli/rcsp/server/rcsp_cmd_recieve_no_respone.c \
 	apps/common/third_party_profile/jieli/rcsp/server/rcsp_cmd_respone.c \
@@ -553,6 +568,38 @@ c_SRC_FILES := \
 	apps/common/third_party_profile/realme_protocol/realme_platform_api.c \
 	apps/common/third_party_profile/realme_protocol/realme_protocol.c \
 	apps/common/third_party_profile/swift_pair/swift_pair_protocol.c \
+	apps/common/third_party_profile/tuya_protocol/app/demo/tuya_app_func.c \
+	apps/common/third_party_profile/tuya_protocol/app/demo/tuya_ble_app_demo.c \
+	apps/common/third_party_profile/tuya_protocol/app/demo/tuya_ota.c \
+	apps/common/third_party_profile/tuya_protocol/app/product_test/tuya_ble_app_production_test.c \
+	apps/common/third_party_profile/tuya_protocol/app/uart_common/tuya_ble_app_uart_common_handler.c \
+	apps/common/third_party_profile/tuya_protocol/extern_components/mbedtls/aes.c \
+	apps/common/third_party_profile/tuya_protocol/extern_components/mbedtls/ccm.c \
+	apps/common/third_party_profile/tuya_protocol/extern_components/mbedtls/hmac.c \
+	apps/common/third_party_profile/tuya_protocol/extern_components/mbedtls/md5.c \
+	apps/common/third_party_profile/tuya_protocol/extern_components/mbedtls/sha1.c \
+	apps/common/third_party_profile/tuya_protocol/extern_components/mbedtls/sha256.c \
+	apps/common/third_party_profile/tuya_protocol/port/tuya_ble_port.c \
+	apps/common/third_party_profile/tuya_protocol/port/tuya_ble_port_JL.c \
+	apps/common/third_party_profile/tuya_protocol/port/tuya_ble_port_peripheral.c \
+	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_api.c \
+	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_bulk_data.c \
+	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_data_handler.c \
+	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_event.c \
+	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_event_handler.c \
+	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_event_handler_weak.c \
+	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_feature_weather.c \
+	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_gatt_send_queue.c \
+	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_heap.c \
+	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_main.c \
+	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_mem.c \
+	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_mutli_tsf_protocol.c \
+	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_queue.c \
+	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_storage.c \
+	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_unix_time.c \
+	apps/common/third_party_profile/tuya_protocol/sdk/src/tuya_ble_utils.c \
+	apps/common/third_party_profile/tuya_protocol/tuya_event.c \
+	apps/common/third_party_profile/tuya_protocol/tuya_protocol.c \
 	apps/common/third_party_profile/ximalaya_protocol/xmly_ble.c \
 	apps/common/third_party_profile/ximalaya_protocol/xmly_config.c \
 	apps/common/third_party_profile/ximalaya_protocol/xmly_platform_api.c \
@@ -784,6 +831,7 @@ c_SRC_FILES := \
 	audio/effect/demo/frequency_shift_howling_demo.c \
 	audio/effect/demo/gain_demo.c \
 	audio/effect/demo/harmonic_exciter_demo.c \
+	audio/effect/demo/lhdc_x_demo.c \
 	audio/effect/demo/multiband_drc_demo.c \
 	audio/effect/demo/noisegate_demo.c \
 	audio/effect/demo/notch_howling_demo.c \
@@ -826,6 +874,7 @@ c_SRC_FILES := \
 	audio/framework/nodes/esco_tx_node.c \
 	audio/framework/nodes/iis_node.c \
 	audio/framework/nodes/le_audio_source.c \
+	audio/framework/nodes/lhdc_x_node.c \
 	audio/framework/nodes/local_tws_source_node.c \
 	audio/framework/nodes/multi_ch_iis_node.c \
 	audio/framework/nodes/ns_node.c \
@@ -843,6 +892,7 @@ c_SRC_FILES := \
 	audio/framework/plugs/source/a2dp_file.c \
 	audio/framework/plugs/source/a2dp_streamctrl.c \
 	audio/framework/plugs/source/adc_file.c \
+	audio/framework/plugs/source/ai_rx_file.c \
 	audio/framework/plugs/source/esco_file.c \
 	audio/framework/plugs/source/iis_file.c \
 	audio/framework/plugs/source/le_audio_file.c \
@@ -859,6 +909,7 @@ c_SRC_FILES := \
 	audio/framework/plugs/source/source_dev4_file.c \
 	audio/interface/player/a2dp_player.c \
 	audio/interface/player/adda_loop_player.c \
+	audio/interface/player/ai_rx_player.c \
 	audio/interface/player/dev_flow_player.c \
 	audio/interface/player/esco_player.c \
 	audio/interface/player/file_player.c \
@@ -884,6 +935,7 @@ c_SRC_FILES := \
 	audio/smart_voice/jl_kws_platform.c \
 	audio/smart_voice/kws_event.c \
 	audio/smart_voice/nn_vad.c \
+	audio/smart_voice/nn_vad_bin.c \
 	audio/smart_voice/smart_voice_config.c \
 	audio/smart_voice/smart_voice_core.c \
 	audio/smart_voice/user_asr.c \
@@ -915,7 +967,6 @@ c_SRC_FILES := \
 	cpu/br52/setup.c \
 	cpu/br52/ui_driver/led7/led7_driver.c \
 	cpu/br52/ui_driver/ui_common.c \
-	cpu/components/gpadc_battery.c \
 	cpu/components/iic_api.c \
 	cpu/components/iic_soft.c \
 	cpu/components/ir_decoder.c \
@@ -1045,6 +1096,7 @@ LFLAGS := \
 	cpu/br52/liba/lib_voiceChanger.a \
 	cpu/br52/liba/VirtualBass.a \
 	cpu/br52/liba/lib_virtual_bass_classic.a \
+	cpu/br52/liba/lib_virtual_bass_pro.a \
 	cpu/br52/liba/DynamicEQ.a \
 	cpu/br52/liba/DynamicEQPro.a \
 	cpu/br52/liba/lib_point360_td.a \
@@ -1099,6 +1151,7 @@ LFLAGS := \
 	cpu/br52/liba/libdistortion.a \
 	cpu/br52/liba/lib_frequency_compressor.a \
 	cpu/br52/liba/lib_gain_mix.a \
+	cpu/br52/liba/liblhdc_x_edge.a \
 	cpu/br52/liba/libFFT_pi32v2_OnChip.a \
 	cpu/br52/liba/lib_wtg_dec.a \
 	cpu/br52/liba/bfilterfun_lib.a \

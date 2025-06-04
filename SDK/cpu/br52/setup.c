@@ -227,6 +227,7 @@ void setup_arch()
     wdt_init(WDT_16S);
     /* wdt_close(); */
 
+    gpadc_mem_init(8);
     efuse_init();
 
 #if TCFG_AUDIO_DAC_VOLUME_BOOST

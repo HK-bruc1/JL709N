@@ -11,12 +11,6 @@
 #define LADC_MIC                0
 #define LADC_LINEIN             1
 
-/************************************
-             adc性能模式
-************************************/
-// TCFG_ADC_PERFORMANCE_MODE
-#define	ADC_MODE_HIGH_PERFORMANCE          (0)
-#define	ADC_MODE_LOW_POWER		           (1)
 
 /************************************************
   				Audio ADC Features

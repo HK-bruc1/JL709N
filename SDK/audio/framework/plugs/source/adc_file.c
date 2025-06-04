@@ -74,7 +74,7 @@ struct adc_file_common {
 
 struct adc_file_global {
     u8 fixed_ch_num;
-    s16 *fixed_buf;						//固定的ADCbuffer
+    s16 *fixed_buf;				//固定的ADCbuffer
     struct adc_file_cfg cfg;	//ESCO ADC的参数信息
 };
 
@@ -238,13 +238,14 @@ void audio_adc_file_init(void)  //通话的ADC节点配置
         }
         memcpy(&esco_adc_f.platform_cfg, adc_platform_cfg_table, sizeof(struct adc_platform_cfg) * AUDIO_ADC_MAX_NUM);
 
-        adc_file_log(" %s len %d, sizeof(cfg) %d\n", __func__,  len, (int)sizeof(struct adc_file_cfg));
+        adc_file_log("%s len %d, sizeof(cfg) %d\n", __func__,  len, (int)sizeof(struct adc_file_cfg));
 
-#if 0
-        adc_file_log(" esco_adc_f.cfg.mic_en_map = %x\n", esco_adc_f.cfg.mic_en_map);
+#if 0//dump出ESCO通话ADC节点参数配置
+        adc_file_log("esco_adc_f.cfg.mic_en_map = 0x%x\n", esco_adc_f.cfg.mic_en_map);
         for (i = 0; i < AUDIO_ADC_MAX_NUM; i++) {
-            adc_file_log(" esco_adc_f.cfg.param[%d].mic_gain      = %d\n", i, esco_adc_f.cfg.param[i].mic_gain);
-            adc_file_log(" esco_adc_f.cfg.param[%d].mic_pre_gain  = %d\n", i, esco_adc_f.cfg.param[i].mic_pre_gain);
+            adc_file_log("esco_adc_f.cfg.mic[%d] enable = %d\n", i, !!(esco_adc_f.cfg.mic_en_map & BIT(i)));
+            adc_file_log("esco_adc_f.cfg.param[%d].mic_gain      = %d\n", i, esco_adc_f.cfg.param[i].mic_gain);
+            adc_file_log("esco_adc_f.cfg.param[%d].mic_pre_gain  = %d\n", i, esco_adc_f.cfg.param[i].mic_pre_gain);
         }
 #endif
         esco_adc_f.read_flag = 1;
@@ -459,7 +460,8 @@ static void adc_mic_output_handler(void *_hdl, s16 *data, int len)
     //cvp读dac 参考数据
     if ((hdl->scene == STREAM_SCENE_ESCO) ||
         (hdl->scene == STREAM_SCENE_PC_MIC) ||
-        (hdl->scene == STREAM_SCENE_LEA_CALL)) {
+        (hdl->scene == STREAM_SCENE_LEA_CALL) ||
+        (hdl->scene == STREAM_SCENE_AI_VOICE)) {
 
 #if TCFG_AUDIO_CVP_OUTPUT_WAY_IIS_ENABLE && (defined TCFG_IIS_NODE_ENABLE)
         /*对齐iis外部参考数据延时*/

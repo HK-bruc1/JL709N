@@ -35,6 +35,7 @@ const int CONFIG_LMP_CONNECTION_NUM = 1;
 const int CONFIG_LMP_CONNECTION_LIMIT_NUM = 1;
 #endif
 
+const int CONFIG_DISTURB_SCAN_ENABLE = 0;
 
 #define TWS_PURE_MONITOR_MODE    0//1:纯监听模式
 
@@ -155,12 +156,16 @@ const int CONFIG_LNA_CHECK_VAL = -80;
 	#if TWS_PURE_MONITOR_MODE
 		const int CONFIG_EXTWS_NACK_LIMIT_INT_CNT       = 63;
 	#else
-		const int CONFIG_EXTWS_NACK_LIMIT_INT_CNT       = 4;
+		#if defined(CONFIG_CPU_BR56) //JL710
+			const int CONFIG_EXTWS_NACK_LIMIT_INT_CNT       = 3;
+		#else
+			const int CONFIG_EXTWS_NACK_LIMIT_INT_CNT       = 4;
+		#endif
 	#endif
 #endif
 
 const int CONFIG_A2DP_MAX_BUF_SIZE      = 25 * 1024;    //不再使用
-const int CONFIG_A2DP_AAC_MAX_BUF_SIZE  = 15 * 1024;
+const int CONFIG_A2DP_AAC_MAX_BUF_SIZE  = 20 * 1024;
 const int CONFIG_A2DP_SBC_MAX_BUF_SIZE  = 25 * 1024;
 const int CONFIG_A2DP_LHDC_MAX_BUF_SIZE = 50 * 1024;
 const int CONFIG_A2DP_LDAC_MAX_BUF_SIZE = 50 * 1024;
@@ -310,6 +315,11 @@ const int CONFIG_LMP_MASTER_ESCO_ENABLE  =  0;
 #endif
 
     const int CONFIG_MPR_CLOSE_WHEN_ESCO = 0;
+#ifdef CONFIG_BT_CTRLER_USE_SDK
+		const int CONFIG_BT_CTRLER_USE_SDK_ENABLE = 1;//br56不用maskrom的lmp，外面重写流程过滤掉
+#else
+		const int CONFIG_BT_CTRLER_USE_SDK_ENABLE = 0;
+#endif
 
 #ifdef CONFIG_SUPPORT_WIFI_DETECT
 	#if TCFG_USER_TWS_ENABLE

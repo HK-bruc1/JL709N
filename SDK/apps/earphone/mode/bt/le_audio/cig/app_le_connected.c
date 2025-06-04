@@ -1161,6 +1161,7 @@ void le_audio_profile_init()
  * */
 void le_audio_profile_exit()
 {
+    le_audio_adv_api_enable(0);
     g_le_audio_hdl.le_audio_profile_ok = 0;
     if (!is_cig_phone_conn()) { // 有连接就卸载否则会异常
         app_connected_close_in_other_mode();
@@ -1417,7 +1418,6 @@ void le_audio_adv_conn_success(u8 adv_id)
 void le_audio_adv_disconn_success(u8 adv_id)
 {
     log_info("le_audio_adv_disconn_success,adv id:%d\n", adv_id);
-    le_audio_adv_api_enable(0);
     g_le_audio_hdl.le_audio_adv_connected = 0;
 }
 /*定义接口获取le audio广播的连接状态*/
