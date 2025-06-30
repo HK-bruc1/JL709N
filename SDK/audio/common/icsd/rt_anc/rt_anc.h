@@ -25,6 +25,9 @@ extern int rt_printf_off(const char *format, ...);
 #endif
 extern int (*hz_printf)(const char *format, ...);
 
+extern const u8 rtanc_log_en;
+#define sd_rtanc_log(format, ...)  if(rtanc_log_en){{if(config_ulog_enable){printf(format, ##__VA_ARGS__);}if(config_dlog_enable){dlog_printf((-1 & ~BIT(31)), format, ##__VA_ARGS__);}}}
+
 
 #define RT_DMA_BELONG_TO_SZL    		1
 #define RT_DMA_BELONG_TO_SZR    		2
@@ -59,9 +62,7 @@ typedef struct {
 
 struct rt_anc_function {
     u8(*anc_dma_done_ppflag)();
-    u16(*sys_timeout_add)(void *priv, void (*func)(void *priv), u32 msec);
     void (*icsd_adt_rtanc_suspend)();
-    void (*sys_timeout_del)(u16 t);
     void (*anc_dma_on)(u8 out_sel, int *buf, int len);
     void (*anc_dma_on_double)(u8 out_sel, int *buf, int len);
     void (*anc_core_dma_ie)(u8 en);
@@ -71,18 +72,11 @@ struct rt_anc_function {
     void (*icsd_post_detask_msg)(u8 cmd);
     void (*rt_anc_dma_2ch_on)(u8 out_sel, int *buf, int len);
     void (*rt_anc_dma_4ch_on)(u8 out_sel_ch01, u8 out_sel_ch23, int *buf, int len);
-    void (*rt_anc_task_create)();
-    void (*rt_anc_task_kill)();
     void (*rt_anc_alg_output)(void *rt_param_l, void *rt_param_r);
-    void (*icsd_rtanc_need_updata)();
-    void (*icsd_rtanc_master_send)(u8 cmd);
-    void (*icsd_rtanc_slave_send)(u8 cmd);
     int (*jiffies_usec2offset)(unsigned long begin, unsigned long end);
     unsigned long (*jiffies_usec)(void);
     int (*audio_anc_debug_send_data)(u8 *buf, int len);
-    //tws
-    int (*tws_api_get_role)(void);
-    int (*tws_api_get_tws_state)();
+
     void (*rt_anc_config_init)(__rt_anc_config *_rt_anc_config);
     void (*rt_anc_param_updata_cmd)(void *param_l, void *param_r);
 
@@ -91,6 +85,13 @@ struct rt_anc_function {
     void (*icsd_self_talk_output)(u8 flag);
     u8(*get_wind_lvl)();
     u8(*get_adjdcc_result)();
+    u8(*get_wind_angle)();
+    float(*get_avc_spldb_iir)();
+
+    void (*rtanc_drc_output)(u8 flag, float gain, float fb_gain);
+    u8(*rtanc_drc_read)(float **gain);
+
+    void (*ff_adjdcc_par_set)(u8 dc_par);
 };
 extern struct rt_anc_function *RT_ANC_FUNC;
 enum {
@@ -114,20 +115,43 @@ enum {
 };
 
 typedef struct {
-    u8  anc_mode;			//0 ANC, 1 通透(只会在DAC出声的时候更新)
+    u8  anc_mode;			// 0 ANC, 1 通透(只会在DAC出声的时候更新)
+    u8  test_mode;          // 0:normal 1:产测模式
     u8	ff_yorder;
     u8  fb_yorder;
     u8  cmp_yorder;
+    u8  cmp_eq_updat;       // 置1表示下需要更新cmp与eq
+    u8  cmp_eq_szidx;
+    u8  ff_updat;
+    u8  fb_updat;
+    u8  ff_use_outfgq;
+    u8  updat_busy;
     float ffgain;
     float fbgain;
     float ff_fade_gain;
     float fb_fade_gain;
     float cmpgain;
+    float ff_fgq[31];
     double ff_coeff[5 * RT_ANC_MAX_ORDER]; //max
     double fb_coeff[5 * RT_ANC_MAX_ORDER]; //max
     double cmp_coeff[5 * RT_ANC_MAX_ORDER]; //max
     void *param;
 } __rt_anc_param;
+
+typedef struct {
+    u8 flag;
+    u8 ind_last;
+    u8 ls_gain_flag;
+    u8 sdrc_flag_fix_ls;
+    u8 sdrc_flag_rls_ls;
+    u8 update_cnt;
+    u8 music2norm_cnt;
+
+    float part1_ref_lf_dB;
+    float part1_err_lf_dB;
+    float fb_aim_gain;
+    float tg_db[MEMLEN / 2];
+} __rtanc_var_buffer;
 
 struct rt_anc_infmt {
     void *alloc_ptr;     //外部申请的ram地址
@@ -137,6 +161,7 @@ struct rt_anc_infmt {
     void *ext_cfg;
     __rt_anc_param *anc_param_l;
     __rt_anc_param *anc_param_r;
+    __rtanc_var_buffer *var_buf;
     u8  id;
     struct icsd_rtanc_tool_data *rtanc_tool;
 };
@@ -173,18 +198,11 @@ extern  u16	RT_ANC_STATE;
 //RT_ANC调用
 int os_taskq_post_msg(const char *name, int argc, ...);
 //SDK 调用
-void rt_anc_get_libfmt(struct rt_anc_libfmt *libfmt);
-void rt_anc_run();
-void rt_anc_dma_done();
 void rt_anc_anctask_cmd_handle(void *param, u8 cmd);
-void rt_anc_exit();
 void rt_anc_master_packet(struct rt_anc_tws_packet *packet, u8 cmd);
 void rt_anc_slave_packet(struct rt_anc_tws_packet *packet, u8 cmd);
 void icsd_rtanc_m2s_cb(void *_data, u16 len, bool rx);
 void icsd_rtanc_s2m_cb(void *_data, u16 len, bool rx);
-void rt_anc_rttask_handler(int msg);
-void rt_anc_suspend();
-void rt_anc_resume();
 //库调用
 void rt_anc_config_init();
 void rt_anc_dsf8_data_debug(u8 belong, s16 *dsf_out_ch0, s16 *dsf_out_ch1, s16 *dsf_out_ch2, s16 *dsf_out_ch3);
@@ -194,48 +212,24 @@ void rt_anc_dsf8_data_debug(u8 belong, s16 *dsf_out_ch0, s16 *dsf_out_ch1, s16 *
 struct __rtanc_bt_inf {
     u8 debug_function;
     u16 debug_id;
+    u8  rtanc_id;
 
-    u8 mode;   // norm/tidy
-    u8 ff_dc_par_use;
-    u8 wind_lvl;
-    u8 trim_lock;
-    u8 pass_idx;
-    u8 ptr_cnt;
-    u8 dov[3 * 16];
-    u8 vod_cnt;
-    u8 self_vod_cnt;
-    u8 self_talk_flag;
-    u8 spec_cnt;
-    u8 ref_spec_cnt;
-    u8 err_spec_cnt;
-    u8 mse_fcnt_thr;
-    u8 mse_ctl_fcnt;
-    u8 hist_history[5];
-    u8 hist_cur;
-    u8 hist_last;
-    u8 sz_diff_meet;
-    u8 sz_hist_cur;
-    u8 sz_hist_last;
-    u8 sz_iir_cnt;
+    u8  state;
+    u8  cmp_eq_updat;
+    u8  ff_updat;
+    u8  fb_updat;
+    u8  cmp_eq_szidx;
 
-    float angle[3 * 16];
-    float mse_180_500;
-    float mse_500_1k;
-    float mse_ctl1;
-    float mse_ctl2;
-    float mse_ctl3;
-    float hist_err;
-    float fitness;
-    float tar_diff;
-    float tar_hz_diff;
-    float tar_diff_thr;
-    float sz_stable_val1;
-    float sz_stable_val2;
-    float sz_iir_diff;
-    float sz_hist_err;
-    float sz_diff_cmp;
+    s16 log_buf[40];
+};
+
+struct __rtanc_bt_cfg {
+    u8  debug_function;
+    u16 debug_id;
+    u8  rtanc_id;
 
     struct __anc_ext_rtanc_adaptive_cfg rtanc_tool_cfg;
+    struct __anc_ext_dynamic_cfg dynamic_cfg;
 };
 
 struct icsd_rtanc_infmt {
@@ -246,8 +240,9 @@ struct icsd_rtanc_infmt {
     u8  ch_num;
     u8  ep_type;
     u8  rtanc_type;
+    u8  part1_times;
     struct icsd_rtanc_tool_data *rtanc_tool;
-    u8  TOOL_FUNCTION;
+    int  TOOL_FUNCTION;
 };
 
 struct icsd_rtanc_libfmt {
@@ -259,8 +254,12 @@ struct icsd_rtanc_libfmt {
 
 typedef struct {
     u8  dma_ch;
+    u8  part1_cnt;
+    u8  dac_flag_iszero;
     s16 *inptr_h;
     s16 *inptr_l;
+    int p1dac_max_vld;
+
     float *out0_sum;
     float *out1_sum;
     float *out2_sum;
@@ -270,6 +269,7 @@ typedef struct {
 
 typedef struct {
     u8  dma_ch;
+    u8  dac_flag_iszero;
     float *out0_sum;
     float *out1_sum;
     float *out2_sum;
@@ -298,10 +298,11 @@ void icsd_rtanc_get_libfmt(struct icsd_rtanc_libfmt *libfmt);
 void icsd_rtanc_set_infmt(struct icsd_rtanc_infmt *fmt);
 void icsd_alg_rtanc_run_part1(__icsd_rtanc_part1_parm *part1_parm);
 u8   icsd_alg_rtanc_run_part2(__icsd_rtanc_part2_parm *part2_parm);
+void icsd_alg_rtanc_offline_printf();
 void icsd_alg_rtanc_part2_parm_init();
 void rt_anc_time_out_del();
-void rt_anc_set_init(struct rt_anc_infmt *fmt, struct __anc_ext_rtanc_adaptive_cfg *rtanc_tool_cfg);
-void rt_anc_init(struct rt_anc_infmt *fmt, struct __anc_ext_rtanc_adaptive_cfg *rtanc_tool_cfg);
+void rt_anc_set_init(struct rt_anc_infmt *fmt, struct __anc_ext_rtanc_adaptive_cfg *rtanc_tool_cfg, struct __anc_ext_dynamic_cfg *dynamic_cfg);
+void rt_anc_init(struct rt_anc_infmt *fmt, struct __anc_ext_rtanc_adaptive_cfg *rtanc_tool_cfg, struct __anc_ext_dynamic_cfg *dynamic_cfg);
 void rt_anc_param_updata_cmd(void *param_l, void *param_r);
 void rt_anc_part1_reset();
 void icsd_rtanc_alg_get_sz(float *sz_out, u8 ch);

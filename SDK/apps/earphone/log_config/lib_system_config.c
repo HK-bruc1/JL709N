@@ -25,6 +25,11 @@ const int config_asser          = TCFG_EXCEPTION_LOG_ENABLE;  // non 0:使能异
 const int config_exception_reset_enable = TCFG_EXCEPTION_RESET_ENABLE;
 const int CONFIG_LOG_OUTPUT_ENABLE = 1;
 const int config_ulog_enable = 1;
+#elif TCFG_DEBUG_DLOG_ENABLE
+const int config_asser         = 1;
+const int config_exception_reset_enable = 1;
+const int CONFIG_LOG_OUTPUT_ENABLE = 0;
+const int config_ulog_enable = 0;
 #else
 const int config_asser         = 0;
 const int config_exception_reset_enable = 1;

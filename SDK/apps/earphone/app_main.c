@@ -170,19 +170,25 @@ const struct task_info task_info_table[] = {
 #endif
 
 #if TCFG_AUDIO_ANC_ENABLE
-    {"anc",                 3,     0,   512,   128 },
+    {"anc",                 3,     1,   512,   128 },
 #if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
-    {"icsd_anc",            5,     0,   512,   128 },
-    {"icsd_adt",            2,     0,   512,   128 },
-    {"icsd_src",            3,     0,   512,   256 },
-    {"speak_to_chat",       2,     0,   512,   128 },
+    {"icsd_anc_0",          5,     1,   256,   128 },
+    {"icsd_anc_1",          5,     1,   256,   128 },
+    {"icsd_adt_0",          2,     1,   256,   128 },
+    {"icsd_adt_1",          2,     1,   256,   128 },
+    {"icsd_src",            4,     1,   256,   256 },
+    {"speak_to_chat",       2,     1,   512,   128 },
 #endif
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
-    {"rt_anc",              3,     0,   512,   128 },
-    {"rt_de",              	1,     0,   512,   128 },
+    {"rt_anc_0",            3,     1,   512,   128 },
+    {"rt_anc_1",            3,     1,   512,   128 },
+    {"rt_de",              	1,     1,   512,   128 },
 #endif
 #if TCFG_AUDIO_ANC_ENABLE && (TCFG_AUDIO_ANC_EXT_VERSION == ANC_EXT_V2)
-    {"afq_common",         	1,     0,   512,   128 },
+    {"afq_common",         	1,     1,   512,   128 },
+#endif
+#if AUDIO_ANC_DATA_EXPORT_VIA_UART
+    {"anc_dev",         	1,     0,   512,   128 },
 #endif
 #endif
 
@@ -202,6 +208,7 @@ const struct task_info task_info_table[] = {
     {"dlog",                1,     0,  256,   128 },
 #endif
     {"aud_adc_demo",        1,     0,  512,   128 },
+    {"aud_dac_demo",        1,     0,  512,   128 },
     {0, 0},
 };
 

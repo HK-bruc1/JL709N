@@ -14,16 +14,9 @@
 #include "icsd_adt_app.h"
 #endif /*TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN*/
 
-#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
-#include "rt_anc_app.h"
-#endif
-
 struct esco_player {
     u8 bt_addr[6];
     struct jlstream *stream;
-#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
-    u8 icsd_adt_state;
-#endif
 };
 
 static struct esco_player *g_esco_player = NULL;
@@ -70,18 +63,8 @@ int esco_player_open(u8 *bt_addr)
 
 
 #if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
-#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE && AUDIO_RT_ANC_TIDY_MODE_ENABLE
-    if (audio_anc_real_time_adaptive_reset(ADT_REAL_TIME_ADAPTIVE_ANC_TIDY_MODE, 1) && !audio_anc_real_time_adaptive_state_get())
-#endif
-    {
-        /*通话前关闭adt*/
-        player->icsd_adt_state = audio_icsd_adt_is_running();
-        if (player->icsd_adt_state) {
-            audio_icsd_adt_close(0, 1);
-        }
-    }
-    printf("esco_player_open, icsd_adt_state %d", player->icsd_adt_state);
-
+    audio_icsd_adt_scene_set(ADT_SCENE_ESCO, 1);
+    audio_icsd_adt_reset(ADT_SCENE_ESCO);
 #endif
 
 #if TCFG_ESCO_DL_CVSD_SR_USE_16K
@@ -128,6 +111,11 @@ int esco_player_open(u8 *bt_addr)
 
 
     return 0;
+
+#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
+    audio_icsd_adt_scene_set(ADT_SCENE_ESCO, 0);
+    audio_icsd_adt_reset(ADT_SCENE_ESCO);
+#endif
 
 __exit1:
     jlstream_release(player->stream);
@@ -196,9 +184,6 @@ void esco_player_close()
     if (!player) {
         return;
     }
-#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
-    u8 icsd_adt_state = player->icsd_adt_state;
-#endif /*TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN*/
 
     jlstream_stop(player->stream, 0);
     jlstream_release(player->stream);
@@ -213,15 +198,8 @@ void esco_player_close()
 #endif
 
 #if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
-#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE && AUDIO_RT_ANC_TIDY_MODE_ENABLE
-    if (audio_anc_real_time_adaptive_reset(ADT_REAL_TIME_ADAPTIVE_ANC_MODE, 1) && !audio_anc_real_time_adaptive_state_get())
-#endif
-    {
-        printf("esco_player_close, icsd_adt_state %d", icsd_adt_state);
-        if (icsd_adt_state) {
-            audio_icsd_adt_open(0);
-        }
-    }
+    audio_icsd_adt_scene_set(ADT_SCENE_ESCO, 0);
+    audio_icsd_adt_reset(ADT_SCENE_ESCO);
 #endif
 
     jlstream_event_notify(STREAM_EVENT_CLOSE_PLAYER, (int)"esco");

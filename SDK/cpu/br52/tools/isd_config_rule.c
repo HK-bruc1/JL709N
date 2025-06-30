@@ -125,7 +125,7 @@ PID = CONFIG_PID;
 VID = CONFIG_VID;
 
 #ifdef CONFIG_SDK_RELEASE
-SDK_VERSION = JL709N_V3.0.0; //jenkins脚本生成
+SDK_VERSION = AC709N_V3.0.0; //jenkins脚本生成
 #else
 SDK_VERSION = JL709N_V0.1.0;
 #endif

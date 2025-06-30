@@ -70,8 +70,10 @@ const u8 mic_input_v2       = 1;//使用新MIC数据接口
 const u8 ICSD_WDT_V2        = 1;//风噪快速输出
 const u8 ICSD_HOWL_REF_EN   = 0;//使能后使用REF实现HOWL，该模式只支持同时打开风噪检测
 
-const u8 avc_run_interval   = 32;//实际运行间隔为  avc_run_interval * 11ms
+const u8 avc_run_interval   = 16;//实际运行间隔为  avc_run_interval * 11ms
 const u8 tidy_avc_run_interval = 16;//实际运行间隔为  tidy_avc_run_interval * 16ms
+const u8 icsd_ancdma_dac_debug = 0;
+const u8 adt_log_en = 1;
 //==============================================//
 //    环境声参数配置
 //==============================================//

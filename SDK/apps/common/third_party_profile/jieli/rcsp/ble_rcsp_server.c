@@ -509,7 +509,10 @@ void rcsp_cbk_packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *pac
             rcsp_ble_con_handle = 0;
             ble_user_cmd_prepare(BLE_CMD_ATT_SEND_INIT, 4, rcsp_ble_con_handle, 0, 0, 0);
 #endif
+#if RCSP_UPDATE_EN
             rcsp_clean_update_hdl_for_end_update(dis_con_handle, NULL);
+#endif
+
 #if TCFG_RCSP_DUAL_CONN_ENABLE
             rcsp_1t2_reset_edr_info_for_ble_disconn(dis_con_handle);
 #endif
@@ -695,7 +698,7 @@ uint16_t rcsp_att_read_callback(hci_con_handle_t connection_handle, uint16_t att
     case ATT_CHARACTERISTIC_2a05_01_CLIENT_CONFIGURATION_HANDLE:
     case ATT_CHARACTERISTIC_ae02_01_CLIENT_CONFIGURATION_HANDLE:
         if (buffer) {
-            buffer[0] = att_get_ccc_config(att_handle);
+            buffer[0] = multi_att_get_ccc_config(connection_handle, att_handle);
             buffer[1] = 0;
         }
         att_value_len = 2;
@@ -760,6 +763,18 @@ int rcsp_att_write_callback(hci_con_handle_t connection_handle, uint16_t att_han
             bt_rcsp_recieve_callback(rcsp_server_ble_hdl1, NULL, buffer, buffer_size);
         }
 #endif
+        if (adt_profile_support && rcsp_adt_support) {
+            u16 adt_con_handle = app_ble_get_hdl_con_handle(rcsp_server_edr_att_hdl);
+            if (adt_con_handle == connection_handle) {
+                bt_rcsp_recieve_callback(rcsp_server_edr_att_hdl, NULL, buffer, buffer_size);
+            }
+#if TCFG_RCSP_DUAL_CONN_ENABLE
+            u16 adt_con_handle1 = app_ble_get_hdl_con_handle(rcsp_server_edr_att_hdl1);
+            if (adt_con_handle1 == connection_handle) {
+                bt_rcsp_recieve_callback(rcsp_server_edr_att_hdl1, NULL, buffer, buffer_size);
+            }
+#endif
+        }
 #else
         if (rcsp_ble_con_handle) {
 

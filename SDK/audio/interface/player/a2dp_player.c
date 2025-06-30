@@ -39,10 +39,6 @@
 #include "audio_anc.h"
 #endif
 
-#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
-#include "rt_anc_app.h"
-#endif
-
 #if AUDIO_EQ_LINK_VOLUME
 #include "effects/eq_config.h"
 #endif
@@ -257,10 +253,6 @@ int a2dp_player_open(u8 *btaddr)
     }
 #endif
 
-#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE && AUDIO_RT_ANC_TIDY_MODE_ENABLE
-    audio_anc_real_time_adaptive_reset(ADT_REAL_TIME_ADAPTIVE_ANC_TIDY_MODE, 0);
-#endif
-
     err = a2dp_player_create(btaddr);
     if (err) {
         if (err == -EFAULT) {
@@ -425,9 +417,6 @@ void a2dp_player_close(u8 *btaddr)
     audio_smart_voice_aec_close();
 #endif
 
-#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE && AUDIO_RT_ANC_TIDY_MODE_ENABLE
-    audio_anc_real_time_adaptive_reset(ADT_REAL_TIME_ADAPTIVE_ANC_MODE, 0);
-#endif
 }
 
 //复位当前的数据流

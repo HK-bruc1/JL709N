@@ -159,6 +159,13 @@ const int const_audio_codec_wma_dec_supoort_POS_play = 1; //是否支持指定�
 /////////////////////wav codec/////////////////
 const int const_audio_codec_wav_dec_bitDepth_set_en = 0;
 
+/////////////////////mp3 codec/////////////////
+const int mp3encode_input_mode =  1 ;//0x01--short输入 0x02--float输入,使用mp3浮点数输入编码需要把config_mp3_enc_use_layer_3置1
+
+/////////////////////mty codec/////////////////
+const int config_mty_repeat_enable = 1; //mty 支持循环播放
+
+
 /*
  *******************************************************************
  *						Audio SYNCTS Config
@@ -447,6 +454,13 @@ const char log_tag_const_c_ALINK  = CONFIG_DEBUG_LIB(0);
 const char log_tag_const_i_ALINK  = CONFIG_DEBUG_LIB(0);
 const char log_tag_const_d_ALINK  = CONFIG_DEBUG_LIB(0);
 const char log_tag_const_e_ALINK  = CONFIG_DEBUG_LIB(TRUE);
+
+/*vbass noisegate 参数配置*/
+const int virtualbass_noisegate_attack_time = 50;
+const int virtualbass_noisegate_release_time = 30;
+const int virtualbass_noisegate_hold_time = 15;
+const float virtualbass_noisegate_threshold = -85.0f;
+
 
 __attribute__((weak))
 int get_system_stream_bit_width(void *par)

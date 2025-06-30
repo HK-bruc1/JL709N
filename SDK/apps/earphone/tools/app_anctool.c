@@ -917,8 +917,8 @@ static void app_anctool_module_deal(u8 *data, u16 len)
         app_anctool_ack_get_coeff_size();
         break;
     case CMD_READ_FILE_START:
-        anctool_printf("CMD_READ_FILE_START\n");
         memcpy((u8 *)&id, &data[1], 4);
+        anctool_printf("CMD_READ_FILE_START, ID=0x%x\n", id);
         anctool_ack_read_file_start(id);
         break;
     case CMD_READ_FILE_DATA:
@@ -1097,6 +1097,7 @@ void app_anctool_spp_disconnect(void)
     __this->pair_flag = 0;
 #endif
     anctool_api_uninit();
+    anc_online_busy_set(0);
 }
 
 u8 get_app_anctool_spp_connected_flag()

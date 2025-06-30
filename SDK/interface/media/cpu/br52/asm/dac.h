@@ -38,16 +38,6 @@ Notes:以下为芯片规格定义，不可修改，仅供引用
 #define DA_RIGHT       1
 
 /************************************
- *              DAC模式
- *************************************/
-#define DAC_MODE_SINGLE        (0)
-#define DAC_MODE_DIFF          (1)
-#define DAC_MODE_VCMO          (2)
-
-
-#define DACR32_DEFAULT		8192
-
-/************************************
              dac性能模式
 ************************************/
 #define DAC_TRIM_SEL_RDAC_LP            0

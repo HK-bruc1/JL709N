@@ -41,6 +41,9 @@
 #include "ble_rcsp_server.h"
 #endif
 #include "vol_sync.h"
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+#include "app_le_auracast.h"
+#endif
 
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 struct le_audio_var {
@@ -76,7 +79,7 @@ struct app_cis_conn_info {
     u16 cis_hdl;						// cis句柄，cis连接成功的时候会被设置
     u16 acl_hdl;						// acl句柄，cis连接成功的时候会被设置
     u16 Max_PDU_C_To_P;
-    u16 Max_PDU_P_To_C;
+    u16 Max_PDU_P_To_C;					// 有值说明是LEA_SERVICE_CALL，否则LEA_SERVICE_MEDIA
 };
 
 struct app_cig_conn_info {
@@ -154,6 +157,10 @@ static int app_connected_conn_status_event_handler(int *msg)
 
     switch (event[0]) {
     case CIG_EVENT_PERIP_CONNECT:
+
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+        le_auracast_stop();
+#endif
 
 #if TCFG_USER_TWS_ENABLE
         tws_api_tx_unsniff_req();
@@ -464,11 +471,12 @@ static int app_connected_conn_status_event_handler(int *msg)
         log_info("CIG_EVENT_PHONE_DISCONNECT");
         g_le_audio_hdl.cig_phone_conn_status = 0;
         memset(g_le_audio_hdl.peer_address, 0xff, 6);
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+        le_auracast_stop();
+#endif
 #if TCFG_USER_TWS_ENABLE
         tws_sync_le_audio_conn_info();
         tws_dual_conn_state_handler();
-#endif
-#if TCFG_USER_TWS_ENABLE
         if (tws_api_get_role() == TWS_ROLE_SLAVE) {
             break;
         }

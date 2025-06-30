@@ -179,6 +179,12 @@ enum ANC_IIR_TYPE {
     ANC_TRANS_TYPE = BIT(3),	//TRANS
 };
 
+enum ANC_DCC_TRIM_MODE {
+    ANC_DCC_TRIM_CLOSE = 0,	//关闭trim, 使用普通模式
+    ANC_DCC_TRIM_START,		//triming
+    ANC_DCC_TRIM_USE,		//已有trim值
+};
+
 /*ANC模式使能位*/
 #define ANC_OFF_BIT				BIT(1)	/*降噪关闭使能*/
 #define ANC_ON_BIT				BIT(2)	/*降噪模式使能*/
@@ -250,7 +256,7 @@ enum ANC_IIR_TYPE {
 #define ANC_TEST_TYPE_FFT			1	//SZ数据累加FFT导出
 
 /*ANC芯片版本定义(只读)*/
-#define ANC_CHIP_VERSION			ANC_VERSION_BR50
+#define ANC_CHIP_VERSION			ANC_VERSION_BR52
 
 /*ANC CFG读写标志*/
 #define ANC_CFG_READ		 		0x01
@@ -344,7 +350,7 @@ typedef struct {
     void (*dma_done_cb)(void);
 } anc_adt_param_t;
 
-#define ANC_GAINS_VERSION 		0X7081	//结构体版本号信息
+#define ANC_GAINS_VERSION 		0X7091	//结构体版本号信息
 //DCC结构
 typedef struct {
     u8  norm_dc_par; 	// range 0-15;    default 0
@@ -375,10 +381,10 @@ typedef struct {
 //cfg
     u16 version;		//当前结构体版本号
     u8 dac_gain;		//dac模拟增益 			range 0-1;   default 1
-    u8 l_ffmic_gain;	//ANCL FFmic增益 		range 0-5;   default 0
-    u8 l_fbmic_gain;	//ANCL FBmic增益		range 0-5;   default 0
-    u8 r_ffmic_gain;	//ANCR FFmic增益		range 0-5;	 default 0;
-    u8 r_fbmic_gain;	//ANCR FBmic增益		range 0-5;	 default 0;
+    u8 l_ffmic_gain;	//ANCL FFmic增益 		range 0-7;   default 2
+    u8 l_fbmic_gain;	//ANCL FBmic增益		range 0-7;   default 2
+    u8 r_ffmic_gain;	//ANCR FFmic增益		range 0-7;	 default 2
+    u8 r_fbmic_gain;	//ANCR FBmic增益		range 0-7;	 default 2
     u8 cmp_en;			//音乐补偿使能			range 0-1;   default 1
 
     u8 drc_en;		    //DRC使能				range 0-7;   default 0
@@ -481,6 +487,15 @@ struct anc_mic_gain_cmp_cfg {
     float rfb_gain;		//ANCR FBmic 补偿增益(产测使用), range 0.0316(-30dB) - 31.622(+30dB); default 1.0(0dB)
 };
 
+//DCC TRIM相关数据结构
+struct anc_dcc_trim_cfg {
+    u8 mode;
+    int lff_dcc;
+    int lfb_dcc;
+    int rff_dcc;
+    int rfb_dcc;
+};
+
 //ANC param主要结构
 typedef struct {
     u8 start;                       //ANC状态
@@ -532,6 +547,10 @@ typedef struct {
     u8 fb_use_alogm;				//FB当前使用的算法模式
     u8 sz_use_alogm;				//SZ当前使用的算法模式
 
+    // fade_time = (1/fs) * (slow+1）* [16384 / (2^fast)]
+    u8 filter_fade_fast;		    //滤波器切换快步进, def 0
+    u8 filter_fade_slow;			//滤波器切换慢步进, def 3
+
     u8 howling_detect_toggle;		//ANC 啸叫检测使能控制，用于在线切换
     u8 howling_detect_ch;			//ANC 啸叫检测通道配置
 
@@ -578,6 +597,7 @@ typedef struct {
     anc_adt_param_t *adt;
     struct anc_sz_fft_t sz_fft;
     struct anc_mic_gain_cmp_cfg mic_cmp;
+    struct anc_dcc_trim_cfg dcc_trim;
 
     void (*train_callback)(u8, u8);
     void (*pow_callback)(anc_ack_msg_t *msg_t, u8 setp);
@@ -942,5 +962,10 @@ void audio_anc_dma_add_output_handler(const char *name, void (*output)(void));
 
 /* 删除ANC DMA输出回调函数 */
 void audio_anc_dma_del_output_handler(const char *name);
+
+void audio_anc_biquad2ab_double(anc_fr_t *iir, double *out_coeff, u8 order, int alogm);
+
+/*读取ANC dc值*/
+int audio_anc_dc_vld_read(u8 mic_type);
 
 #endif/*_ANC_H_*/

@@ -99,14 +99,14 @@ void write_scan_conn_enable(bool scan_enable, bool conn_enable)
             return;
         }
     }
-    /* if ((get_bt_dual_config() == DUAL_CONN_CLOSE) && (bt_get_total_connect_dev())) { */
-    if (((get_bt_dual_config() == DUAL_CONN_CLOSE) || (get_bt_dual_config() == DUAL_CONN_SET_ONE)) && (bt_get_total_connect_dev())) { ////关闭1t2功能，或者关闭双联,已连接一台手机，屏蔽其它状态,
+
+    if (((get_bt_dual_config() == DUAL_CONN_CLOSE) || (get_bt_dual_config() == DUAL_CONN_SET_ONE)) && (bt_get_total_connect_dev())) { //关闭1t2功能，或者关闭双连，已连接一台手机，屏蔽其它状态
         g_printf("bt dual close\n");
         scan_enable = 0;
         conn_enable = 0;
     }
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
-    if (is_cig_phone_conn() || is_cig_other_phone_conn() || is_cig_acl_conn() || is_cig_other_acl_conn() || ((get_bt_dual_config() == DUAL_CONN_SET_ONE) && bt_get_total_connect_dev())) {
+    if (is_cig_phone_conn() || is_cig_other_phone_conn()) {
         g_printf("bt_get_total_connect_dev=%d\n", bt_get_total_connect_dev());
         scan_enable = 0;
         conn_enable = 0;
@@ -228,10 +228,11 @@ static int dual_conn_try_open_inquiry_page_scan()
     }
 #if TCFG_DUAL_CONN_INQUIRY_SCAN_TIME
     int connect_device      = bt_get_total_connect_dev();
+    //y_printf("connect_device=%d,need_keep_scan=%d,device_num_recorded=%d,inquiry_scan_disable=%d\n",connect_device,g_dual_conn.need_keep_scan,g_dual_conn.device_num_recorded,g_dual_conn.inquiry_scan_disable);
     if (connect_device == 0) {
         write_scan_conn_enable(1, 1);
     } else {
-        write_scan_conn_enable(g_dual_conn.inquiry_scan_disable ? 0 : 1, 1);
+        write_scan_conn_enable(g_dual_conn.inquiry_scan_disable ? 0 : 1, g_dual_conn.inquiry_scan_disable ? 0 : 1);
     }
 #else
     if (g_dual_conn.need_keep_scan) {

@@ -25,7 +25,7 @@
 #include "auracast_app_protocol.h"
 #endif
 
-#if ((THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN | XIMALAYA_EN | AURACAST_APP_EN)) || \
+#if ((THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN | XIMALAYA_EN | AURACAST_APP_EN| MULTI_CLIENT_EN)) || \
 		(TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN | LE_AUDIO_AURACAST_SINK_EN | LE_AUDIO_JL_AURACAST_SINK_EN)))
 #define ATT_LOCAL_PAYLOAD_SIZE    (517)//(517)              //note: need >= 20
 #define ATT_SEND_CBUF_SIZE        (512*2)                   //note: need >= 20,缓存大小，可修改
@@ -215,6 +215,10 @@ SDP_RECORD_REGISTER(custom_demo_sdp_record_item) = {
     .service_record = (u8 *)sdp_custom_demo_spp_service_data,
     .service_record_handle = 0x00010040,
 };
+#endif
+#if (THIRD_PARTY_PROTOCOLS_SEL & MULTI_CLIENT_EN)
+extern void ble_multi_client_init();
+extern void ble_multi_client_exit(void);
 #endif
 
 #if (THIRD_PARTY_PROTOCOLS_SEL & AURACAST_APP_EN)
@@ -465,6 +469,10 @@ void multi_protocol_bt_init(void)
     bredr_adt_init();
     auracast_app_all_init();
 #endif
+
+#if (THIRD_PARTY_PROTOCOLS_SEL & MULTI_CLIENT_EN)
+    ble_multi_client_init();
+#endif
 }
 
 void multi_protocol_bt_exit(void)
@@ -512,6 +520,9 @@ void multi_protocol_bt_exit(void)
 #if (THIRD_PARTY_PROTOCOLS_SEL & XIMALAYA_EN)
     ximalaya_protocol_exit();
 #endif
+#if (THIRD_PARTY_PROTOCOLS_SEL & MULTI_CLIENT_EN)
+    ble_multi_client_exit();
+#endif
 
 #if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
     void le_audio_uninit(u8 mode);
@@ -545,8 +556,9 @@ void bt_ble_adv_enable(u8 enable)
     tuya_bt_ble_adv_enable(enable);
 #endif
 }
+#endif
 
-
+#if TCFG_USER_BLE_ENABLE
 //编译问题加几个空的
 _WEAK_ void bt_ble_init(void)
 {
@@ -554,5 +566,4 @@ _WEAK_ void bt_ble_init(void)
 _WEAK_ void bt_ble_exit(void)
 {
 }
-
 #endif

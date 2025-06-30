@@ -9,6 +9,8 @@
 #include "icsd_common_v2.h"
 #include "icsd_adt_alg.h"
 
+extern const u8 adt_log_en;
+#define sd_adt_log(format, ...)  if(adt_log_en){{if(config_ulog_enable){printf(format, ##__VA_ARGS__);}if(config_dlog_enable){dlog_printf((-1 & ~BIT(31)), format, ##__VA_ARGS__);}}}
 #if 0
 #define _adt_printf printf                  //打开智能免摘库打印信息
 #else
@@ -104,11 +106,13 @@ struct adt_function {
     void (*icsd_RTANC_output)(void *rt_param_l, void *rt_param_r);
     void (*icsd_ADJDCC_output)(u8 result);
     void (*icsd_HOWL_output)(u8 result);
+    void (*icsd_DRC_output)(u8 output, float gain, float fb_gain);
+    u8(*icsd_DRC_read)(float **gain);   //bit0:本地结果  bit1:TWS发送过来的结果
 };
 extern struct adt_function	*ADT_FUNC;
 
 struct icsd_acoustic_detector_infmt {
-    u8 TOOL_FUNCTION;
+    int TOOL_FUNCTION;
     void *param;
     u16 sample_rate;     //当前播放采样率
     u16 adc_sr;           //MIC数据采样率
@@ -147,6 +151,7 @@ struct icsd_acoustic_detector_infmt {
     void (*output_hdl)(u8 voice_state, u8 wind_lvl);    //算法结果输出
     void (*anc_dma_post_msg)(void);     //ANC task dma 抄数回调接口
     void (*anc_dma_output_callback);    //ANC DMA下采样数据输出回调，用于写卡分析
+    u16 debug_ram_size;
 };
 
 struct icsd_acoustic_detector_libfmt {
@@ -154,8 +159,9 @@ struct icsd_acoustic_detector_libfmt {
     int adc_sr;          //ADC 采样率
     int lib_alloc_size;  //算法ram需求大小
     u8 mic_num;			 //需要打开的mic个数
-    u8 rtanc_type;      //RTANC类型(传入参数)
     u16 mic_type;
+    u8 rtanc_type;      //RTANC类型(传入参数)
+    u8 wdt_type;		//0:单独风噪 1:风噪+ADJDCC 2:风噪+自讲+AVC 3：风噪+ADJDCC+自讲
 };
 
 typedef struct {
@@ -245,7 +251,6 @@ void icsd_acoustic_detector_mic_input_hdl_v2(void *priv, s16 *talk_mic, s16 *ff_
 void icsd_adt_rtanc_suspend();
 void icsd_adt_rtanc_resume();
 u8 	 icsd_adt_current_mic_num();//获取当前ADT使用的mic数量
-u8 icsd_adt_mic_num_confirm(int _function);//根据function获取需要多少个mic
 //OUTPUT
 void icsd_envnl_output(int result);
 void icsd_WDT_output_demo(u8 wind_lvl);
@@ -256,6 +261,7 @@ void icsd_AVC_output_demo(__adt_avc_output *_output);
 void icsd_RTANC_output_demo(void *rt_param_l, void *rt_param_r);
 void icsd_ADJDCC_output_demo(u8 result);
 //RTANC
+void icsd_adt_rtanc_fadegain_updaterun(void *param);
 void icsd_adt_rtanc_fadegain_update(void *param);//使用该函数过程中需要锁住，确保调用过程中ADT空间不会被释放
 //AVC
 void icsd_adt_avc_config_update(void *_config);
@@ -271,6 +277,11 @@ int audio_dac_read_anc_exit(void);
 /*重置当前dac read读取的参数*/
 int audio_dac_read_anc_reset(void);
 
+int *icsd_minirt_reuse_ram();
+void icsd_adt_de_suspend();
+void anc_debug_free(void *pv);
+void *anc_debug_malloc(const char *name, int size);
+
 extern const u8 rt_anc_dac_en;
 extern const u8 mic_input_v2;
 extern const u8 RTANC_ALG_DEBUG;
@@ -278,6 +289,7 @@ extern const u8 ICSD_WDT_V2;
 extern const u8 ICSD_HOWL_REF_EN;
 extern const u8 avc_run_interval;
 extern const u8 tidy_avc_run_interval;
-
+extern const u8 icsd_ancdma_dac_debug;
+extern u16 adt_debug_ramsize;
 
 #endif

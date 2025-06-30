@@ -348,7 +348,8 @@ SECTIONS
 	  } > code0
 
     . = ORIGIN(dlog0);
-    .dlog_data (NOLOAD):SUBALIGN(4)
+    /* .dlog_data (NOLOAD):SUBALIGN(4) */
+    .dlog_data :SUBALIGN(4)
     {
         dlog_seg_begin = .;
         // 头部的0x100空间
