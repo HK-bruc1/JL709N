@@ -10,7 +10,7 @@
                 "CONFIG_CPU_BR52",
                 "CONFIG_IIC_VERSION2",
                 "LWIP_USE_BT",
-                "DLOG_PRINT_FUNC_USE_MACRO=0",
+                "DLOG_PRINT_FUNC_USE_MACRO=1",
                 "CONFIG_NEW_BREDR_ENABLE",
                 "CONFIG_NEW_MODEM_ENABLE",
                 "CONFIG_NEW_TWS_FORWARD_ENABLE",

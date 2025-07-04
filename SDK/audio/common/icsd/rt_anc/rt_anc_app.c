@@ -972,6 +972,12 @@ void audio_anc_real_time_adaptive_suspend(const char *name)
         return;
     }
 
+    if (cpu_in_irq()) {
+        int msg[3] = {(int) audio_anc_real_time_adaptive_suspend, 1, (int)name};
+        int ret = os_taskq_post_type("app_core", Q_CALLBACK, 3, msg);
+        return;
+    }
+
     /* rtanc_log("%s, %s\n", __func__, name); */
     audio_rtanc_spp_send_data(RTANC_SPP_CMD_SUSPEND_STATE, (u8 *)name, strlen(name) + 1);
     os_mutex_pend(&hdl->mutex, 0);
@@ -999,6 +1005,12 @@ void audio_anc_real_time_adaptive_resume(const char *name)
     struct rtanc_suspend_bulk *bulk;
     struct rtanc_suspend_bulk *temp;
     if (!name) {
+        return;
+    }
+
+    if (cpu_in_irq()) {
+        int msg[3] = {(int) audio_anc_real_time_adaptive_resume, 1, (int)name};
+        int ret = os_taskq_post_type("app_core", Q_CALLBACK, 3, msg);
         return;
     }
 

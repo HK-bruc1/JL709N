@@ -33,7 +33,7 @@
 <Add option="-DCONFIG_CPU_BR52" />
 <Add option="-DCONFIG_IIC_VERSION2" />
 <Add option="-DLWIP_USE_BT" />
-<Add option="-DDLOG_PRINT_FUNC_USE_MACRO=0" />
+<Add option="-DDLOG_PRINT_FUNC_USE_MACRO=1" />
 <Add option="-DCONFIG_NEW_BREDR_ENABLE" />
 <Add option="-DCONFIG_NEW_MODEM_ENABLE" />
 <Add option="-DCONFIG_NEW_TWS_FORWARD_ENABLE" />
@@ -341,6 +341,7 @@
 <Add option="cpu/br52/liba/lib_point360_td.a" />
 <Add option="cpu/br52/liba/SensorCalib.a" />
 <Add option="cpu/br52/liba/SpatialAudio.a" />
+<Add option="cpu/br52/liba/spatial_imp.a" />
 <Add option="cpu/br52/liba/SomatosensoryControl.a" />
 <Add option="cpu/br52/liba/3DSpatial.a" />
 <Add option="cpu/br52/liba/lib_plateReverb_adv.a" />
@@ -1833,6 +1834,7 @@
 <Unit filename="interface/media/tech_lib/jlsp_kws.h" />
 <Unit filename="interface/media/tech_lib/jlsp_vad.h" />
 <Unit filename="interface/media/tech_lib/sensor_common_parm.h" />
+<Unit filename="interface/media/tech_lib/spatial_imp_ctrl.h" />
 <Unit filename="interface/media/tws/jl_tws.h" />
 <Unit filename="interface/system/bank_switch.h" />
 <Unit filename="interface/system/boot.h" />

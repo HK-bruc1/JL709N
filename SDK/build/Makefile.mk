@@ -213,6 +213,7 @@ LFLAGS := \
 	cpu/br52/liba/lib_point360_td.a \
 	cpu/br52/liba/SensorCalib.a \
 	cpu/br52/liba/SpatialAudio.a \
+	cpu/br52/liba/spatial_imp.a \
 	cpu/br52/liba/SomatosensoryControl.a \
 	cpu/br52/liba/3DSpatial.a \
 	cpu/br52/liba/lib_plateReverb_adv.a \

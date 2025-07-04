@@ -929,9 +929,14 @@ int anc_ext_tool_read_file_start(u32 file_id, u8 **data, u32 *len)
     case FILE_ID_ANC_EXT_ADAPTIVE_EQ_DEBUG_DATA:
         anc_ext_log("read FILE_ID_ANC_EXT_ADAPTIVE_EQ_DEBUG_DATA\n");
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE	//打开RTANC，则需挂起RTANC才能获取
-        if (audio_anc_real_time_adaptive_suspend_get() || (!audio_anc_real_time_adaptive_state_get()))
-#endif
+        if (audio_anc_real_time_adaptive_suspend_get() || (!audio_anc_real_time_adaptive_state_get())) {
             return audio_adaptive_eq_tool_data_get(data, len);
+        } else {
+            return 1;
+        }
+#else
+        return audio_adaptive_eq_tool_data_get(data, len);
+#endif
     case FILE_ID_ANC_EXT_REF_SZ_DATA:
         anc_ext_log("read FILE_ID_ANC_EXT_REF_SZ_DATA\n");
         return audio_adaptive_eq_tool_sz_data_get(data, len);
