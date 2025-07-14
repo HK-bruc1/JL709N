@@ -94,12 +94,9 @@ static int *icsd_de_alloc_addr = NULL;
 #if ICSD_DE_RUN_TIME_DEBUG
 u32 icsd_de_run_time_last = 0;
 #endif
-int *icsd_minirt_reuse_ram();
-void icsd_minirt_reuse_end();
 void icsd_de_malloc()
 {
     common_log("icsd_de_malloc\n");
-    wdt_clear();
 #if ICSD_DE_RUN_TIME_DEBUG
     icsd_de_run_time_last = jiffies_usec();
 #endif
@@ -107,15 +104,8 @@ void icsd_de_malloc()
     struct icsd_de_infmt  fmt;
     icsd_de_get_libfmt(&libfmt);
     if (icsd_de_alloc_addr == NULL) {
-        int *reuse = icsd_minirt_reuse_ram();
-        if (reuse) {
-            icsd_de_alloc_addr = reuse;
-            memset(reuse, 0, libfmt.lib_alloc_size);
-            common_log("DE REUSE RAM SIZE:%d %x\n", libfmt.lib_alloc_size, (int)icsd_de_alloc_addr);
-        } else {
-            common_log("DE RAM SIZE:%d\n", libfmt.lib_alloc_size);
-            icsd_de_alloc_addr = anc_malloc("ICSD_ADJ", libfmt.lib_alloc_size);
-        }
+        common_log("DE RAM SIZE:%d\n", libfmt.lib_alloc_size);
+        icsd_de_alloc_addr = zalloc(libfmt.lib_alloc_size);
     }
     fmt.alloc_ptr = icsd_de_alloc_addr;
     icsd_de_set_infmt(&fmt);
@@ -128,15 +118,8 @@ void icsd_de_free()
     common_log("ICSD DE RUN time: %d us\n", (int)(jiffies_usec2offset(icsd_de_run_time_last, jiffies_usec())));
 #endif
     if (icsd_de_alloc_addr) {
-        //common_log("DE RAM anc_free\n");
-        int *reuse = icsd_minirt_reuse_ram();
-        if (reuse) {
-            common_log("DE RAM reuse end\n");
-            icsd_minirt_reuse_end();
-        } else {
-            common_log("DE RAM anc_free\n");
-            anc_free(icsd_de_alloc_addr);
-        }
+        common_log("DE RAM FREE\n");
+        free(icsd_de_alloc_addr);
         icsd_de_alloc_addr = NULL;
     }
 }
@@ -144,21 +127,12 @@ void icsd_de_free()
 void icsd_sde_malloc()
 {
     common_log("icsd_sde_malloc\n");
-    wdt_clear();
     struct icsd_de_libfmt libfmt;
     struct icsd_de_infmt  fmt;
     icsd_sde_get_libfmt(&libfmt);
     if (icsd_de_alloc_addr == NULL) {
         common_log("sDE RAM SIZE:%d\n", libfmt.lib_alloc_size);
-        int *reuse = icsd_minirt_reuse_ram();
-        if (reuse) {
-            icsd_de_alloc_addr = reuse;
-            memset(reuse, 0, libfmt.lib_alloc_size);
-            common_log("sDE REUSE RAM SIZE:%d %x\n", libfmt.lib_alloc_size, (int)icsd_de_alloc_addr);
-        } else {
-            icsd_de_alloc_addr = anc_malloc("ICSD_ADJ", libfmt.lib_alloc_size);
-            common_log("sDE RAM SIZE:%d %x\n", libfmt.lib_alloc_size, (int)icsd_de_alloc_addr);
-        }
+        icsd_de_alloc_addr = zalloc(libfmt.lib_alloc_size);
     }
     fmt.alloc_ptr = icsd_de_alloc_addr;
     icsd_sde_set_infmt(&fmt);
@@ -168,15 +142,8 @@ void icsd_sde_free()
 {
     common_log("icsd_sde_free\n");
     if (icsd_de_alloc_addr) {
-        //common_log("sDE RAM anc_free\n");
-        int *reuse = icsd_minirt_reuse_ram();
-        if (reuse) {
-            common_log("sDE RAM reuse end\n");
-            icsd_minirt_reuse_end();
-        } else {
-            common_log("sDE RAM anc_free\n");
-            anc_free(icsd_de_alloc_addr);
-        }
+        common_log("sDE RAM FREE\n");
+        free(icsd_de_alloc_addr);
         icsd_de_alloc_addr = NULL;
     }
 }

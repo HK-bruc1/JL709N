@@ -12,13 +12,7 @@
 #define AUDIO_ANC_FDAE_CH_FF  AUDIO_ANC_FADE_CH_LFF | AUDIO_ANC_FADE_CH_RFF
 #define AUDIO_ANC_FDAE_CH_FB  AUDIO_ANC_FADE_CH_LFB | AUDIO_ANC_FADE_CH_RFB
 
-/*
-    ANC增益管理：
-    1、不同模式之间需操控ANC增益时，会以最小的增益需求为准；
-    2、用户应用层需调整增益时，如手机APP，出入耳等，需新增模式，不可直接调用SDK已有模式
-*/
 enum anc_fade_mode_t {
-    //=========SDK专用，用户不可调用===========
     ANC_FADE_MODE_RESET = 0,		//复位
     ANC_FADE_MODE_SWITCH,			//ANC模式切换
     ANC_FADE_MODE_MUSIC_DYNAMIC,	//音乐动态增益
@@ -27,11 +21,7 @@ enum anc_fade_mode_t {
     ANC_FADE_MODE_SUSPEND,			//ANC挂起
     ANC_FADE_MODE_HOWLDET,			//啸叫检测
     ANC_FADE_MODE_ENV_ADAPTIVE_GAIN,//ANC环境噪声自适应增益
-    ANC_FADE_MODE_EXT,              //ANC(扩展数据流)使用
-    ANC_FADE_MODE_DCC_TRIM,         //DCC 校准
-    ANC_FADE_MODE_ADAPTIVE_TONE,	//入耳自适应同步处理
-
-    //======用户可再此继续添加模式使用=========
+    //可再此继续添加模式
     ANC_FADE_MODE_USER,				//用户模式
 };
 
@@ -53,8 +43,6 @@ void audio_anc_fade_ctr_del(enum anc_fade_mode_t mode);
 
 //fade ctr 初始化
 void audio_anc_fade_ctr_init(void);
-
-u16 audio_anc_fade_ctr_get_min();
 
 
 #endif/*_AUDIO_ANC_FADE_CTR_H_*/

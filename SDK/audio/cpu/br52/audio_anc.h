@@ -198,7 +198,6 @@ enum {
     ANC_MSG_COEFF_UPDATE,		//无缝切换滤波器
     ANC_MSG_AFQ_CMD,
     ANC_MSG_46KOUT_DEMO,
-    ANC_MSG_RTANC_SZ_OUTPUT,
 };
 
 /*ANC MIC动态增益调整状态*/
@@ -206,13 +205,6 @@ enum {
     ANC_MIC_DY_STA_INIT = 0,	/*准备状态*/
     ANC_MIC_DY_STA_START,		/*进行状态*/
     ANC_MIC_DY_STA_STOP,		/*停止状态*/
-};
-
-enum {
-    ANC_CHECK_RTANC_UPDATE = 0,  //RTANC更新
-    ANC_CHECK_RTANC_SAVE   = 1,  //RTANC_SAVE
-    ANC_CHECK_SWITCH_DEF   = 2,  //默认参数
-    ANC_CHECK_UPDATE       = 3,  //效果更新
 };
 
 #define ANC_CONFIG_LFF_EN ((TCFG_AUDIO_ANC_TRAIN_MODE & (ANC_HYBRID_EN | ANC_FF_EN)) && (TCFG_AUDIO_ANC_CH & ANC_L_CH))
@@ -311,7 +303,7 @@ u8 audio_anc_fbmic_gain_get(void);
 u8 audio_anc_mic_gain_get(u8 mic_sel);
 
 /*ANC模式切换(切换到指定模式)，并配置是否播放提示音*/
-int anc_mode_switch(u8 mode, u8 tone_play);
+void anc_mode_switch(u8 mode, u8 tone_play);
 
 /*在anc任务里面切换anc模式，
  *避免上一次切换没有完成，这次切换被忽略的情况*/
@@ -457,8 +449,6 @@ void audio_anc_mode_set(u8 mode);
 /*获取ANC alogm参数，type 滤波器类型 */
 u32 audio_anc_gains_alogm_get(enum ANC_IIR_TYPE type);
 
-audio_anc_t *audio_anc_param_get(void);
-
 void audio_ear_adaptive_en_set(u8 en);
 
 /*耳道自适应互斥功能恢复*/
@@ -485,13 +475,4 @@ void audio_anc_howldet_fade_set(u16 gain);
 
 u8 anc_btspp_train_again(u8 mode, u32 dat);
 
-void audio_anc_coeff_check_crc(u8 from);
-
-void audio_anc_switch_latch_mode_set(u8 mode);
-
-void audio_anc_tone_adaptive_disable(u8 device);
-
-void audio_anc_tone_adaptive_enable(u8 device);
-
-void audio_anc_drc_toggle_set(u8 toggle);
 #endif/*AUDIO_ANC_H*/

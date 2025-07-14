@@ -114,7 +114,6 @@ SECTIONS
 	.data_code_z ALIGN(32):SUBALIGN(4)
 	{
 		. = ALIGN(4);
-		#include "media/media_lib_data_text.ld"
 
         *(.os_critical_code)
         *(.os.text*)
@@ -132,6 +131,8 @@ SECTIONS
 		. = ALIGN(4);
         _SPI_CODE_END = . ;
 
+		. = ALIGN(4);
+		#include "media/media_lib_data_text.ld"
 		. = ALIGN(4);
 	} > ram0
 

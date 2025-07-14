@@ -48,8 +48,6 @@ int audio_anc_production_enter(void)
         __this->production_mode = 1;
         //挂起产测互斥功能
 
-        //其他系列没有此接口，暂时保留
-        /* audio_anc_drc_toggle_set(0); */
 #if ANC_EAR_ADAPTIVE_EN
         //耳道自适应将ANC参数修改为默认参数
         if (audio_anc_coeff_mode_get()) {
@@ -64,9 +62,21 @@ int audio_anc_production_enter(void)
 
 #if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
         //关闭风噪检测、智能免摘、广域点击
-        audio_icsd_adt_scene_set(ADT_SCENE_PRODUCTION, 1);
         if (audio_icsd_adt_is_running()) {
-            audio_icsd_adt_close(0, 1, 0, 1);
+            audio_icsd_adt_close(0, 1);
+        }
+
+        printf("======================= %d", audio_icsd_adt_is_running());
+        int cnt;
+        //adt关闭时间较短，预留100ms
+        for (cnt = 0; cnt < 10; cnt++) {
+            if (!audio_icsd_adt_is_running()) {
+                break;
+            }
+            os_time_dly(1);  //  等待ADT 关闭
+        }
+        if (cnt == 10) {
+            printf("Err:dot_suspend adt wait timeout\n");
         }
 #endif /*TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN*/
 
@@ -88,11 +98,6 @@ int audio_anc_production_exit(void)
         //恢复产测互斥功能
     }
     return 0;
-}
-
-int audio_anc_production_mode_get(void)
-{
-    return __this->production_mode;
 }
 
 #endif

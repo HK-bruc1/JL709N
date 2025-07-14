@@ -24,9 +24,6 @@
 #include "icsd_common.h"
 #include "icsd_common_v2.h"
 
-extern const u8 wdt_log_en;
-#define sd_wdt_log(format, ...)  if(wdt_log_en){{if(config_ulog_enable){printf(format, ##__VA_ARGS__);}if(config_dlog_enable){dlog_printf((-1 & ~BIT(31)), format, ##__VA_ARGS__);}}}
-
 #if 0
 #define _win_printf printf                  //打开智能免摘库打印信息
 #else
@@ -52,8 +49,7 @@ struct icsd_win_libfmt {
 struct icsd_win_infmt {
     void *alloc_ptr;     //外部申请的ram地址
     int lib_alloc_size;  //算法ram需求大小
-    int TOOL_FUNCTION;
-    u16 debug_ram_size;
+    u8 TOOL_FUNCTION;
 };
 
 typedef struct {
@@ -89,7 +85,6 @@ typedef struct {
 } __icsd_win_output;
 
 typedef struct {
-    u8 pwr_mode;
     u8 wind_lvl_scale;
     u8 icsd_wind_num_thr1;
     u8 icsd_wind_num_thr2;
@@ -99,7 +94,6 @@ typedef struct {
     float msc_mp_thr;
     float cpt_1p_thr;
     float ref_pwr_thr;
-    float tlk_pwr_thr;
 } __wind_config;
 
 struct wind_function {
@@ -117,8 +111,6 @@ struct wind_function {
     int (*icsd_adt_tws_ssync)(u8 *data, s16 len);
     void (*icsd_wind_run_part2_cmd)();
     void *(*icsd_adt_wind_part1_rx)();
-    void (*anc_debug_free)(void *pv);
-    void *(*anc_debug_malloc)(const char *name, int size);
 };
 extern struct wind_function *WIND_FUNC;
 
@@ -138,19 +130,6 @@ void icsd_wind_master_tx_data_sucess(void *_data);
 void icsd_wind_master_rx_data(void *_data);
 void icsd_wind_slave_tx_data_sucess(void *_data);
 void icsd_wind_slave_rx_data(void *_data);
-void *icsd_wind_reuse_ram();
-void icsd_wind_angle_run_data(s16 *talk_mic, s16 *ffl_mic);
-void icsd_wind_angle_run();
-void icsd_wind_angle_clean();
-u8   icsd_adt_get_wind_angle();
-int alg_wind_ssync(__wind_part1_out *_part1_out);
-void icsd_wdt_debug_run();
-u8 icsd_wdt_debug_start(u8 wind_lvl);
-void icsd_alg_wdt_debug_free();
 
-extern const u8 wdt_log_en;
-extern const u8 icsd_wdt_debug;
-extern const u8 wdt_debug_dlen;//ramsize = (80 * wdt_debug_dlen) byte
-extern const u8 wdt_debug_thr;
-extern const u8 wdt_debug_type;
+int alg_wind_ssync(__wind_part1_out *_part1_out);
 #endif

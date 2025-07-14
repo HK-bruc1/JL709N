@@ -49,7 +49,7 @@ enum {
     WIND_AREA_TAP_MULTIPLE_CLICK,   //大于3次多次连击
 };
 
-enum ICSD_ADT_MODE {
+enum {
     ADT_MODE_CLOSE = 0,
     ADT_SPEAK_TO_CHAT_MODE = BIT(0), 			//智能免摘
     ADT_WIND_NOISE_DET_MODE = BIT(1),			//风噪检测
@@ -59,8 +59,7 @@ enum ICSD_ADT_MODE {
     ADT_EAR_IN_DETCET_MODE = BIT(5), 			// 入耳检测
     ADT_ENV_NOISE_DET_MODE = BIT(6), 			// 环境噪声检测
     ADT_REAL_TIME_ADAPTIVE_ANC_TIDY_MODE = BIT(7), 	// RT_ANC TIDY mode
-    //ADT_ADAPTIVE_DCC_MODE = BIT(8),			//自适应DCC
-    ADT_HOWLING_DET_MODE = BIT(9),				//啸叫检测
+    ADT_HOWLING_DET_MODE = BIT(9),			//啸叫检测
 };
 
 #define ADT_ALL_FUNCTION_ENABLE		ADT_SPEAK_TO_CHAT_MODE | ADT_WIDE_AREA_TAP_MODE | \
@@ -89,26 +88,6 @@ enum {
     SYNC_ICSD_ADT_SET_ANC_FADE_GAIN,
     SYNC_ICSD_ADT_ENV_NOISE_LVL_CMP,
     SYNC_ICSD_ADT_ENV_NOISE_LVL_RESULT,
-    SYNC_ICSD_ADT_RTANC_DRC_RESULT,
-    SYNC_ICSD_ADT_RTANC_TONE_RESUME,
-    SYNC_ICSD_ADT_TONE_ADAPTIVE_SYNC,
-};
-
-//ANC扩展功能场景支持定义
-enum ICSD_ADT_SCENE {
-    //-------USER SCENE------------
-    ADT_SCENE_IDEL          = 0,
-    ADT_SCENE_A2DP          = BIT(0),	//A2DP场景
-    ADT_SCENE_ESCO          = BIT(1),	//ESCO场景
-    ADT_SCENE_MIC_EFFECT    = BIT(2),	//MIC混响场景
-    ADT_SCENE_TONE          = BIT(3),	//提示音场景(未启用)
-    ADT_SCENE_ANC_OFF       = BIT(4),	//ANC_OFF场景
-    ADT_SCENE_ANC_TRANS     = BIT(5),	//通透场景
-    //用户定义场景在此添加
-
-    //------SDK FIX SCENE 默认不支持ADT---------
-    ADT_SCENE_AFQ           = BIT(16),
-    ADT_SCENE_PRODUCTION    = BIT(17),
 };
 
 /*风噪输出等级:0~255*/
@@ -124,25 +103,29 @@ typedef struct {
 } wind_lvl_det_t;
 
 typedef struct {
+    u16 time;//定时器定时计算时间, ms
+    u32 fade_timer;//计算定时器
+    u32 wind_cnt;//记录单次定时器的风噪帧数
+    u32 wind_eng;//记录风噪等级累加数字
     u8 last_lvl;//记录上一次风噪等级
-    u8 cnt;
-    u8 det_times;//连续性检测 时间 约等于 150ms * det_times
-    s8 last_lvl_diff;//实时风噪档位与当前实际样机生效档位的档位差
+    u8 preset_lvl;//记录当前检测到的风噪等级
+    u32 fade_in_cnt;//记录风噪变大的次数
+    u32 fade_out_cnt;//记录风噪变小的次数
+    u32 lvl_unchange_cnt;//记录风噪等级没有变化的次数
+    u8 wind_process_flag;//是否条件anc增益
+
+    u8 fade_in_time;//设置噪声等级变大检测时间，单位s，误差1s
+    u8 fade_out_time;//设置噪声等级变小检测时间，单位s，误差1s
+    float ratio_thr;//设置判断阈值百分比，范围：0~1
 } wind_info_t;
 
-#define ANC_FADE_GAIN_MAX_FLOAT (16384.0f)
 struct anc_fade_handle {
     int timer_ms; //配置定时器周期
-    u8 fade_setp_flag; //配置0:增益，1：dB值
     int timer_id; //记录定时器id
     int cur_gain; //记录当前增益
     int fade_setp;//记录淡入淡出步进
-    float fade_setp_dB;//记录淡入淡出步进,dB
     int target_gain; //记录目标增益
     u8 fade_gain_mode;//记录当前设置fade gain的模式
-
-    int cur_gain_tmp;
-    float fade_setp_dB_tmp;
 };
 
 u8 get_icsd_anc_wind_noise_lvl(wind_lvl_det_t *wind_lvl_det, u8 wind_lvl);
@@ -181,7 +164,7 @@ int audio_icsd_adt_sync_open(u16 adt_mode);
 int audio_icsd_adt_open_all();
 
 int audio_icsd_adt_sync_close(u16 adt_mode, u8 suspend);
-int audio_icsd_adt_close(u32 scene, u8 run_sync, u16 adt_mode, u8 suspend);
+int audio_icsd_adt_close(u16 adt_mode, u8 suspend);
 int audio_icsd_adt_res_close(u16 adt_mode, u8 suspend);
 /*关闭所有模块*/
 int audio_icsd_adt_close_all();
@@ -286,8 +269,6 @@ int audio_icsd_wind_detect_close();
 /*风噪检测开关*/
 void audio_icsd_wind_detect_en(u8 en);
 
-u8 get_audio_icsd_local_wind_lvl();
-
 /*获取风噪等级*/
 u8 get_audio_icsd_wind_lvl();
 
@@ -369,23 +350,6 @@ void icsd_anc_soft_howling_det_init();
 /*退出啸叫检测资源*/
 void icsd_anc_soft_howling_det_exit(void);
 
-//DRC处理结果回调
-void audio_rtanc_drc_output(u8 output, float gain, float fb_gain);
-
-//DRC TWS标志获取
-u8 audio_rtanc_drc_flag_get(float **gain);
-
-void adt_open_in_anc_set(u8 state);
-//非对耳同步打开
-int audio_icsd_adt_no_sync_open(u16 adt_mode);
-
-/*阻塞性 重启ADT算法*/
-int audio_icsd_adt_reset(u32 scene);
-
-int audio_icsd_adt_scene_set(enum ICSD_ADT_SCENE scene, u8 enable);
-void icsd_adt_lock_init();
-void icsd_adt_lock();
-void icsd_adt_unlock();
 
 extern void *get_anc_lfb_coeff();
 extern void *get_anc_lff_coeff();
@@ -401,16 +365,5 @@ extern u8 get_anc_l_transyorder();
 extern u8 get_anc_lfb_transyorder();
 extern u32 get_anc_gains_alogm();
 extern u32 get_anc_gains_trans_alogm();
-extern void icsd_adt_drc_output(u8 flag, float gain, float fb_gain);
-extern u8 icsd_adt_drc_read(float **gain);
 
-void audio_adt_rtanc_sync_tone_resume(void);
-
-u8 audio_anc_env_adaptive_cur_lvl(void);
-
-void audio_adt_tone_adaptive_sync(void);
-
-int icsd_adt_app_mode_set(u16 adt_mode, u8 en);
-
-u32 icsd_adt_app_mode_get(void);
 #endif

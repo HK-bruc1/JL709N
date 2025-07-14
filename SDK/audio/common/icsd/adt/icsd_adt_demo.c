@@ -62,8 +62,6 @@ void icsd_adt_avc_config_update_demo()
     __avc_config config;
     config.alpha_db = 0.990;
     config.db_cali = 13;
-    config.sc_cali = 1.3;
-    config.flen    = 16;
     icsd_adt_avc_config_update(&config);
 }
 

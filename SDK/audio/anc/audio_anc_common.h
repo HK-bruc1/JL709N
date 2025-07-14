@@ -6,41 +6,12 @@
 #include "app_config.h"
 #include "audio_config_def.h"
 
-extern const u8 anc_ext_support_scene[6][10];
-
-enum anc_event {
-    ANC_EVENT_NONE,
-    ANC_EVENT_ADT_INIT,
-    ANC_EVENT_ADT_RESET,
-};
-
-int audio_anc_event_notify(enum anc_event event, int arg);
-
 //ANC进入产测模式
 int audio_anc_production_enter(void);
 
 //ANC退出产测模式
 int audio_anc_production_exit(void);
 
-int audio_anc_production_mode_get(void);
-
-int audio_anc_switch_adt_app_open(void);
-
-int audio_anc_switch_adt_app_close(void);
-
-//==============ANC 内存管理=================
-
-//打印当前未释放的内存
-void anc_mem_unfree_dump();
-
-//内存申请
-void *anc_malloc(const char *name, size_t size);
-
-//内存释放
-void anc_free(void *pv);
-
-//用于不在ANC管理释放的内存，清除记录，比如ADC_HW BUFF
-void anc_mem_clear(void *pv);
 
 #if TCFG_AUDIO_ANC_ENABLE
 

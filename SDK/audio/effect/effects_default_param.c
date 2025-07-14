@@ -364,6 +364,8 @@ int get_eff_default_param(int arg)
 #endif
 
 #if TCFG_EQ_ENABLE
+#if ((!defined TCFG_BT_HFP_ONLY_DISPLAY_BAT_ENABLE) && TCFG_BT_SUPPORT_HFP) || \
+	((defined TCFG_BT_HFP_ONLY_DISPLAY_BAT_ENABLE) && (!TCFG_BT_HFP_ONLY_DISPLAY_BAT_ENABLE) && TCFG_BT_SUPPORT_HFP)
     if (!effect_strcmp(name->name, "EscoDlEq") || !effect_strcmp(name->name, "EscoUlEq")) {
         struct eq_default_parm *get_eq_parm = (struct eq_default_parm *)arg;
         int type = lmp_private_get_esco_packet_type();
@@ -375,6 +377,7 @@ int get_eff_default_param(int arg)
         }
         ret = 1;
     }
+#endif
 #endif
 
 #if TCFG_SPECTRUM_ADVANCE_NODE_ENABLE
@@ -416,7 +419,9 @@ int get_eff_default_param(int arg)
         /*
          *默认系数使用eq文件内的哪个配置表
          * */
-        get_eq_parm->cfg_index = 0;
+        char tar_cfg_index = 0;
+        get_cur_eq_num(&tar_cfg_index);//获取当前配置项序号
+        get_eq_parm->cfg_index = tar_cfg_index;
 
         if (audio_icsd_adaptive_eq_read()) {
             get_eq_parm->default_tab = *(audio_icsd_adaptive_eq_read());

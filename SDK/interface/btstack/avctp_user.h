@@ -875,4 +875,5 @@ bool is_have_dongle_dev_conn();
 extern u8 get_inband_ringtone_flag_for_addr(u8 *addr);
 u8 *get_other_dev_addr(u8 *addr);
 extern void make_rand_num(u8 *buf);
+extern u32 unactice_device_cmd_prepare(USER_CMD_TYPE cmd, u16 param_len, u8 *param);
 #endif

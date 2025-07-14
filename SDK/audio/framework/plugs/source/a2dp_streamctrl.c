@@ -254,10 +254,12 @@ static void a2dp_tws_latency_sync_handler(void *buf, u16 len, bool rx)
     local_irq_enable();
 }
 
+#if TCFG_BT_SUPPORT_A2DP
 REGISTER_TWS_FUNC_STUB(a2dp_latency_sync) = {
     .func_id = A2DP_TWS_LATENCY_SYNC,
     .func    = a2dp_tws_latency_sync_handler,
 };
+#endif
 
 
 /*经典蓝牙RF质量评估*/

@@ -15,13 +15,12 @@
 
 //ANC_EXT功能列表
 #define ANC_EXT_FUNC_EN_ADAPTIVE			BIT(0)	//自适应功能
-// #define ANC_EXT_FUNC_EN_RTANC				BIT(1)	//RTANC(旧)
+#define ANC_EXT_FUNC_EN_RTANC				BIT(1)	//RTANC
 #define ANC_EXT_FUNC_EN_ADAPTIVE_CMP		BIT(2)	//自适应CMP
 #define ANC_EXT_FUNC_EN_ADAPTIVE_EQ			BIT(3)	//自适应EQ
 #define ANC_EXT_FUNC_EN_WIND_DET			BIT(4)	//风噪检测
 #define ANC_EXT_FUNC_EN_SOFT_HOWL_DET		BIT(5)	//软件啸叫检测
-#define ANC_EXT_FUNC_EN_RTANC				BIT(6)	//RTANC
-#define ANC_EXT_FUNC_EN_DYNAMIC				BIT(7)	//DYNAMIC
+#define ANC_EXT_FUNC_EN_ADAPTIVE_DCC		BIT(6)	//自适应DCC
 
 //文件 SUBFILE ID
 enum {
@@ -40,7 +39,7 @@ enum {
     FILE_ID_ANC_EXT_EAR_ADAPTIVE_DUT_CMP = 0xB7,	//产测：耳道自适应产测补偿 文件ID
 
     //RTANC 配置
-    // FILE_ID_ANC_EXT_RTANC_ADAPTIVE_CFG = 0xB8,		//RTANC adaptive 配置文件ID(旧)
+    FILE_ID_ANC_EXT_RTANC_ADAPTIVE_CFG = 0xB8,		//RTANC adaptive 配置文件ID
     FILE_ID_ANC_EXT_RTANC_DEBUG_DATA = 0xB9,		//debug: RTANC adaptive debug 数据 文件ID
 
     //CMP 配置
@@ -52,12 +51,6 @@ enum {
 
     FILE_ID_ANC_EXT_ADAPTIVE_EQ_DEBUG_DATA = 0xBD,	//debug: EQ adaptive debug 数据 文件ID
 
-    //DYNAMIC 配置
-    FILE_ID_ANC_EXT_DYNAMIC_CFG = 0xBE,				//DYNAMIC 配置文件ID
-
-    //RTANC 配置
-    FILE_ID_ANC_EXT_RTANC_ADAPTIVE_CFG = 0xBF,		//RTANC adaptive 配置文件ID
-
     // FILE_ID_ANC_EXT_EAR_ADAPTIVE_DUT_PZ_SZ_CMP = 0xBE,      //ANC自适应产测补偿 文件ID    
     // FILE_ID_ANC_EXT_EAR_ADAPTIVE_DUT_GOLD_DATA = 0xBF,		//ANC自适应金机数据 文件ID
     // FILE_ID_ANC_EXT_EAR_ADAPTIVE_DUT_SZ_DATA = 0xC0,		//产测SZ小机数据 文件ID
@@ -67,6 +60,7 @@ enum {
 
     FILE_ID_ANC_EXT_WIND_DET_CFG = 0xC4,			//风噪检测配置 文件ID
     FILE_ID_ANC_EXT_SOFT_HOWL_DET_CFG = 0xC5,		//软件-啸叫检测配置 文件ID
+    FILE_ID_ANC_EXT_ADAPTIVE_DCC_CFG = 0xC6,			//自适应DCC配置 文件ID
 
     /* FILE_ID_ANC_EXT_STOP = 0XD0, */
 };
@@ -159,7 +153,8 @@ enum {
     ANC_EXT_EAR_ADAPTIVE_FF_R_DUT_PZ_CMP_ID = 0x41,		//产测PZ补偿(右)
     ANC_EXT_EAR_ADAPTIVE_FF_R_DUT_SZ_CMP_ID = 0x42,		//产测SZ补偿(右)
 
-    // ANC_EXT_RTANC_ADAPTIVE_CFG_ID = 0x43,				//RTANC adptive 配置(旧)
+    //RTANC adaptive 配置 文件ID FILE_ID_ANC_EXT_RTANC_ADAPTIVE_CFG
+    ANC_EXT_RTANC_ADAPTIVE_CFG_ID = 0x43,				//RTANC adptive 配置
 
     //CMP 配置 文件ID FILE_ID_ANC_EXT_ADAPTIVE_CMP_DATA
     ANC_EXT_ADAPTIVE_CMP_GAINS_ID = 0x44,				//CMP gain相关参数配置
@@ -189,15 +184,7 @@ enum {
     ANC_EXT_REF_SZ_DATA_ID = 0x56,						//REF_SZ 参考数据
     ANC_EXT_REF_SZ_R_DATA_ID = 0x57,					//REF_SZ 参考数据(右)
 
-    // ANC_EXT_RTANC_R_ADAPTIVE_CFG_ID = 0x58,				//RTANC adptive 配置(右)(旧)
-
-    //DYNAMIC 配置 文件ID FILE_ID_ANC_EXT_DYNAMIC_CFG
-    ANC_EXT_DYNAMIC_CFG_ID = 0x59,						//DYNAMIC 配置
-    ANC_EXT_DYNAMIC_R_CFG_ID = 0x5A,					//DYNAMIC 配置(右)
-
-    //RTANC adaptive 配置 文件ID FILE_ID_ANC_EXT_RTANC_ADAPTIVE_CFG
-    ANC_EXT_RTANC_ADAPTIVE_CFG_ID = 0x5B,				//RTANC adptive 配置
-    ANC_EXT_RTANC_R_ADAPTIVE_CFG_ID = 0x5C,				//RTANC adptive 配置(右)
+    ANC_EXT_RTANC_R_ADAPTIVE_CFG_ID = 0x58,				//RTANC adptive 配置(右)
 
     //产测：耳道自适应金机/小机 PZ/SZ 文件ID FILE_ID_ANC_EXT_EAR_ADAPTIVE_DUT_CMP
     // ANC_EXT_EAR_ADAPTIVE_FF_DUT_GOLD_PZ_ID = 0x59,      //产测PZ金机数据
@@ -218,23 +205,8 @@ enum {
     //风噪检测 配置 文件ID FILE_ID_ANC_EXT_WIND_DET_CFG
     ANC_EXT_WIND_TRIGGER_CFG_ID = 0x62,				//风噪触发配置
 
-    //FF->耳道记忆设置界面 文件ID FILE_ID_ANC_EXT_EAR_ADAPTIVE_FF_RECORDER
-    ANC_EXT_EAR_ADAPTIVE_FF_RECORDER_PZ_COEFF_ID = 0x63,			//耳道记忆PZ_COEFF配置(RTANC 专属)
-    ANC_EXT_EAR_ADAPTIVE_FF_RECORDER_SZ_COEFF_ID = 0x64,			//耳道记忆SZ_COEFF配置(RTANC 专属)
-
-    ANC_EXT_EAR_ADAPTIVE_FF_R_RECORDER_PZ_COEFF_ID = 0x65,			//耳道记忆PZ_COEFF配置(右)(RTANC 专属)
-    ANC_EXT_EAR_ADAPTIVE_FF_R_RECORDER_SZ_COEFF_ID = 0x66,			//耳道记忆SZ_COEFF配置(右)(RTANC 专属)
-
-    //CMP 配置 文件ID FILE_ID_ANC_EXT_ADAPTIVE_CMP_DATA
-    ANC_EXT_ADAPTIVE_CMP_RECORDER_IIR_ID = 0x67,					//CMP 滤波器存线配置(RTANC 专属)
-    ANC_EXT_ADAPTIVE_CMP_R_RECORDER_IIR_ID = 0x68,					//CMP 滤波器存线配置(右)(RTANC 专属)
-
-    //AEQ 配置 文件ID FILE_ID_ANC_EXT_ADAPTIVE_EQ_DATA
-    ANC_EXT_ADAPTIVE_EQ_RECORDER_IIR_ID = 0x69,						//AEQ 滤波器存线配置(RTANC 专属)
-    ANC_EXT_ADAPTIVE_EQ_R_RECORDER_IIR_ID = 0x6A,					//AEQ 滤波器存线配置(右)(RTANC 专属)
-
     //自适应DCC配置 文件ID FILE_ID_ANC_EXT_ADAPTIVE_DCC_CFG
-    // ANC_EXT_ADAPTIVE_DCC_CFG_ID = 0x63,				//自适应DCC配置
+    ANC_EXT_ADAPTIVE_DCC_CFG_ID = 0x63,				//自适应DCC配置
 };
 
 //工具debug bin文件 数据ID
@@ -291,13 +263,6 @@ enum ANC_EAR_ADAPTIVE_RESULT_MODE {
 enum ANC_EXT_UART_SEL {
     ANC_EXT_UART_SEL_BOX = 0,
     ANC_EXT_UART_SEL_SPP,
-};
-
-// 自适应测试模式
-enum {
-    ANC_ADPATIVE_DUT_MODE_NORAML = 0,    //标准
-    ANC_ADPATIVE_DUT_MODE_PRODUCTION,    //产测
-    ANC_ADPATIVE_DUT_MODE_SLIGHT,        //轻度降噪
 };
 
 struct anc_ext_alloc_bulk_t {
@@ -438,202 +403,55 @@ struct __anc_ext_ear_adaptive_dut_data {
 
 //RTANC 配置
 struct __anc_ext_rtanc_adaptive_cfg {
-    // Wind Controller
-    u8  wind_det_en;           //def:0     ; range:[0, 1]       ; precision:1
-    u8  wind_lvl_thr;          //def:30    ; range:[0, 255]     ; precision:1
-    u8  wind_lock_cnt;         //def:4     ; range:[0, 255]     ; precision:1
-    u8  idx_use_same;          //def:1     ; range:[0, 1]       ; precision:1
+    u8 angle_direct;		//def:1	; range:[0, 1]
+    u8 dov_cnt;				//def:3	; range:[0, 20]
+    s8 ref_cali;			//def:-20; range:[-100, 100]
+    s8 err_cali;			//def:-17; range:[-100, 100]
+    s8 hz_db_thr[3];		//def:[-4, -2, 1]; range:[-100, 100]
+    u8 frame_cnt;			//def:4; range:[0, 20]
 
-    // mode1 AEQ_CMP Controller
-    u8  m1_dem_cnt0;           //def:5     ; range:[0, 255]     ; precision:1
-    u8  m1_dem_cnt1;           //def:4     ; range:[0, 255]     ; precision:1
-    u8  m1_dem_cnt2;           //def:10    ; range:[0, 255]     ; precision:1
-    u8  m1_scnt0;              //def:3     ; range:[0, 255]     ; precision:1
-    u8  m1_scnt1;              //def:3     ; range:[0, 255]     ; precision:1
-    u8  m1_dem_off_cnt0;       //def:10    ; range:[0, 255]     ; precision:1
-    u8  m1_dem_off_cnt1;       //def:10    ; range:[0, 255]     ; precision:1
-    u8  m1_dem_off_cnt2;       //def:10    ; range:[0, 255]     ; precision:1
-    u8  m1_scnt0_off;          //def:5     ; range:[0, 255]     ; precision:1
-    u8  m1_scnt1_off;          //def:5     ; range:[0, 255]     ; precision:1
-    u8  m1_scnt2_off;          //def:10    ; range:[0, 255]     ; precision:1
-    u8  m1_idx_thr;            //def:7     ; range:[0, 255]     ; precision:1
+    s8 num_thr;				//def:-2; range:[-10, 20]
+    s8 n_mse_thr;			//def:-5; range:[-10, 20]
+    s8 pz_min_thr;			//def:-15; range:[-100, 100]
 
-    // Music Controller
-    u8  msc_iir_idx_thr;       //def:5     ; range:[0, 255]     ; precision:1
-    u8  msc_atg_sm_lidx;       //def:9     ; range:[0, 255]     ; precision:1
-    u8  msc_atg_sm_hidx;       //def:24    ; range:[0, 255]     ; precision:1
-    u8  msc_atg_diff_lidx;     //def:10    ; range:[0, 255]     ; precision:1
-    u8  msc_atg_diff_hidx;     //def:25    ; range:[0, 255]     ; precision:1
-    u8  msc_spl_idx_cut;       //def:20    ; range:[0, 255]     ; precision:1
-    u8  msc_dem_thr0;          //def:8     ; range:[0, 255]     ; precision:1
-    u8  msc_dem_thr1;          //def:10    ; range:[0, 255]     ; precision:1
-    u8  msc_mat_lidx;          //def:5     ; range:[0, 25]      ; precision:1
-    u8  msc_mat_hidx;          //def:12    ; range:[0, 25]      ; precision:1
-    u8  msc_idx_thr;           //def:6     ; range:[0, 255]     ; precision:1
-    u8  msc_scnt_thr;          //def:2     ; range:[0, 255]     ; precision:1
-    u8  msc2norm_updat_cnt;    //def:5     ; range:[0, 255]     ; precision:1
-    u8  msc_lock_cnt;          //def:1     ; range:[0, 255]     ; precision:1
-    u8  msc_tg_diff_lidx;      //def:5     ; range:[0, 25]      ; precision:1
-    u8  msc_tg_diff_hidx;      //def:12    ; range:[0, 25]      ; precision:1
+    s8 pz_iir_thr1;			//def:0; range:[-100, 100]
+    s8 pz_iir_thr2;			//def:-16; range:[-100, 100]
 
-    // CMP Controller
-    u8  cmp_diff_lidx;         //def:2     ; range:[0, 25]      ; precision:1
-    u8  cmp_diff_hidx;         //def:12    ; range:[0, 25]      ; precision:1
-    u8  cmp_idx_thr;           //def:4     ; range:[0, 255]     ; precision:1
-    u8  cmp_adpt_en;           //def:0     ; range:[0, 1]       ; precision:1
+    u8 idx_thr;				//def:5; range:[0, 20]
+    u8 hist_select_l;		//def:5; range:[0, 25]
+    u8 hist_select_h;		//def:13; range:[0, 25]
+    u8 trim_lock;			//def:5; range:[0, 20]
 
-    // Other
-    u8  spl2norm_cnt;          //def:5     ; range:[0, 255]     ; precision:1
-    u8  talk_lock_cnt;         //def:3     ; range:[0, 255]     ; precision:1
+    u8 spk_pwr_min;			//def:80; range:[0, 200]
+    u8 ref_pwr_max;			//def:100; range:[0, 200]
+    s8 spk2ref;				//def:6; range:[-100, 100]
 
-    // Large Noise Controller
-    u8  noise_idx_thr;         //def:6     ; range:[0, 255]     ; precision:1
-    u8  noise_updat_thr;       //def:20    ; range:[0, 255]     ; precision:1
-    u8  noise_ffdb_thr;        //def:20    ; range:[0, 255]     ; precision:1
+    s8 undefine_par2[10];	//def:0; range:[-100, 100]
 
-    // LMS Controller
-    u8  mse_lidx;              //def:5     ; range:[0, 25]      ; precision:1
-    u8  mse_hidx;              //def:12    ; range:[0, 25]      ; precision:1
+    s16 angle_thr[6];		//def:[-40, 120, -20, 180, -20, 180]; range:[-180， 180]
+    s16 dov_thr;			//def:200; range:[0, 1000]
 
-    // Fast Update Controller
-    u8  fast_cnt;              //def:2     ; range:[0, 255]     ; precision:1
-    u8  fast_ind_thr;          //def:20    ; range:[0, 255]     ; precision:1
-    u8  fast_ind_div;          //def:2     ; range:[0, 255]     ; precision:1
+    s16 angle_pz_thr1;		//def:110; range:[-180, 180]
+    s16 angle_pz_thr2;		//def:110; range:[-180, 180]
 
-    // Update Controller
-    u8  norm_mat_lidx;         //def:5     ; range:[0, 25]      ; precision:1
-    u8  norm_mat_hidx;         //def:12    ; range:[0, 25]      ; precision:1
-    u8  tg_lidx;               //def:5     ; range:[0, 25]      ; precision:1
-    u8  tg_hidx;               //def:12    ; range:[0, 25]      ; precision:1
-    u8  rewear_idx_thr;        //def:4     ; range:[0, 255]     ; precision:1
-    u8  norm_updat_cnt0;       //def:10    ; range:[0, 255]     ; precision:1
-    u8  norm_updat_cnt1;       //def:0     ; range:[0, 255]     ; precision:1
-    u8  norm_cmp_cnt0;         //def:8     ; range:[0, 255]     ; precision:1
-    u8  norm_cmp_cnt1;         //def:3     ; range:[0, 255]     ; precision:1
-    u8  norm_cmp_lidx;         //def:5     ; range:[0, 25]      ; precision:1
-    u8  norm_cmp_hidx;         //def:12    ; range:[0, 25]      ; precision:1
-    u8  updat_lock_cnt;        //def:2     ; range:[0, 255]     ; precision:1
+    float mse_ctl_thr1;		//def:5; range:[-100, 100]
+    float mse_ctl_thr2;		//def:5; range:[-100, 100]
+    float mse_ctl_thr3;		//def:0.2; range:[-100, 100]
+    float anc_performance;	//def:-30; range:[-100, 100]
+    // bypass2
+    float pz_db_thr0;		//def:7; range:[-100, 100]
+    float pz_db_thr1;		//def:7; range:[-100, 100]
+    float fitness;			//def:150; range:[0, 2000]
+    float hist_select_thr;	//def:1.5; range:[0, 20]
+    // target_judge
+    float diff_thr;			//def:2; range:[0, 20]
+    float sz_stable_thr;	//def:2; range:[0, 20]
+    float sz_iir_thr;		//def:1.5; range:[0, 20]
+    float sz_diff_cmp_thr;	//def:1.0; range:[0, 20]
+    float sz_diff_tp_thr;	//def:1.0; range:[0, 20]
 
-    // Fitting Algorithm Controller
-    u8  ls_fix_mode;           //def:0     ; range:[0, 1]       ; precision:1
-    u8  ls_fix_lidx;           //def:5     ; range:[0, 25]      ; precision:1
-    u8  ls_fix_hidx;           //def:10    ; range:[0, 25]      ; precision:1
-    u8  iter_max0;             //def:20    ; range:[0, 255]     ; precision:1
-    u8  iter_max1;             //def:20    ; range:[0, 255]     ; precision:1
-
-    // Tight Divide Controller
-    u8  tight_divide;			//def:0     ; range:[0, 255]    ; precision:1
-    u8  tight_idx_thr;			//def:40    ; range:[0, 255]    ; precision:1
-    u8  tight_idx_diff;			//def:4     ; range:[0, 255]    ; precision:1
-
-    u8  undefine_param0[22];   //def:0     ; range:[0, 1000]    ; precision:1
-
-    // Wind Controller (Float)
-    float wind_ref_thr;        //def:100   ; range:[0, 1000]    ; precision:0.1
-    float wind_ref_max;        //def:110   ; range:[0, 1000]    ; precision:0.1
-    float wind_ref_min;        //def:12    ; range:[0, 1000]    ; precision:0.1
-    float wind_miu_div;        //def:100   ; range:[0, 1000]    ; precision:0.1
-
-    // Music Controller (Float)
-    float msc_err_thr0;        //def:4     ; range:[0, 1000]    ; precision:0.1
-    float msc_err_thr1;        //def:1.8   ; range:[0, 1000]    ; precision:0.1
-    float msc_tg_thr;          //def:3     ; range:[0, 1000]    ; precision:0.1
-    float msc_tar_coef0;       //def:0.8   ; range:[0, 1000]    ; precision:0.1
-    float msc_ind_coef0;       //def:0.6   ; range:[0, 1000]    ; precision:0.1
-    float msc_tar_coef1;       //def:0.2   ; range:[0, 1000]    ; precision:0.1
-    float msc_ind_coef1;	   //def:0.3   ; range:[0, 1000]    ; precision:0.1
-    float msc_atg_diff_thr0;   //def:4     ; range:[0, 1000]    ; precision:0.1
-    float msc_atg_diff_thr1;   //def:1     ; range:[0, 1000]    ; precision:0.1
-    float msc_tg_spl_thr;      //def:4     ; range:[0, 1000]    ; precision:0.1
-    float msc_sz_sm_thr;       //def:4     ; range:[0, 1000]    ; precision:0.1
-    float msc_atg_sm_thr;      //def:3     ; range:[0, 1000]    ; precision:0.1
-
-    // CMP Controller (Float)
-    float cmp_updat_thr;       //def:1     ; range:[0, 1000]    ; precision:0.1
-    float cmp_updat_fast_thr;  //def:2.5   ; range:[0, 1000]    ; precision:0.1
-    float cmp_mul_factor;      //def:2     ; range:[0, 1000]    ; precision:0.1
-    float cmp_div_factor;      //def:60    ; range:[0, 1000]    ; precision:0.1
-
-    // Other (Float)
-    float low_spl_thr;         //def:0     ; range:[0, 1000]    ; precision:1
-    float splcnt_add_thr;      //def:0     ; range:[0, 1000]    ; precision:1
-
-    // Large Noise Controller (Float)
-    float noise_mse_thr;       //def:8     ; range:[0, 1000]    ; precision:1
-
-    // LMS Controller (Float)
-    float lms_err;             //def:100   ; range:[0, 1000]    ; precision:0.1
-    float mse_thr1;            //def:5     ; range:[0, 1000]    ; precision:0.1
-    float mse_thr2;            //def:8     ; range:[0, 1000]    ; precision:0.1
-    float uscale;              //def:0.8   ; range:[0, 1000]    ; precision:0.01
-    float uoffset;             //def:0.1   ; range:[0, 1000]    ; precision:0.01
-    float u_pre_thr;           //def:0.5   ; range:[0, 1000]    ; precision:0.01
-    float u_cur_thr;           //def:0.15  ; range:[0, 1000]    ; precision:0.01
-    float u_first_thr;         //def:0.4   ; range:[0, 1000]    ; precision:0.01
-
-    // Update Controller (Float)
-    float norm_tg_thr;         //def:1.5   ; range:[0, 1000]    ; precision:0.1
-    float norm_cmp_thr;        //def:2     ; range:[0, 1000]    ; precision:0.1
-
-    // Fitting Algorithm Controller (Float)
-    float ls_fix_range0[2];    //def:-10,10; range:[0, 1000]    ; precision:0.1
-    float ls_fix_range1[2];    //def:0,16  ; range:[0, 1000]    ; precision:0.1
-    float ls_fix_range2[2];    //def:12,40 ; range:[0, 1000]    ; precision:0.1
-
-    // Other (Float)
-    float undefine_param1[20]; //def:0     ; range:[0, 1000]    ; precision:0.1
+    float undefine_par1[10];			//def:0; range:[-1000, 1000]
 };
-
-//DYNAMIC 配置
-struct __anc_ext_dynamic_cfg {
-    // SDCC Controller
-    u8  sdcc_det_en;           //def:0     ; range:[0, 1]
-    u8  sdcc_par1;             //def:0     ; range:[0, 15]
-    u8  sdcc_par2;             //def:4     ; range:[0, 15]
-    u8  sdcc_flag_thr;         //def:0     ; range:[0, 3]
-
-    // DRC Trigger
-    u8  sdrc_det_en;           //def:0     ; range:[0, 1]
-    u8  sdrc_flag_thr;         //def:1     ; range:[0, 2]
-    u8  sdrc_cnt_thr;          //def:8     ; range:[0, 255]
-
-    // SDRC Controller
-    u8  sdrc_ls_rls_lidx;      //def:4     ; range:[0, 25]
-    u8  sdrc_ls_rls_hidx;      //def:9     ; range:[0, 25]
-    u8  undefine_param0[11];   //def:0     ; range:[0, 1000]
-
-    // Common
-    float ref_iir_coef;        //def:0.0078; range:[0, 1]       ; precision:0.0001
-    float err_iir_coef;        //def:0.0078; range:[0, 1]       ; precision:0.0001
-
-    // SDCC Controller (Float)
-    float sdcc_ref_thr;        //def:-24   ; range:[-100, 100]  ; precision:0.1
-    float sdcc_err_thr;        //def:-12   ; range:[-100, 100]  ; precision:0.1
-    float sdcc_thr_cmp;        //def:-24   ; range:[-100, 100]  ; precision:0.1
-
-    // DRC Trigger (Float)
-    float sdrc_ref_thr;        //def:-24   ; range:[-100, 100]  ; precision:0.1
-    float sdrc_err_thr;        //def:-12   ; range:[-100, 100]  ; precision:0.1
-
-    // SDRC Controller (Float)
-    float sdrc_ref_margin;     //def:30    ; range:[-100, 100]  ; precision:0.1
-    float sdrc_err_margin;     //def:35    ; range:[-100, 100]  ; precision:0.1
-    float sdrc_fb_att_thr;     //def:0     ; range:[-100, 100]  ; precision:0.1
-    float sdrc_fb_rls_thr;     //def:-35   ; range:[-100, 100]  ; precision:0.1
-    float sdrc_fb_att_step;    //def:2     ; range:[-100, 100]  ; precision:1
-    float sdrc_fb_rls_step;    //def:2     ; range:[-100, 100]  ; precision:1
-    float sdrc_fb_set_thr;     //def:3     ; range:[-100, 100]  ; precision:0.1
-    float sdrc_ff_att_thr;     //def:0     ; range:[-100, 100]  ; precision:0.1
-    float sdrc_ff_rls_thr;     //def:-24   ; range:[-100, 100]  ; precision:0.1
-    float sdrc_ls_min_gain;    //def:0     ; range:[-100, 100]  ; precision:0.1
-    float sdrc_ls_att_step;    //def:6     ; range:[-100, 100]  ; precision:0.1
-    float sdrc_ls_rls_step;    //def:2     ; range:[-100, 100]  ; precision:0.1
-    float sdrc_rls_ls_cmp;     //def:16    ; range:[-100, 100]  ; precision:0.1
-
-    //Other
-    float undefine_param1[10]; //def:0     ; range:[0, 1000]    ; precision:0.1
-};
-
 
 //参考SZ
 struct __anc_ext_sz_data {
@@ -693,11 +511,15 @@ struct __anc_ext_soft_howl_det_cfg {
     float param[6];
 };
 
-//CMP/AEQ滤波器存线配置
-struct __anc_ext_adaptive_mem_iir {
-    u16 input_crc;
-    u16 reserved;
-    s16 mem_iir[0];	//31 * 30
+//自适应DCC配置
+struct __anc_ext_adaptive_dcc_cfg {
+    u8 ff_dc_par;				// default:6, range:0-15
+    u8 reserved[3];
+    u16 refmic_max_thr;			// default:300, range:0-32768
+    u16 refmic_mp_thr;			// default:300, range:0-512
+    u16 param1[10];				// default:0, range:-256-256
+    float err_overload_list[4];	// default:[90, 90, 85, 80], range:0-300
+    float param2[10];			// default:0, range:-256-256
 };
 
 //耳道自适应工具参数
@@ -706,7 +528,6 @@ struct anc_ext_ear_adaptive_param {
     enum ANC_EAR_ADPTIVE_MODE train_mode;	//自适应训练模式
     u8 time_domain_show_en;					//时域debug使能
     u8 dut_cmp_en;							//产测补偿使能
-    u8 dut_mode;							//产测模式
     u8 *time_domain_buf;					//时域debug buff
     int time_domain_len;					//时域debug buff len
 
@@ -737,9 +558,6 @@ struct anc_ext_ear_adaptive_param {
     struct __anc_ext_ear_adaptive_mem_param *ff_ear_mem_param;
     struct __anc_ext_ear_adaptive_mem_data *ff_ear_mem_pz;
     struct __anc_ext_ear_adaptive_mem_data *ff_ear_mem_sz;
-    struct __anc_ext_ear_adaptive_mem_data *ff_ear_mem_pz_coeff;
-    struct __anc_ext_ear_adaptive_mem_data *ff_ear_mem_sz_coeff;
-
 
     /*--------------------头戴式 右声道------------------------*/
     struct __anc_ext_ear_adaptive_iir_general *rff_iir_general;
@@ -765,8 +583,6 @@ struct anc_ext_ear_adaptive_param {
     struct __anc_ext_ear_adaptive_mem_param *rff_ear_mem_param;
     struct __anc_ext_ear_adaptive_mem_data *rff_ear_mem_pz;
     struct __anc_ext_ear_adaptive_mem_data *rff_ear_mem_sz;
-    struct __anc_ext_ear_adaptive_mem_data *rff_ear_mem_pz_coeff;
-    struct __anc_ext_ear_adaptive_mem_data *rff_ear_mem_sz_coeff;
 
     //FF->耳道自适应产测数据
     struct __anc_ext_ear_adaptive_dut_data *ff_dut_pz_cmp;
@@ -779,8 +595,6 @@ struct anc_ext_ear_adaptive_param {
     //RTANC 配置
     struct __anc_ext_rtanc_adaptive_cfg *rtanc_adaptive_cfg;
     struct __anc_ext_rtanc_adaptive_cfg *r_rtanc_adaptive_cfg;
-    struct __anc_ext_dynamic_cfg *dynamic_cfg;
-    struct __anc_ext_dynamic_cfg *r_dynamic_cfg;
 #endif
 
 #if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
@@ -789,12 +603,10 @@ struct anc_ext_ear_adaptive_param {
     struct __anc_ext_ear_adaptive_iir *cmp_iir; //[6]
     struct __anc_ext_ear_adaptive_weight *cmp_weight;	//[60]
     struct __anc_ext_ear_adaptive_mse *cmp_mse;	//[60]
-    struct __anc_ext_adaptive_mem_iir *cmp_mem_iir;
     struct __anc_ext_ear_adaptive_iir_gains	*rcmp_gains;
     struct __anc_ext_ear_adaptive_iir *rcmp_iir; //[6]
     struct __anc_ext_ear_adaptive_weight *rcmp_weight;	//[60]
     struct __anc_ext_ear_adaptive_mse *rcmp_mse;	//[60]
-    struct __anc_ext_adaptive_mem_iir *rcmp_mem_iir;
 #endif
 
 #if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
@@ -804,13 +616,11 @@ struct anc_ext_ear_adaptive_param {
     struct __anc_ext_ear_adaptive_weight *aeq_weight;	//[60]
     struct __anc_ext_ear_adaptive_mse *aeq_mse;	//[60]
     struct __anc_ext_adaptive_eq_thr *aeq_thr;
-    struct __anc_ext_adaptive_mem_iir *aeq_mem_iir;
     struct __anc_ext_ear_adaptive_iir_gains	*raeq_gains;
     struct __anc_ext_ear_adaptive_iir *raeq_iir; //[10]
     struct __anc_ext_ear_adaptive_weight *raeq_weight;	//[60]
     struct __anc_ext_ear_adaptive_mse *raeq_mse;	//[60]
     struct __anc_ext_adaptive_eq_thr *raeq_thr;
-    struct __anc_ext_adaptive_mem_iir *raeq_mem_iir;
 #endif
 
     //参考SZ
@@ -825,6 +635,11 @@ struct anc_ext_ear_adaptive_param {
 
     //啸叫检测配置
     struct __anc_ext_soft_howl_det_cfg *soft_howl_det_cfg;
+
+#if TCFG_AUDIO_ADAPTIVE_DCC_ENABLE
+    //自适应DCC配置
+    struct __anc_ext_adaptive_dcc_cfg *adaptive_dcc_cfg;
+#endif
 
 };
 
@@ -877,16 +692,10 @@ int anc_ext_subfile_analysis_each(u32 file_id, u8 *data, int len, u8 alloc_flag)
 //获取RTANC 工具参数
 struct __anc_ext_rtanc_adaptive_cfg *anc_ext_rtanc_adaptive_cfg_get(void);
 
-//获取DYNAMIC 工具参数
-struct __anc_ext_dynamic_cfg *anc_ext_dynamic_cfg_get(void);
+//ANC_EXT 工具 RTANC挂起标志清0
+void anc_ext_tool_rtanc_suspend_clear(void);
 
-u8 anc_ext_rtanc_param_check(void);
-
-//获取算法工具SPP使能
-int anc_ext_debug_tool_function_get(void);
-
-//设置耳道自适应测试模式
-void anc_ext_ear_adaptive_dut_mode_set(u8 dut_mode);
+u8 anc_ext_debug_tool_function_get(void);
 
 /*-------------------ANCTOOL交互接口---------------------*/
 //事件处理

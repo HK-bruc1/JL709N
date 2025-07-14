@@ -30,6 +30,7 @@
 #if TCFG_AUDIO_DUT_ENABLE
 #include "audio_dut_control.h"
 #endif
+#if TCFG_AUDIO_ADC_ENABLE
 
 #if 1
 #define adc_file_log	printf
@@ -885,3 +886,18 @@ REGISTER_SOURCE_NODE_PLUG(adc_file_plug) = {
 REGISTER_ONLINE_ADJUST_TARGET(adc) = {
     .uuid = NODE_UUID_ADC,
 };
+#else
+
+u8 audio_get_mic_num(u32 mic_ch)
+{
+    return 0;
+}
+u8 audio_adc_file_get_mic_en_map(void)
+{
+    return 0;
+}
+u8 audio_adc_file_get_esco_mic_num(void)
+{
+    return 0;
+}
+#endif

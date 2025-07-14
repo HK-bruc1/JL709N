@@ -15,10 +15,12 @@
 
 #define ADAPTIVE_EQ_TARGET_DEFAULT_CFG_READ		0				//自适应EQ读取目标节点参数使能，如果AEQ没有独立节点，则必须读取
 
-#define ADAPTIVE_EQ_VOLUME_GRADE_EN				0			//根据音量分档使能, 关闭则以最大音量配置为准
-#define ADAPTIVE_EQ_TIGHTNESS_GRADE_EN			1			//根据佩戴松紧度分档使能，关闭则以松配配置为准
+#define ADAPTIVE_EQ_VOLUME_GRADE_EN				1			//根据音量分档使能
+#define ADAPTIVE_EQ_TIGHTNESS_GRADE_EN			1			//根据佩戴松紧度分档使能
 
-#define ADAPTIVE_EQ_ONLY_IN_MUSIC_UPDATE		0			//(实时AEQ)仅在播歌/通话的时候更新
+#define ADAPTIVE_EQ_MAXGAIN_DB					6			//非音量/松紧度分档使用
+
+#define ADAPTIVE_EQ_ONLY_IN_MUSIC_UPDATE		1			//(实时AEQ)仅在播歌/通话的时候更新
 
 #if ADAPTIVE_EQ_TIGHTNESS_GRADE_EN && (!TCFG_AUDIO_FIT_DET_ENABLE)
 #error "Must open TCFG_AUDIO_FIT_DET_ENABLE"
@@ -30,7 +32,7 @@ enum {
     ADAPTIVE_EQ_STATE_CLOSE = 0,
     ADAPTIVE_EQ_STATE_OPEN,
     ADAPTIVE_EQ_STATE_RUN,
-    ADAPTIVE_EQ_STATE_STOP,
+    ADAPTIVE_EQ_STATE_FORCE_EXIT,	//强制退出
 };
 
 //ICSD AEQ 滤波器模式

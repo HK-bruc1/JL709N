@@ -188,7 +188,7 @@ UTBD = CONFIG_UBOOT_DEBUG_BAUD_RATE; //uboot串口波特率
 #endif
 
 //外部FLASH 硬件连接配置
-#ifdef CONFIG_EXTERN_FLASH_SIZE
+#ifdef TCFG_NORFLASH_DEV_ENABLE
 EX_FLASH = PC03_1A_PC08;	//CS_pin / spi (0/1/2) /port(A/B) / power_io
 EX_FLASH_IO = 2_PC01_PC02_PC04_PC05_PC00;	//data_width / CLK_pin / DO_pin / DI_pin / D2_pin / D3_pin   当data_width为4的时候，D2_pin和D3_pin才有效
 #endif

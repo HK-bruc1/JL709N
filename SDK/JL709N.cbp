@@ -57,7 +57,6 @@
 <Add option="-DEXPORT_FNMA_ENABLE=0" />
 <Add option="-DEXPORT_TENCENT_LL_ENABLE=1" />
 <Add option="-DCONFIG_EFFECT_CORE_V2_ENABLE" />
-<Add option="-DCONFIG_OS_AFFINITY_ENABLE=0" />
 <Add option="-DEXPORT_CONFIG_USB_ENABLE=1" />
 <Add option="-DEXPORT_CONFIG_SD_ENABLE=1" />
 <Add option="-DEVENT_HANDLER_NUM_CONFIG=2" />
@@ -240,9 +239,6 @@
 <Add directory="audio/common/icsd/vdt" />
 <Add directory="audio/common/icsd/wat" />
 <Add directory="audio/common/icsd/ein" />
-<Add directory="audio/common/icsd/adjdcc" />
-<Add directory="audio/common/icsd/env_noise_det" />
-<Add directory="audio/common/icsd/howl" />
 <Add directory="audio/common/power" />
 <Add directory="audio/anc" />
 <Add directory="audio/cpu/br52/audio_dai" />
@@ -375,6 +371,7 @@
 <Add option="cpu/br52/liba/lib_jla_codec.a" />
 <Add option="cpu/br52/liba/lib_lc3_codec.a" />
 <Add option="cpu/br52/liba/lib_jl_codec_common.a" />
+<Add option="cpu/br52/liba/lib_jla_v2_codec.a" />
 <Add option="cpu/br52/liba/lib_ccm_cipher.a" />
 <Add option="cpu/br52/liba/lib_noisegate_pro.a" />
 <Add option="cpu/br52/liba/lib_PcmDelay.a" />
@@ -454,6 +451,8 @@
 <Unit filename="apps/common/debug/debug.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/debug/debug_lite.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/debug/debug_uart_config.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/debug/dlog_config.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/debug/dlog_output_config.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/dev_manager/dev_manager.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/dev_manager/dev_manager.h" />
 <Unit filename="apps/common/dev_manager/dev_reg.c"><Option compilerVer="CC"/></Unit>
@@ -514,6 +513,7 @@
 <Unit filename="apps/common/device/sensor/ir_sensor/jsa1221.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/device/sensor/ntc/ntc_det.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/device/sensor/ntc/ntc_det_api.h" />
+<Unit filename="apps/common/device/storage_device/norflash/norflash.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/device/storage_device/norflash/norflash_sfc.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/device/usb/demo/host/udisk_block_test.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/device/usb/device/cdc.c"><Option compilerVer="CC"/></Unit>
@@ -861,6 +861,7 @@
 <Unit filename="apps/common/third_party_profile/jieli/rcsp/server/functions/sensors/sport_info_sync.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/third_party_profile/jieli/rcsp/server/functions/sensors/sport_info_sync.h" />
 <Unit filename="apps/common/third_party_profile/jieli/rcsp/server/functions/sensors/sport_info_vm.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/third_party_profile/jieli/rcsp/server/functions/translator/rcsp_translator.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/third_party_profile/jieli/rcsp/server/functions/translator/rcsp_translator.h" />
 <Unit filename="apps/common/third_party_profile/jieli/rcsp/server/include/rcsp_cmd_user.h" />
 <Unit filename="apps/common/third_party_profile/jieli/rcsp/server/include/rcsp_command.h" />
@@ -1148,18 +1149,14 @@
 <Unit filename="audio/CVP/audio_cvp_online.h" />
 <Unit filename="audio/CVP/audio_cvp_ref_task.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/CVP/audio_cvp_sync.c"><Option compilerVer="CC"/></Unit>
-<Unit filename="audio/anc/anc_memory.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/anc/audio_anc_common.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/anc/audio_anc_common.h" />
 <Unit filename="audio/anc/audio_anc_common_plug.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/anc/audio_anc_common_plug.h" />
 <Unit filename="audio/anc/audio_anc_debug_tool.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/anc/audio_anc_debug_tool.h" />
-<Unit filename="audio/anc/audio_anc_develop.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/anc/audio_anc_fade_ctr.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/anc/audio_anc_fade_ctr.h" />
-<Unit filename="audio/anc/audio_anc_hw_src.c"><Option compilerVer="CC"/></Unit>
-<Unit filename="audio/anc/audio_anc_manager.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/anc/audio_anc_mult_scene.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/anc/audio_anc_mult_scene.h" />
 <Unit filename="audio/common/amplitude_statistic.c"><Option compilerVer="CC"/></Unit>
@@ -1393,6 +1390,7 @@
 <Unit filename="audio/framework/plugs/source/a2dp_streamctrl.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/framework/plugs/source/a2dp_streamctrl.h" />
 <Unit filename="audio/framework/plugs/source/adc_file.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="audio/framework/plugs/source/ai_rx_file.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/framework/plugs/source/esco_file.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/framework/plugs/source/iis_file.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/framework/plugs/source/iis_file.h" />
@@ -1411,6 +1409,7 @@
 <Unit filename="audio/framework/plugs/source/source_dev4_file.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/interface/include/a2dp_player.h" />
 <Unit filename="audio/interface/include/adda_loop_player.h" />
+<Unit filename="audio/interface/include/ai_rx_player.h" />
 <Unit filename="audio/interface/include/ai_voice_recoder.h" />
 <Unit filename="audio/interface/include/cvp_node.h" />
 <Unit filename="audio/interface/include/dev_flow_player.h" />
@@ -1430,6 +1429,7 @@
 <Unit filename="audio/interface/include/tws_tone_player.h" />
 <Unit filename="audio/interface/player/a2dp_player.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/interface/player/adda_loop_player.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="audio/interface/player/ai_rx_player.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/interface/player/dev_flow_player.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/interface/player/esco_player.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/interface/player/file_player.c"><Option compilerVer="CC"/></Unit>
@@ -1862,6 +1862,7 @@
 <Unit filename="interface/system/task.h" />
 <Unit filename="interface/system/timer.h" />
 <Unit filename="interface/system/user_cfg.h" />
+<Unit filename="interface/update/db_updata_api.h" />
 <Unit filename="interface/update/dual_bank_updata_api.h" />
 <Unit filename="interface/update/update.h" />
 <Unit filename="interface/update/update_interactive_uart.h" />

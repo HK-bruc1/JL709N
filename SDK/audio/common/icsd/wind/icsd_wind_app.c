@@ -23,8 +23,6 @@
 #define wind_log(...)
 #endif
 
-#define ICSD_WIND_LVL_PRINTF            1   //风噪阈值打印使能
-
 /*打开风噪检测*/
 int audio_icsd_wind_detect_open()
 {
@@ -91,10 +89,19 @@ static wind_lvl_det_t wind_lvl_det_anc = {
 };
 
 static wind_info_t wind_info_anc = {
+    .time = 1000, //ms
+    .fade_timer = 0,
+    .wind_cnt = 0,
+    .wind_eng = 0,
     .last_lvl = 0,
-    .det_times = 10, //150ms*10 = 1.5s
-    .cnt = 0,
-    .last_lvl_diff = 0,
+    .preset_lvl = 0,
+    .fade_in_cnt = 0,
+    .fade_out_cnt = 0,
+    .lvl_unchange_cnt = 0,
+    .wind_process_flag = 0,
+    .fade_in_time = 4, //s
+    .fade_out_time = 10, //s
+    .ratio_thr = 0.8f,
 };
 
 static struct anc_fade_handle anc_wind_gain_fade = {
@@ -112,12 +119,18 @@ void audio_anc_wind_noise_fade_param_reset(void)
     wind_lvl_det_anc.last_lvl = 0;
     wind_lvl_det_anc.cur_lvl = 0;
 
+    if (wind_info_anc.fade_timer) {
+        sys_s_hi_timer_del(wind_info_anc.fade_timer);
+        wind_info_anc.fade_timer = 0;
+    }
+    wind_info_anc.fade_in_cnt = 0;
+    wind_info_anc.fade_out_cnt = 0;
+    wind_info_anc.lvl_unchange_cnt = 0;
+    wind_info_anc.wind_process_flag = 0;
     wind_info_anc.last_lvl = 0;
-    wind_info_anc.cnt = 0;
 
     if (anc_wind_gain_fade.timer_id) {
-        sys_timer_del(anc_wind_gain_fade.timer_id);
-        //sys_s_hi_timer_del(anc_wind_gain_fade.timer_id);
+        sys_s_hi_timer_del(anc_wind_gain_fade.timer_id);
         anc_wind_gain_fade.timer_id = 0;
     }
     anc_wind_gain_fade.cur_gain = 16384;
@@ -130,95 +143,12 @@ void audio_anc_wind_noise_fade_gain_set(int fade_gain, int fade_time)
     audio_anc_gain_fade_process(&anc_wind_gain_fade, ANC_FADE_MODE_WIND_NOISE, fade_gain, fade_time);
 }
 
-static int audio_anc_wind_noise_process_trans(u8 wind_lvl)
-{
-    u8 anc_wind_noise_lvl = 0;
-#if ICSD_WIND_LVL_PRINTF
-    printf("wind_lvl: local %d, tws_result %d\n", get_audio_icsd_local_wind_lvl(), wind_lvl);
-#endif
-#if TCFG_AUDIO_ANC_EXT_TOOL_ENABLE
-    struct __anc_ext_wind_trigger_cfg *trigger_cfg = anc_ext_ear_adaptive_cfg_get()->wind_trigger_cfg;
-#else
-    struct __anc_ext_wind_trigger_cfg *trigger_cfg = NULL;
-#endif
-    /*anc模式下才改anc增益*/
-    if (anc_mode_get() != ANC_OFF) {
-        /*划分风噪等级*/
-        if (trigger_cfg) { //use anc_ext_tool cfg
-            wind_lvl_det_anc.lvl1_thr = trigger_cfg->thr[0];
-            wind_lvl_det_anc.lvl2_thr = trigger_cfg->thr[1];
-            wind_lvl_det_anc.lvl3_thr = trigger_cfg->thr[2];
-            wind_lvl_det_anc.lvl4_thr = trigger_cfg->thr[3];
-            wind_lvl_det_anc.lvl5_thr = trigger_cfg->thr[4];
-        }
-        anc_wind_noise_lvl = get_icsd_anc_wind_noise_lvl(&wind_lvl_det_anc, wind_lvl);
-        /* wind_log(" ========== anc_wind_noise_lvl %d", anc_wind_noise_lvl); */
-
-        /*做淡入淡出时间处理，返回0表示不做处理维持原来的增益不变*/
-        anc_wind_noise_lvl = audio_anc_wind_noise_process_fade(&wind_info_anc, anc_wind_noise_lvl);
-        if (anc_wind_noise_lvl == 0) {
-            return -1;
-        }
-    } else {
-        return -1;
-    }
-
-    u16 anc_fade_gain = 16384;
-    u16 anc_fade_time = 5000; //ms
-    /*根据风噪等级改变anc增益*/
-    switch (anc_wind_noise_lvl) {
-    case ANC_WIND_NOISE_LVL0:
-        anc_fade_gain = 16384;
-        anc_fade_time = 5000;
-        break;
-    case ANC_WIND_NOISE_LVL1:
-        anc_fade_gain = (u16)(eq_db2mag(-3.0f) * ANC_FADE_GAIN_MAX_FLOAT);
-        anc_fade_time = 5000;
-        break;
-    case ANC_WIND_NOISE_LVL2:
-        anc_fade_gain = (u16)(eq_db2mag(-6.0f) * ANC_FADE_GAIN_MAX_FLOAT);
-        anc_fade_time = 5000;
-        break;
-    case ANC_WIND_NOISE_LVL3:
-        anc_fade_gain = (u16)(eq_db2mag(-30.0f) * ANC_FADE_GAIN_MAX_FLOAT);
-        anc_fade_time = 5000;
-        break;
-    case ANC_WIND_NOISE_LVL4:
-        anc_fade_gain = (u16)(eq_db2mag(-30.0f) * ANC_FADE_GAIN_MAX_FLOAT);
-        anc_fade_time = 5000;
-        break;
-    case ANC_WIND_NOISE_LVL5:
-    case ANC_WIND_NOISE_LVL_MAX:
-        anc_fade_gain = (u16)(eq_db2mag(-30.0f) * ANC_FADE_GAIN_MAX_FLOAT);
-        anc_fade_time = 5000;
-        break;
-    default:
-        anc_fade_gain = 0;
-        anc_fade_time = 5000;
-        break;
-    }
-
-    if (anc_wind_gain_fade.target_gain == anc_fade_gain) {
-        return anc_fade_gain;
-    }
-
-    wind_log("WIND_DET_STATE:RUN, lvl %d, [anc_fade] %d, wind_lvl %d\n", anc_wind_noise_lvl, anc_fade_gain, wind_lvl);
-
-    u8 data[5] = {0};
-    data[0] = SYNC_ICSD_ADT_SET_ANC_FADE_GAIN;
-    data[1] = anc_fade_gain & 0xff;
-    data[2] = (anc_fade_gain >> 8) & 0xff;
-    data[3] = ANC_FADE_MODE_WIND_NOISE;
-    data[4] = anc_fade_time / 100; //缩小100倍传参
-    audio_icsd_adt_info_sync(data, 5);
-
-    return anc_fade_gain;
-}
-
 /*anc风噪检测的处理*/
-static int audio_anc_wind_noise_process_anc(u8 wind_lvl)
+int audio_anc_wind_noise_process(u8 wind_lvl)
 {
     u8 anc_wind_noise_lvl = 0;
+
+    /* wind_log("wind_lvl %d\n", wind_lvl); */
 
 #if TCFG_AUDIO_ANC_EXT_TOOL_ENABLE
     struct __anc_ext_wind_trigger_cfg *trigger_cfg = anc_ext_ear_adaptive_cfg_get()->wind_trigger_cfg;
@@ -226,7 +156,7 @@ static int audio_anc_wind_noise_process_anc(u8 wind_lvl)
     struct __anc_ext_wind_trigger_cfg *trigger_cfg = NULL;
 #endif
     /*anc模式下才改anc增益*/
-    if (anc_mode_get() != ANC_OFF) {
+    if (anc_mode_get() == ANC_ON) {
         /*划分风噪等级*/
         if (trigger_cfg) { //use anc_ext_tool cfg
             wind_lvl_det_anc.lvl1_thr = trigger_cfg->thr[0];
@@ -238,13 +168,6 @@ static int audio_anc_wind_noise_process_anc(u8 wind_lvl)
         anc_wind_noise_lvl = get_icsd_anc_wind_noise_lvl(&wind_lvl_det_anc, wind_lvl);
 
         /*做淡入淡出时间处理，返回0表示不做处理维持原来的增益不变*/
-#if ICSD_WIND_LVL_PRINTF
-        // printf("wind_lvl: local %d, tws_result %d\n", get_audio_icsd_local_wind_lvl(), wind_lvl);
-        // printf("wind:det_lvl %d, last_lvl %d, cnt %d, diff %d, %d\n", anc_wind_noise_lvl, \
-        //     wind_info_anc->last_lvl, wind_info_anc->cnt, anc_wind_noise_lvl - wind_info->last_lvl, wind_info_anc->last_lvl_diff);
-        printf("wind_lvl: %d -> %d, det %d, %d, %d, %d\n", get_audio_icsd_local_wind_lvl(), wind_lvl, anc_wind_noise_lvl, \
-               wind_info_anc.last_lvl, wind_info_anc.cnt, wind_info_anc.last_lvl_diff);
-#endif
         anc_wind_noise_lvl = audio_anc_wind_noise_process_fade(&wind_info_anc, anc_wind_noise_lvl);
         if (anc_wind_noise_lvl == 0) {
             return -1;
@@ -315,20 +238,6 @@ static int audio_anc_wind_noise_process_anc(u8 wind_lvl)
     audio_icsd_adt_info_sync(data, 5);
 
     return anc_fade_gain;
-}
-
-int audio_anc_wind_noise_process(u8 wind_lvl)
-{
-#if 0 //支持区分通透/降噪两套参数
-    if (anc_mode_get() == ANC_ON) {
-        return audio_anc_wind_noise_process_anc(wind_lvl);
-    } else if (anc_mode_get() == ANC_TRANSPARENCY) {
-        return audio_anc_wind_noise_process_trans(wind_lvl);
-    }
-    return -1;
-#else
-    return audio_anc_wind_noise_process_anc(wind_lvl);
-#endif
 }
 
 #endif /*(defined TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN) && TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN*/

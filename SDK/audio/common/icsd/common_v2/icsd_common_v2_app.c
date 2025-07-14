@@ -23,10 +23,6 @@
 #include "icsd_anc_v2_interactive.h"
 #endif
 
-#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
-#include "rt_anc_app.h"
-#endif
-
 #if 1
 #define common_log printf
 #else
@@ -36,7 +32,6 @@
 struct afq_common_hdl {
     u8 state;						//状态
     u8 fre_use_cnt;					//AFQ频响APP应用记录，0 无应用；!0 有应用
-    u8 cmp_eq_update;
     enum audio_adaptive_fre_sel data_sel;					//数据来源
     struct list_head head;
     OS_MUTEX mutex;
@@ -50,16 +45,15 @@ static int audio_afq_common_output_process(void);
 
 int audio_afq_common_init(void)
 {
-    common_hdl = anc_malloc("ICSD_COMMON_APP", sizeof(struct afq_common_hdl));
-    common_hdl->cmp_eq_update = AUDIO_ADAPTIVE_CMP_UPDATE_FLAG | AUDIO_ADAPTIVE_AEQ_UPDATE_FLAG;
+    common_hdl = zalloc(sizeof(struct afq_common_hdl));
     INIT_LIST_HEAD(&common_hdl->head);
     os_mutex_create(&common_hdl->mutex);
-    task_create(audio_afq_common_task, NULL, "afq_common");
     return 0;
 }
 
-static int audio_afq_common_start(void)
+int audio_afq_common_start(void)
 {
+    task_create(audio_afq_common_task, NULL, "afq_common");
     switch (common_hdl->data_sel) {
     case AUDIO_ADAPTIVE_FRE_SEL_AFQ:
 #if TCFG_AUDIO_FREQUENCY_GET_ENABLE
@@ -77,19 +71,19 @@ static void audio_afq_common_fre_out_free(void)
 {
     if (common_hdl) {
         if (common_hdl->fre_out.sz_l.out) {
-            anc_free(common_hdl->fre_out.sz_l.out);
+            free(common_hdl->fre_out.sz_l.out);
             common_hdl->fre_out.sz_l.out = NULL;
         }
         if (common_hdl->fre_out.sz_l.msc) {
-            anc_free(common_hdl->fre_out.sz_l.msc);
+            free(common_hdl->fre_out.sz_l.msc);
             common_hdl->fre_out.sz_l.msc = NULL;
         }
         if (common_hdl->fre_out.sz_r.out) {
-            anc_free(common_hdl->fre_out.sz_r.out);
+            free(common_hdl->fre_out.sz_r.out);
             common_hdl->fre_out.sz_r.out = NULL;
         }
         if (common_hdl->fre_out.sz_r.msc) {
-            anc_free(common_hdl->fre_out.sz_r.msc);
+            free(common_hdl->fre_out.sz_r.msc);
             common_hdl->fre_out.sz_r.msc = NULL;
         }
     }
@@ -97,40 +91,39 @@ static void audio_afq_common_fre_out_free(void)
 
 int audio_afq_common_close(void)
 {
-    common_log("%s, data_sel %d\n", __func__, common_hdl->data_sel);
-    audio_afq_common_fre_out_free();
+    common_log("%s\n", __func__);
 
-    if (common_hdl->data_sel & AUDIO_ADAPTIVE_FRE_SEL_AFQ) {
+    if (strcmp(os_current_task(), "afq_common") == 0) {
+        common_log("afq_common close post to app_core\n");
+        int msg[2];
+        msg[0] = (int)audio_afq_common_close;
+        msg[1] = 1;
+        int ret = os_taskq_post_type("app_core", Q_CALLBACK, 2, msg);
+        if (ret) {
+            common_log("afq_common taskq_post err\n");
+        }
+        return 0;
+    }
+    audio_afq_common_fre_out_free();
+    task_kill("afq_common");
+
+    switch (common_hdl->data_sel) {
+    case AUDIO_ADAPTIVE_FRE_SEL_AFQ:
 #if TCFG_AUDIO_FREQUENCY_GET_ENABLE
         audio_icsd_afq_close();
 #endif
-    }
-    if (common_hdl->data_sel & AUDIO_ADAPTIVE_FRE_SEL_ANC) {
+        break;
+    case AUDIO_ADAPTIVE_FRE_SEL_ANC:
 #if TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN
         anc_ear_adaptive_close();
 #endif
+        break;
     }
-    common_hdl->data_sel = 0;
     return 0;
 }
 
-
-void audio_afq_common_sz_sel_idx_set(u8 idx)
-{
-    if (common_hdl) {
-        common_hdl->fre_out.sz_l_sel_idx = idx;
-    }
-}
-
-void audio_afq_common_cmp_eq_update_set(u8 cmp_eq_update)
-{
-    if (common_hdl) {
-        common_hdl->cmp_eq_update = cmp_eq_update;
-    }
-}
-
 //异步处理，先存数据
-int audio_afq_common_output_post_msg(__afq_output *out, u8 priority)
+int audio_afq_common_output_post_msg(__afq_output *out)
 {
     struct audio_afq_output *p = &common_hdl->fre_out;
 
@@ -138,8 +131,6 @@ int audio_afq_common_output_post_msg(__afq_output *out, u8 priority)
         return 0;
     }
     p->state = out->state;
-    p->priority = priority;
-    p->cmp_eq_update = common_hdl->cmp_eq_update;
 
     //先释放上一次内存
     audio_afq_common_fre_out_free();
@@ -149,11 +140,11 @@ int audio_afq_common_output_post_msg(__afq_output *out, u8 priority)
         /* } */
         p->sz_l.len = out->sz_l->len;
         if (out->sz_l->out) {
-            p->sz_l.out = anc_malloc("ICSD_COMMON_APP", p->sz_l.len * sizeof(float));
+            p->sz_l.out = malloc(p->sz_l.len * sizeof(float));
             memcpy(p->sz_l.out, out->sz_l->out, p->sz_l.len * sizeof(float));
         }
         if (out->sz_l->msc) {
-            p->sz_l.msc = anc_malloc("ICSD_COMMON_APP", p->sz_l.len * sizeof(float));
+            p->sz_l.msc = malloc(p->sz_l.len * sizeof(float));
             memcpy(p->sz_l.msc, out->sz_l->msc, p->sz_l.len * sizeof(float));
         }
     }
@@ -164,11 +155,11 @@ int audio_afq_common_output_post_msg(__afq_output *out, u8 priority)
         /* } */
         p->sz_r.len = out->sz_r->len;
         if (out->sz_r->out) {
-            p->sz_r.out = anc_malloc("ICSD_COMMON_APP", p->sz_r.len * sizeof(float));
+            p->sz_r.out = malloc(p->sz_r.len * sizeof(float));
             memcpy(p->sz_r.out, out->sz_r->out, p->sz_r.len * sizeof(float));
         }
         if (out->sz_r->msc) {
-            p->sz_r.msc = anc_malloc("ICSD_COMMON_APP", p->sz_r.len * sizeof(float));
+            p->sz_r.msc = malloc(p->sz_r.len * sizeof(float));
             memcpy(p->sz_r.msc, out->sz_r->msc, p->sz_r.len * sizeof(float));
         }
     }
@@ -182,38 +173,13 @@ int audio_afq_common_output_post_msg(__afq_output *out, u8 priority)
 static int audio_afq_common_output_process(void)
 {
     struct audio_afq_bulk *bulk;
-    struct audio_afq_bulk *temp;
     struct audio_afq_output *p = &common_hdl->fre_out;
 
     os_mutex_pend(&common_hdl->mutex, 0);
-    list_for_each_entry_safe(bulk, temp, &common_hdl->head, entry) {
-        if (!strcmp(bulk->name, "RTANC")) {
-            bulk->output(p);
-            break;
-        }
-    }
-    //优先运行CMP
-    list_for_each_entry_safe(bulk, temp, &common_hdl->head, entry) {
-        if (!strcmp(bulk->name, "ANC_CMP")) {
-            bulk->output(p);
-            break;
-        }
-    }
-    //注意AEQ会修改SZ的数据，所以要放在最后一个运行
-    list_for_each_entry_safe(bulk, temp, &common_hdl->head, entry) {
-        if (!strcmp(bulk->name, "ANC_AEQ")) {
-            bulk->output(p);
-            break;
-        }
+    list_for_each_entry(bulk, &common_hdl->head, entry) {
+        bulk->output(p);
     }
     os_mutex_post(&common_hdl->mutex);
-
-#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
-    if (common_hdl->fre_out.priority == AUDIO_AFQ_PRIORITY_HIGH) {
-        //ANC_OFF（RTANC）情况需退出ANC_OFF(NORMAL)
-        audio_rtanc_sz_sel_callback();
-    }
-#endif
 
     return 0;
 }
@@ -230,17 +196,17 @@ static int audio_afq_common_output_process(void)
 int audio_afq_common_add_output_handler(const char *name, int data_sel, void (*output)(struct audio_afq_output *p))
 {
     if (common_hdl) {
-        struct audio_afq_bulk *bulk = anc_malloc("ICSD_COMMON_APP", sizeof(struct audio_afq_bulk));
+        struct audio_afq_bulk *bulk = zalloc(sizeof(struct audio_afq_bulk));
         struct audio_afq_bulk *tmp;
-        common_log("afq_common_add %s, data_sel %d , fre_use %d\n", name, data_sel, common_hdl->fre_use_cnt);
-        common_hdl->data_sel |= data_sel;
+
+        common_hdl->data_sel = data_sel;
 
         bulk->name = name;
         bulk->output = output;
         os_mutex_pend(&common_hdl->mutex, 0);
         list_for_each_entry(tmp, &common_hdl->head, entry) {
             if (tmp->name == name) {
-                anc_free(bulk);
+                free(bulk);
                 goto __exit;
             }
         }
@@ -260,6 +226,7 @@ __exit:
 *                  Audio ANC Output Callback
 * Description: 删除ANC DMA输出回调函数
 * Arguments  : name		回调名称
+*			   output  	dma输出回调
 * Return	 : None.
 * Note(s)    : 对应功能关闭的时候，对应的回调也要同步删除，防止内存释
 *              放出现非法访问情况
@@ -268,29 +235,20 @@ __exit:
 int audio_afq_common_del_output_handler(const char *name)
 {
     struct audio_afq_bulk *bulk;
-    u8 pend = 1;
-    //表示在afq_output时删除掉线程，不需要pend
-    if (strcmp(os_current_task(), "afq_common") == 0) {
-        pend = 0;
-    }
+
     if (common_hdl) {
-        if (pend) {
-            os_mutex_pend(&common_hdl->mutex, 0);
-        }
+        os_mutex_pend(&common_hdl->mutex, 0);
         list_for_each_entry(bulk, &common_hdl->head, entry) {
             if (!strcmp(bulk->name, name)) {
                 list_del(&bulk->entry);
-                anc_free(bulk);
-                common_log("afq_common_del %s, fre_use %d\n", name, common_hdl->fre_use_cnt);
+                free(bulk);
                 if (!(--common_hdl->fre_use_cnt)) {
                     audio_afq_common_close();
                 }
                 break;
             }
         }
-        if (pend) {
-            os_mutex_post(&common_hdl->mutex);
-        }
+        os_mutex_post(&common_hdl->mutex);
     }
     return 0;
 }

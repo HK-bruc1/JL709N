@@ -66,13 +66,6 @@ c_SRC_FILES := \
 	apps/earphone/mode/bt/earphone.c \
 	apps/earphone/mode/bt/eartch_event_deal.c \
 	apps/earphone/mode/bt/kws_voice_event_deal.c \
-	apps/earphone/mode/bt/le_audio/big/app_le_auracast.c \
-	apps/earphone/mode/bt/le_audio/big/le_broadcast.c \
-	apps/earphone/mode/bt/le_audio/big/le_broadcast_config.c \
-	apps/earphone/mode/bt/le_audio/cig/app_le_connected.c \
-	apps/earphone/mode/bt/le_audio/cig/le_connected.c \
-	apps/earphone/mode/bt/le_audio/cig/le_connected_config.c \
-	apps/earphone/mode/bt/le_audio/le_audio_common.c \
 	apps/earphone/mode/bt/low_latency.c \
 	apps/earphone/mode/bt/phone_call.c \
 	apps/earphone/mode/bt/poweroff.c \
@@ -247,6 +240,7 @@ LFLAGS := \
 	cpu/br52/liba/lib_jla_codec.a \
 	cpu/br52/liba/lib_lc3_codec.a \
 	cpu/br52/liba/lib_jl_codec_common.a \
+	cpu/br52/liba/lib_jla_v2_codec.a \
 	cpu/br52/liba/lib_ccm_cipher.a \
 	cpu/br52/liba/lib_noisegate_pro.a \
 	cpu/br52/liba/lib_PcmDelay.a \
