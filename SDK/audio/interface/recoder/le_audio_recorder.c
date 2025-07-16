@@ -15,7 +15,7 @@
 #include "audio_config_def.h"
 #include "audio_config.h"
 #include "media/sync/audio_syncts.h"
-#include "asm/dac.h"
+#include "audio_dac.h"
 #include "audio_cvp.h"
 #include "app_config.h"
 #if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
@@ -92,7 +92,6 @@ int le_audio_mic_recorder_open(void *params, void *le_audio, int latency)
     jlstream_node_ioctl(g_mic_recorder->stream, NODE_UUID_LE_AUDIO_SOURCE, NODE_IOC_SET_BTADDR, (int)le_audio);
     //设置中断点数
     /* jlstream_node_ioctl(g_mic_recorder->stream, NODE_UUID_SOURCE, NODE_IOC_SET_PRIV_FMT, AUDIO_ADC_IRQ_POINTS); */
-    jlstream_node_ioctl(g_mic_recorder->stream, NODE_UUID_VOCAL_TRACK_SYNTHESIS, NODE_IOC_SET_PRIV_FMT, AUDIO_ADC_IRQ_POINTS);//四声道时，指定声道合并单个声道的点数
 
     u16 node_uuid = get_cvp_node_uuid();
     if (node_uuid) {

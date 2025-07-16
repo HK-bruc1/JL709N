@@ -151,7 +151,7 @@ static int default_rx_le_audio_open(void *rx_audio, void *args)
 
     //打开广播音频播放
     struct le_audio_stream_params *params = (struct le_audio_stream_params *)args;
-    rx_audio_hdl->le_audio = le_audio_stream_create(params->conn, &params->fmt, params->reference_time);
+    rx_audio_hdl->le_audio = le_audio_stream_create(params->conn, &params->fmt);
     rx_audio_hdl->rx_stream = le_audio_stream_rx_open(rx_audio_hdl->le_audio, params->fmt.coding_type);
     err = le_audio_player_open(rx_audio_hdl->le_audio, params);
     if (err != 0) {
@@ -199,7 +199,7 @@ static void *default_tx_le_audio_open(void *args)
         /* update_app_broadcast_deal_scene(BROADCAST_MUSIC_START); */
         //打开广播音频播放
         struct le_audio_stream_params *params = (struct le_audio_stream_params *)args;
-        le_audio = le_audio_stream_create(params->conn, &params->fmt, params->reference_time);
+        le_audio = le_audio_stream_create(params->conn, &params->fmt);
         err = le_audio_mic_recorder_open(params, le_audio, params->latency);
         if (err != 0) {
             ASSERT(0, "recorder open fail");

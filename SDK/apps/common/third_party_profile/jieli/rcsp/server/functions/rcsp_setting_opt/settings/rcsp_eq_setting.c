@@ -11,7 +11,7 @@
 #include "rcsp_setting_sync.h"
 #include "rcsp_setting_opt.h"
 
-#if (TCFG_EQ_ENABLE && RCSP_MODE && RCSP_ADV_EQ_SET_ENABLE)
+#if (RCSP_MODE && TCFG_EQ_ENABLE && RCSP_ADV_EQ_SET_ENABLE)
 
 #if RCSP_MODE == RCSP_MODE_EARPHONE
 #include "media/effects/audio_eq.h"
@@ -20,7 +20,8 @@
 #ifndef CONFIG_MEDIA_NEW_ENABLE
 #include "media/eq_config.h"
 #else
-#include "audio_eq.h"
+#include "effects/audio_eq.h"
+#include "effects/eq_config.h"
 #endif
 #endif
 

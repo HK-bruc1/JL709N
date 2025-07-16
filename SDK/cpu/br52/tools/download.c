@@ -16,8 +16,7 @@ ${OBJCOPY} -O binary -j .overlay_aac $1.elf aac.bin
 ${OBJCOPY} -O binary -j .dlog_data $1.elf dlog.bin
 
 ${OBJDUMP} -section-headers -address-mask=0x7ffffff $1.elf > segment_list.txt
-${OBJSIZEDUMP} -lite -skip-zero -enable-dbg-info $1.elf | sort -k 1 >  symbol_tbl.txt
-
+${OBJSIZEDUMP} -lite -skip-zero -enable-dbg-info $1.elf | grep -vw "\.dlog_data" | sort -k 1 >  symbol_tbl.txt
 
 /opt/utils/report_segment_usage --sdk_path ${ROOT} \
 --tbl_file symbol_tbl.txt \

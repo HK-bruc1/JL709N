@@ -10,7 +10,7 @@
 #include "gSensor/gSensor_manage.h"
 #include "imuSensor_manage.h"
 #include "iic_api.h"
-#include "asm/audio_adc.h"
+#include "audio_adc.h"
 #include "eartouch_manage.h"
 #include "iokey_config.h"
 #include "adkey_config.h"
@@ -224,9 +224,6 @@ LPCTMU_PLATFORM_DATA_END();
 LP_TOUCH_KEY_PLATFORM_DATA_BEGIN(lp_touch_key_pdata)
     .slide_mode_en              = TCFG_LP_KEY_SLIDE_ENABLE,
     .slide_mode_key_value       = TCFG_LP_KEY_SLIDE_VALUE,
-    .eartch_en                  = TCFG_LP_EARTCH_KEY_ENABLE,
-    .eartch_ch                  = TCFG_LP_EARTCH_DETECT_CH,
-    .eartch_ref_ch              = TCFG_LP_EARTCH_REF_CH,
     .charge_mode_keep_touch     = TCFG_LP_KEY_ENABLE_IN_CHARGE,
 #if TCFG_LP_KEY_LONG_PRESS_RESET
     .long_press_reset_time      = TCFG_LP_KEY_LONG_PRESS_RESET_TIME,
@@ -239,12 +236,12 @@ LP_TOUCH_KEY_PLATFORM_DATA_BEGIN(lp_touch_key_pdata)
 LP_TOUCH_KEY_PLATFORM_DATA_END();
 #endif
 
-
+__INITCALL_BANK_CODE
 void board_init()
 {
     board_power_init();
 
-    adc_init();
+    gpadc_init();
 
 #if TCFG_BATTERY_CURVE_ENABLE
     vbat_curve_init(g_battery_curve_table, ARRAY_SIZE(g_battery_curve_table));
@@ -260,6 +257,7 @@ void board_init()
 }
 
 #if TCFG_LP_TOUCH_KEY_ENABLE
+__INITCALL_BANK_CODE
 static int touch_key_init(void)
 {
     lp_touch_key_init(&lp_touch_key_pdata);

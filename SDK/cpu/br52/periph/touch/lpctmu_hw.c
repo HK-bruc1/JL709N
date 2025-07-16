@@ -167,14 +167,17 @@ u32 lpctmu_get_ana_cur_level(u32 ch)
     return level;
 }
 
-void lpctmu_isel_trim(u8 ch)
+void lpctmu_isel_trim(u32 ch)
 {
     SFR(P11_LPCTM0->ANA1, 4, 4, ch + 1);//使能对应通道
 
     u32 diff, diff_min = -1;
-    u8 aim_cur_level;
+    u32 aim_cur_level;
+
     if (__this->pdata->aim_charge_khz < 8) {
         aim_cur_level = __this->pdata->aim_charge_khz;
+    } else if (__this->ch_fixed_isel[ch]) {
+        aim_cur_level = __this->ch_fixed_isel[ch];
     } else {
         for (u8 cur_level = 0; cur_level < 8; cur_level ++) {
             SFR(P11_LPCTM0->ANA0, 1, 3, cur_level);
@@ -276,11 +279,6 @@ void lpctmu_init(struct lpctmu_config_data *cfg_data)
         lpctmu_port_init(__this->ch_list[ch_idx]);
     }
 
-    M2P_CTMU_CH_ENABLE = __this->ch_en;
-    M2P_CTMU_CH_WAKEUP_EN = __this->ch_wkp_en;
-    M2P_CTMU_SCAN_TIME = __this->pdata->sample_scan_time;
-    M2P_CTMU_LOWPOER_SCAN_TIME = __this->pdata->lowpower_sample_scan_time;
-
     if (!is_wakeup_source(PWR_WK_REASON_P11)) {
 
         lpctmu_lptimer_disable();
@@ -295,7 +293,7 @@ void lpctmu_init(struct lpctmu_config_data *cfg_data)
         //设置分频
         SFR(P11_LPCTM0->CLKC, 6, 1, 0); //divB = 1分频
         SFR(P11_LPCTM0->CLKC, 7, 1, 0); //divC = 1分频
-        SFR(P11_LPCTM0->CLKC, 3, 3, 2); //div  = 2^2 = 4分频
+        SFR(P11_LPCTM0->CLKC, 3, 3, 0); //div  = 2^0 = 1分频
         /**********************/
         //通道采集前的待稳定时间配置
         SFR(P11_LPCTM0->PPRD, 4, 4, 9);      //prp_prd = (9 + 1) * t 约等 50us > 10us
@@ -303,8 +301,8 @@ void lpctmu_init(struct lpctmu_config_data *cfg_data)
         SFR(P11_LPCTM0->PPRD, 0, 4, 9);      //stop_prd= (9 + 1) * t 约等 50us > 10us
 
         //每个通道采集的周期，常设几个毫秒
-        u8 det_prd = __this->pdata->sample_window_time * lpctmu_clk / 4 / 1000 - 1;
-        SFR(P11_LPCTM0->DPRD, 0, 8, det_prd);
+        u16 det_prd = __this->pdata->sample_window_time * lpctmu_clk / 1000 - 1;
+        SFR(P11_LPCTM0->DPRD, 0, 12, det_prd);
 
         SFR(P11_LPCTM0->CON0, 2, 1, 1);      //LPCTM WKUP en
         SFR(P11_LPCTM0->CON0, 4, 1, 1);      //模拟滤波使能

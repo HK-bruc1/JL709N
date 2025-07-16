@@ -686,4 +686,22 @@ u32 pwm_led_set_sync(struct pwm_led_status_t *status, u32 how_long_ago, u32 *syn
     return 0;
 }
 
+static enum LOW_POWER_LEVEL pwm_led_level_query()
+{
+    if (pwm_led_is_working()) {
+        return LOW_POWER_MODE_LIGHT_SLEEP;
+    }
 
+    return LOW_POWER_MODE_DEEP_SLEEP;
+}
+
+static u8 pwm_led_idle_query(void)
+{
+    return 1;
+}
+
+REGISTER_LP_TARGET(pwm_led_lp_target) = {
+    .name       = "pwm_led",
+    .level      = pwm_led_level_query,
+    .is_idle    = pwm_led_idle_query,
+};

@@ -14,10 +14,6 @@ extern const float fs_bypass;
 extern double bbbaa_bypass[1 * 5];
 
 //
-extern const float tg_cmp[];
-extern const float errweight[];
-extern const float ref_spl_thr[];
-extern const float err_spl_thr[];
 extern const u8 mem_list[];
 
 
@@ -49,6 +45,8 @@ extern const float left_sz_table[];
 extern const float right_pz_table[];
 extern const float right_sz_table[];
 
+extern const s16 cmp_fgq_table[];
+extern const s16 eq_fgq_table[];
 
 struct icsd_rtanc_tool_data {
     int h_len;//60
@@ -161,6 +159,14 @@ typedef struct {
 
     u8 high_fgq_fix;
     u8 de_alg_sel;
+
+    // 产测相关
+    u8 test_mode;
+    float *vrange_gold;
+    float *biquad_gold;
+    float *weight_gold;
+    float *mse_gold;
+    float *degree_set_gold;
 } adpt_anc_cfg;
 
 
@@ -221,5 +227,9 @@ enum {
 void anc_buffer_init(float *freq, float fs, float flen, __icsd_pnc_cmp *_pnc_cmp, struct icsd_ff_candidate_v2 *FF_CANDI_V2, struct icsd_De_param_v2 *DE_PARAM_V2, struct icsd_target_param *tar_param, adpt_anc_cfg *adpt_cfg);
 
 void icsd_anc_v2_sz_pz_cmp_calculate(struct sz_pz_cmp_cal_param *p);
+
+int icsd_anc_sz_select_from_memory(float *out_iir, float *sz, float *msc, int sz_points);
+
+void fgq_getfrom_table(s16 *fgq_table, u8 idx, float *fgq);
 
 #endif/*_SD_ANC_LIB_V2_H*/

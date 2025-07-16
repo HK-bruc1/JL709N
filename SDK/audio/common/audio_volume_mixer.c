@@ -35,6 +35,10 @@
 #include "volume_node.h"
 #include "tone_player.h"
 #include "ring_player.h"
+#include "audio_volume_mixer.h"
+#if AUDIO_EQ_LINK_VOLUME
+#include "effects/eq_config.h"
+#endif
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_AURACAST_SINK_EN | LE_AUDIO_JL_AURACAST_SINK_EN)))||((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_AURACAST_SOURCE_EN | LE_AUDIO_JL_AURACAST_SOURCE_EN)))||((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 #include "le_audio_player.h"
 #endif
@@ -111,6 +115,7 @@ struct app_audio_config {
     float dac_dB; //dac的增益值
 #endif
     u16 target_dig_vol;
+    u16(*hw_dvol_max)(void);
 };
 
 /*声音状态字符串定义*/
@@ -148,6 +153,7 @@ extern struct dac_platform_data dac_data;
  *************************************************************
  */
 
+#if (SYS_VOL_TYPE == VOL_TYPE_ANALOG)
 static void audio_fade_timer(void *priv)
 {
     u8 gain_l = dac_hdl.vol_l;
@@ -199,6 +205,7 @@ static int audio_fade_timer_add(u8 gain_l, u8 gain_r)
 
     return 0;
 }
+#endif
 
 
 #if (SYS_VOL_TYPE == VOL_TYPE_AD)
@@ -596,16 +603,15 @@ void audio_fade_in_fade_out(u8 left_vol, u8 right_vol)
     /* __this->digital_volume = __this->sys_hw_dvol_max; */
     /* } */
     printf("[SW_DVOL]Gain:%d,AVOL:%d,DVOL:%d\n", left_gain, __this->analog_volume_l, __this->digital_volume);
-    audio_dac_vol_set(TYPE_DAC_AGAIN, 0x1, __this->analog_volume_l, 1);
-    audio_dac_vol_set(TYPE_DAC_AGAIN, 0x2, __this->analog_volume_r, 1);
+    audio_dac_set_analog_vol(&dac_hdl, __this->analog_volume_r);
 #if defined(VOL_NOISE_OPTIMIZE) &&( VOL_NOISE_OPTIMIZE)
     if (__this->dac_dB) { //设置回目标数字音量
-        audio_dac_vol_set(TYPE_DAC_DGAIN, 0x3, __this->target_dig_vol, 1);
+        audio_dac_set_digital_vol(&dac_hdl, __this->target_dig_vol);
     } else {
 #else
     if (1) {
 #endif
-        audio_dac_vol_set(TYPE_DAC_DGAIN, 0x3, __this->digital_volume, 1);
+        audio_dac_set_digital_vol(&dac_hdl, __this->digital_volume);
     }
 #endif/*SYS_VOL_TYPE == VOL_TYPE_DIGITAL*/
     /*模拟音量*/
@@ -686,7 +692,7 @@ int audio_digital_vol_node_name_get(u8 dvol_idx, char *node_name)
     struct app_mode *mode;
     mode = app_get_current_mode();
     int i = 0;
-#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN | LE_AUDIO_AURACAST_SINK_EN)))
     if (le_audio_player_get_stream_scene() == STREAM_SCENE_LE_AUDIO) {
         sprintf(node_name, "%s%s", "LEA_", "Media");
         return 0;
@@ -787,7 +793,6 @@ int audio_digital_vol_update_parm(u8 dvol_idx, s32 param)
     return err;
 }
 
-extern struct volume_cfg default_vol_cfg;
 //获取当前模式music数据流节点的默认音量
 int audio_digital_vol_default_init(void)
 {
@@ -799,7 +804,7 @@ int audio_digital_vol_default_init(void)
         if (!ret) {
             ret = volume_ioc_get_cfg(vol_name, &cfg);
         } else {
-            cfg = default_vol_cfg;
+            cfg.cur_vol = 10;
         }
         app_var.music_volume = cfg.cur_vol;
     }
@@ -857,6 +862,17 @@ static void app_audio_set_vol_offset_timer_func(void *arg)
 void audio_app_volume_set(u8 state, s16 volume, u8 fade)
 {
     u8 dvol_idx = 0; //记录音量通道供数字音量控制使用
+
+
+
+#if (RCSP_MODE && RCSP_ADV_EQ_SET_ENABLE)
+    extern bool rcsp_set_volume(s8 volume);
+    if (rcsp_set_volume(volume)) {
+        return;
+    }
+#endif
+
+
     switch (state) {
     case APP_AUDIO_STATE_IDLE:
     case APP_AUDIO_STATE_MUSIC:
@@ -901,12 +917,11 @@ void audio_app_volume_set(u8 state, s16 volume, u8 fade)
             if (fade) {
                 audio_fade_in_fade_out(volume, volume);
             } else {
-                /* audio_dac_set_analog_vol(&dac_hdl, volume); */
-                audio_dac_ch_analog_gain_set(&dac_hdl, DAC_CH_FL, dac_hdl.pd->l_ana_gain);
-                audio_dac_ch_analog_gain_set(&dac_hdl, DAC_CH_FR, dac_hdl.pd->r_ana_gain);
+                audio_dac_ch_analog_gain_set(DAC_CH_FL, dac_hdl.pd->l_ana_gain);
+                audio_dac_ch_analog_gain_set(DAC_CH_FR, dac_hdl.pd->r_ana_gain);
 #ifdef VOL_HW_RL_RR_EN
-                audio_dac_ch_analog_gain_set(&dac_hdl, DAC_CH_RL, dac_hdl.pd->rl_ana_gain);
-                audio_dac_ch_analog_gain_set(&dac_hdl, DAC_CH_RR, dac_hdl.pd->rr_ana_gain);
+                audio_dac_ch_analog_gain_set(DAC_CH_RL, dac_hdl.pd->rl_ana_gain);
+                audio_dac_ch_analog_gain_set(DAC_CH_RR, dac_hdl.pd->rr_ana_gain);
 #endif
             }
         }
@@ -1234,14 +1249,8 @@ static const u16 phone_call_dig_vol_tab[] = {
 * Note(s)    : None.
 *********************************************************************
 */
-void app_audio_init_dig_vol(u8 state, s16 volume, u8 fade, dvol_handle *dvol_hdl)
+static void app_audio_init_dig_vol(u8 state, s16 volume, u8 fade, dvol_handle *dvol_hdl)
 {
-#if (RCSP_MODE && RCSP_ADV_EQ_SET_ENABLE)
-    extern bool rcsp_set_volume(s8 volume);
-    if (rcsp_set_volume(volume)) {
-        return;
-    }
-#endif
     switch (state) {
     case APP_AUDIO_STATE_IDLE:
     case APP_AUDIO_STATE_MUSIC:
@@ -1310,7 +1319,13 @@ void app_audio_state_switch(u8 state, s16 max_volume, dvol_handle *dvol_hdl)
 #if ((TCFG_AUDIO_ANC_ENABLE) && (defined ANC_MODE_DIG_VOL_LIMIT))
     dB_value = (dB_value > ANC_MODE_DIG_VOL_LIMIT) ? ANC_MODE_DIG_VOL_LIMIT : dB_value;
 #endif/*TCFG_AUDIO_ANC_ENABLE*/
-    u16 dvol_max = (u16)(16384.0f * dB_Convert_Mag(dB_value));
+
+    u16 dvol_full_max = 16384;
+    if (__this->hw_dvol_max) {
+        dvol_full_max = __this->hw_dvol_max();
+    }
+    u16 dvol_max = (u16)(dvol_full_max * dB_Convert_Mag(dB_value));
+    printf("dvol_max:%d\n", dvol_max);
 
     /*记录当前状态对应的最大音量*/
     __this->max_volume[state] = max_volume;
@@ -1319,6 +1334,9 @@ void app_audio_state_switch(u8 state, s16 max_volume, dvol_handle *dvol_hdl)
     __this->digital_volume = dvol_max;
 
     int cur_vol = app_audio_get_volume(state) * scale / 100 ;
+    if (!cur_vol && app_audio_get_volume(state)) {
+        cur_vol = 1; //处理某些音量等级多，音量低的场景切换到音量等级少的场景，会出现音量设置为0的情况
+    }
     cur_vol = (cur_vol > __this->max_volume[state]) ? __this->max_volume[state] : cur_vol;
     app_audio_init_dig_vol(state, cur_vol, 1, dvol_hdl);
 }
@@ -1439,8 +1457,8 @@ int esco_dec_dac_gain_get(void)
 {
     /* if (esco_player_runing()) { */
 #if (SYS_VOL_TYPE == VOL_TYPE_ANALOG)
-    int l_gain = audio_dac_ch_analog_gain_get(&dac_hdl, DAC_CH(0));
-    int r_gain = audio_dac_ch_analog_gain_get(&dac_hdl, DAC_CH(1));
+    int l_gain = audio_dac_ch_analog_gain_get(DAC_CH_FL);
+    int r_gain = audio_dac_ch_analog_gain_get(DAC_CH_FR);
     return l_gain > r_gain ? l_gain : r_gain;
 #else
     return app_audio_get_volume(APP_AUDIO_STATE_CALL);
@@ -1543,6 +1561,11 @@ void app_audio_set_volume(u8 state, s16 volume, u8 fade)
         vbass_link_volume();
     }
 #endif
+#if AUDIO_EQ_LINK_VOLUME
+    if (state == APP_AUDIO_STATE_MUSIC) {
+        eq_link_volume();
+    }
+#endif
 }
 
 void app_audio_change_volume(u8 state, s16 volume)
@@ -1592,3 +1615,8 @@ s16 app_audio_volume_max_query(audio_vol_index_t index)
     }
 }
 
+void audio_volume_mixer_init(struct volume_mixer *param)
+{
+    //printf("audio_volume_mixer_init");
+    __this->hw_dvol_max = param->hw_dvol_max;
+}

@@ -70,14 +70,14 @@
   __os_taskq_pend = ABSOLUTE(0xffe14);
   os_sem_create = ABSOLUTE(0xffe18);
   os_sem_del = ABSOLUTE(0xffe1c);
-  os_sem_pend = ABSOLUTE(0xffe20);
+  rom_os_sem_pend = ABSOLUTE(0xffe20);
   os_sem_post = ABSOLUTE(0xffe24);
   os_sem_set = ABSOLUTE(0xffe28);
   os_sem_query = ABSOLUTE(0xffe2c);
   os_sem_valid = ABSOLUTE(0xffe30);
   os_mutex_create = ABSOLUTE(0xffe34);
   os_mutex_del = ABSOLUTE(0xffe38);
-  os_mutex_pend = ABSOLUTE(0xffe3c);
+  rom_os_mutex_pend = ABSOLUTE(0xffe3c);
   os_mutex_post = ABSOLUTE(0xffe40);
   os_mutex_valid = ABSOLUTE(0xffe44);
   os_q_create = ABSOLUTE(0xffe48);

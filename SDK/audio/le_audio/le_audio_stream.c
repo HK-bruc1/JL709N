@@ -14,12 +14,11 @@
 #include "circular_buf.h"
 #include "system/timer.h"
 #include "app_config.h"
+#include "audio_time.h"
 
 #if LE_AUDIO_STREAM_ENABLE
 
 #define LE_AUDIO_TX_TEST        0
-
-#define LE_AUDIO_RX_BUF_MIN_SIZE    (2 * 1024) /*提供一个最小缓冲值，用于兼容小帧长的缓冲*/
 
 struct le_audio_stream_buf {
     void *addr;
@@ -36,7 +35,7 @@ struct le_audio_tx_stream {
 
 #if LE_AUDIO_TX_TEST
     u16 test_timer;
-    int sdu_period_len;
+    int isoIntervalUs_len;
     void *test_buf;
 #endif
 };
@@ -44,7 +43,7 @@ struct le_audio_tx_stream {
 struct le_audio_rx_stream {
     struct le_audio_stream_buf buf;
     struct list_head frames;
-    int sdu_period_len;
+    int isoIntervalUs_len;
     int frames_len;
     int frames_max_size;
     u32 coding_type;
@@ -55,7 +54,7 @@ struct le_audio_rx_stream {
 };
 
 struct le_audio_stream_context {
-    void *conn;
+    u16 conn;
     struct le_audio_stream_format fmt;
     struct le_audio_tx_stream *tx_stream;
     struct le_audio_rx_stream *rx_stream;
@@ -64,21 +63,21 @@ struct le_audio_stream_context {
     int (*tx_tick_handler)(void *priv, int period, u32 timestamp);
     void *rx_tick_priv;
     void (*rx_tick_handler)(void *priv);
-    u32(*time_handler)(void *conn, u8 cmd, void *arg);
 };
 
 extern int bt_audio_reference_clock_select(void *addr, u8 network);
-void *le_audio_stream_create(void *conn, struct le_audio_stream_format *fmt, u32(*reference_time)(void *, u8, void *))
+extern u32 bb_le_clk_get_time_us(void);
+extern void ll_config_ctrler_clk(uint16_t handle, uint8_t sel);
+void *le_audio_stream_create(u16 conn, struct le_audio_stream_format *fmt)
 {
     struct le_audio_stream_context *ctx = (struct le_audio_stream_context *)zalloc(sizeof(struct le_audio_stream_context));
 
     memcpy(&ctx->fmt, fmt, sizeof(ctx->fmt));
 
     printf("[le audio stream : %d, %d, 0x%x, %d, %d, %d]\n", ctx->fmt.nch, ctx->fmt.bit_rate, ctx->fmt.coding_type,
-           ctx->fmt.frame_dms, ctx->fmt.sdu_period, ctx->fmt.sample_rate);
+           ctx->fmt.frame_dms, ctx->fmt.isoIntervalUs, ctx->fmt.sample_rate);
     spin_lock_init(&ctx->lock);
     ctx->conn = conn;
-    ctx->time_handler = reference_time;
 
     return ctx;
 }
@@ -97,43 +96,13 @@ int le_audio_stream_clock_select(void *le_audio)
     struct le_audio_stream_context *ctx = (struct le_audio_stream_context *)le_audio;
 
     bt_audio_reference_clock_select(NULL, 2);
-    if (ctx->time_handler) {
-        ctx->time_handler(ctx->conn, LE_AUDIO_SYNC_ENABLE, NULL);
-    }
+    ll_config_ctrler_clk((uint16_t)ctx->conn, 0); //蓝牙与同步关联 bis_hdl/cis_hdl
     return 0;
-}
-
-int le_audio_stream_get_latch_time(void *le_audio, u32 *time, u16 *us_1_12th, u32 *event)
-{
-    struct le_audio_stream_context *ctx = (struct le_audio_stream_context *)le_audio;
-
-    if (ctx->time_handler) {
-        struct le_audio_latch_time latch_time;
-        ctx->time_handler(ctx->conn, LE_AUDIO_GET_LATCH_TIME, (void *)&latch_time);
-        *time = latch_time.us;
-        *us_1_12th = latch_time.us_1_12th;
-        *event = latch_time.event;
-    }
-    return 0;
-}
-
-void le_audio_stream_latch_time_enable(void *le_audio)
-{
-    struct le_audio_stream_context *ctx = (struct le_audio_stream_context *)le_audio;
-
-    if (ctx->time_handler) {
-        ctx->time_handler(ctx->conn, LE_AUDIO_LATCH_ENABLE, NULL);
-    }
 }
 
 u32 le_audio_stream_current_time(void *le_audio)
 {
-    struct le_audio_stream_context *ctx = (struct le_audio_stream_context *)le_audio;
-
-    if (ctx->time_handler) {
-        return ctx->time_handler(ctx->conn, LE_AUDIO_CURRENT_TIME, NULL);
-    }
-    return (u32) - 1;
+    return bb_le_clk_get_time_us();
 }
 
 static int __le_audio_stream_tx_data_handler(void *stream, void *data, int len, u32 timestamp)
@@ -142,6 +111,8 @@ static int __le_audio_stream_tx_data_handler(void *stream, void *data, int len, 
     struct le_audio_stream_context *ctx = (struct le_audio_stream_context *)tx_stream->parent;
     u32 rlen = 0;
     u32 read_alloc_len = 0;
+    struct le_audio_rx_stream *rx_stream = ctx->rx_stream;
+
 
     /*putchar('A');*/
     rlen = cbuf_read(&tx_stream->buf.cbuf, data, len);
@@ -151,7 +122,7 @@ static int __le_audio_stream_tx_data_handler(void *stream, void *data, int len, 
     }
 
     if (ctx->tx_tick_handler) {
-        ctx->tx_tick_handler(ctx->tx_tick_priv, ctx->fmt.sdu_period, timestamp);
+        ctx->tx_tick_handler(ctx->tx_tick_priv, ctx->fmt.isoIntervalUs, timestamp);
     }
 
     if (tx_stream->tick_handler) {
@@ -159,18 +130,21 @@ static int __le_audio_stream_tx_data_handler(void *stream, void *data, int len, 
     }
 
     /*putchar('B');*/
-    if (ctx->rx_stream) {
-        struct le_audio_rx_stream *rx_stream = ctx->rx_stream;
-        if (cbuf_get_data_len(&rx_stream->buf.cbuf) < rx_stream->sdu_period_len) {
-            printf("--tick tx2rx sync : no data--\n");
-        }
+    if (rx_stream) {
+        spin_lock(&ctx->lock);
         void *addr = cbuf_read_alloc(&rx_stream->buf.cbuf, &read_alloc_len);
+        if (read_alloc_len < rx_stream->isoIntervalUs_len) {
+            printf("local not align to tx.\n");
+            spin_unlock(&ctx->lock);
+            return rlen;
+        }
         if (tx_stream->coding_type == AUDIO_CODING_LC3 && rx_stream->coding_type == AUDIO_CODING_PCM) {
             timestamp = (timestamp + (ctx->fmt.frame_dms == 75 ? 4000L : 2500L)) & 0xfffffff;
         }
-        le_audio_stream_rx_frame(rx_stream, addr, rx_stream->sdu_period_len, timestamp);
-        cbuf_read_updata(&rx_stream->buf.cbuf, rx_stream->sdu_period_len);
-        /*printf("-%d-\n", rx_stream->sdu_period_len);*/
+        le_audio_stream_rx_frame(rx_stream, addr, rx_stream->isoIntervalUs_len, timestamp);
+        cbuf_read_updata(&rx_stream->buf.cbuf, rx_stream->isoIntervalUs_len);
+        spin_unlock(&ctx->lock);
+        /*printf("-%d-\n", rx_stream->isoIntervalUs_len);*/
     }
 
     return rlen;
@@ -197,7 +171,7 @@ static void le_audio_tx_test_timer(void *stream)
 {
     struct le_audio_tx_stream *tx_stream = (struct le_audio_tx_stream *)stream;
 
-    __le_audio_stream_tx_data_handler(tx_stream, tx_stream->test_buf, tx_stream->sdu_period_len, 0x12345678);
+    __le_audio_stream_tx_data_handler(tx_stream, tx_stream->test_buf, tx_stream->isoIntervalUs_len, 0x12345678);
 }
 #endif
 
@@ -233,8 +207,8 @@ void *le_audio_stream_tx_open(void *le_audio, int coding_type, void *priv, int (
         //TODO : 其他格式的buffer设置
     }
 
-    int sdu_period_len = (ctx->fmt.sdu_period / 100 / ctx->fmt.frame_dms) * frame_size;
-    tx_stream->buf.size = sdu_period_len * 8;
+    int isoIntervalUs_len = (ctx->fmt.isoIntervalUs / 100 / ctx->fmt.frame_dms) * frame_size;
+    tx_stream->buf.size = isoIntervalUs_len * 8;
     tx_stream->buf.addr = malloc(tx_stream->buf.size);
     printf("tx stream buffer : 0x%x, %d\n", (u32)tx_stream->buf.addr, tx_stream->buf.size);
     cbuf_init(&tx_stream->buf.cbuf, tx_stream->buf.addr, tx_stream->buf.size);
@@ -246,9 +220,9 @@ void *le_audio_stream_tx_open(void *le_audio, int coding_type, void *priv, int (
     ctx->tx_stream = tx_stream;
 
 #if LE_AUDIO_TX_TEST
-    tx_stream->test_timer = sys_hi_timer_add(tx_stream, le_audio_tx_test_timer, ctx->fmt.sdu_period / 1000);
-    tx_stream->test_buf = malloc(sdu_period_len);
-    tx_stream->sdu_period_len = sdu_period_len;
+    tx_stream->test_timer = sys_hi_timer_add(tx_stream, le_audio_tx_test_timer, ctx->fmt.isoIntervalUs / 1000);
+    tx_stream->test_buf = malloc(isoIntervalUs_len);
+    tx_stream->isoIntervalUs_len = isoIntervalUs_len;
 #else
     /* le_audio_set_tx_data_handler(ctx->conn, tx_stream, le_audio_stream_tx_data_handler); */
 #endif
@@ -326,12 +300,9 @@ void *le_audio_stream_rx_open(void *le_audio, int coding_type)
     int iso_interval_len = (ctx->fmt.isoIntervalUs / 100 / ctx->fmt.frame_dms) * frame_size;
     /*如果存在flush timeout，那么缓冲需要大于flush timeout的数量*/
     rx_stream->frames_max_size = iso_interval_len * (ctx->fmt.flush_timeout ? (ctx->fmt.flush_timeout + 5) : 10);
-    if (rx_stream->frames_max_size < LE_AUDIO_RX_BUF_MIN_SIZE) {
-        rx_stream->frames_max_size = LE_AUDIO_RX_BUF_MIN_SIZE;
-    }
     rx_stream->buf.size = rx_stream->frames_max_size;
     rx_stream->buf.addr = malloc(rx_stream->frames_max_size);
-    rx_stream->sdu_period_len = iso_interval_len;
+    rx_stream->isoIntervalUs_len = iso_interval_len;
     cbuf_init(&rx_stream->buf.cbuf, rx_stream->buf.addr, rx_stream->buf.size);
     rx_stream->parent = ctx;
     rx_stream->coding_type = coding_type;
@@ -440,15 +411,11 @@ int le_audio_stream_rx_frame(void *stream, void *data, int len, u32 timestamp)
 
     if (rx_stream->frames_len + len > rx_stream->frames_max_size) {
         /*printf("frame no buffer.\n");*/
-        spin_lock(&ctx->lock);
-        if (!list_empty(&rx_stream->frames)) {
-            frame = list_first_entry(&rx_stream->frames, struct le_audio_frame, entry);
-            list_del(&frame->entry);
-            rx_stream->frames_len -= frame->len;
-            free(frame);
-        }
-        spin_unlock(&ctx->lock);
         putchar('H');
+        if (ctx->rx_tick_handler) {
+            ctx->rx_tick_handler(ctx->rx_tick_priv);
+        }
+        return 0;
     }
     frame = malloc(sizeof(struct le_audio_frame) + len);
     if (!frame) {
@@ -478,7 +445,7 @@ static int le_audio_stream_rx_fill_frame(struct le_audio_rx_stream *rx_stream)
         rx_stream->timestamp = (rx_stream->timestamp + ctx->fmt.sdu_period) & 0xfffffff;
         u8 jla_err_frame[2] = {0x02, 0x00};
         u8 err_packet[10] = {0};
-        u8 frame_num = ctx->fmt.sdu_period / 100 / ctx->fmt.frame_dms;
+        u8 frame_num = ctx->fmt.isoIntervalUs / 100 / ctx->fmt.frame_dms;
         for (int i = 0; i < frame_num; i++) {
             memcpy(&err_packet[i * 2], jla_err_frame, 2);
         }
@@ -539,7 +506,7 @@ int le_audio_stream_get_frame_num(void *le_audio)
         return 0;
     }
 
-    return rx_stream->frames_len / rx_stream->sdu_period_len;
+    return rx_stream->frames_len / rx_stream->isoIntervalUs_len;
 }
 
 void le_audio_stream_free_frame(void *le_audio, struct le_audio_frame *frame)

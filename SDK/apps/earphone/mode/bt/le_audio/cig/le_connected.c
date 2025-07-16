@@ -35,7 +35,6 @@
 #define LOG_CLI_ENABLE
 #include "debug.h"
 
-
 /*! \brief CIS丢包修复 */
 #define CIS_AUDIO_PLC_ENABLE    1
 
@@ -57,6 +56,8 @@ typedef struct {
     u16 cis_hdl;								// cis连接句柄
     u16 acl_hdl;								// acl连接句柄
     u8 flush_timeout;
+    u16 BN_C_To_P;								// 一个iso interval里面有多少个包
+    u16 BN_P_To_C;								// 一个iso interval里面有多少个包
     u32 isoIntervalUs;
     void *recorder;								// 编码器
     struct connected_rx_audio_hdl rx_player;	// 解码器
@@ -184,43 +185,6 @@ __again:
     return hdl;
 }
 
-static u32 connected_audio_reference_time(void *priv, u8 cmd, void *arg)
-{
-    struct connected_hdl *connected = (struct connected_hdl *)priv;
-    u32 time = 0;
-    u8 i = 0;
-    u8 cis_num = 1;
-    u32 cis_hdl = 0;
-
-    for (i = 0; i < cis_num; i++) {
-        if (connected->cis_hdl_info[i].cis_hdl) {
-            cis_hdl = connected->cis_hdl_info[i].cis_hdl;
-            break;
-        }
-    }
-
-    switch (cmd) {
-    case LE_AUDIO_SYNC_ENABLE:
-        wireless_trans_audio_sync_enable(connected->role_name, (void *)cis_hdl, 0);
-        break;
-    case LE_AUDIO_CURRENT_TIME:
-        wireless_trans_get_cur_clk(connected->role_name, (void *)&time);
-        return time;
-    case LE_AUDIO_LATCH_ENABLE:
-        wireless_trans_trigger_latch_time(connected->role_name, (void *)cis_hdl);
-        break;
-    case LE_AUDIO_GET_LATCH_TIME:
-        wireless_trans_get_latch_time_us(connected->role_name,
-                                         &((struct le_audio_latch_time *)arg)->us_1_12th,
-                                         &((struct le_audio_latch_time *)arg)->us,
-                                         &((struct le_audio_latch_time *)arg)->event,
-                                         (void *)cis_hdl);
-        break;
-    }
-
-    return 0;
-}
-
 /* --------------------------------------------------------------------------*/
 /**
  * @brief 初始化CIG所需的参数及流程
@@ -300,7 +264,7 @@ int connected_perip_connect_deal(void *priv)
 
 
     r_printf("connected_perip_connect_deal");
-    log_info("hdl->cig_hdl:%d, hdl->cis_hdl:%dMax_PDU_C_To_P:%d,Max_PDU_P_To_C:%d,", hdl->cig_hdl, hdl->cis_hdl, hdl->Max_PDU_C_To_P, hdl->Max_PDU_P_To_C);
+    log_info("hdl->cig_hdl:%d, hdl->cis_hdl:%dMax_PDU_C_To_P:%d,Max_PDU_P_To_C:%d,BN_C_To_P:%d,BN_P_To_C:%d\n", hdl->cig_hdl, hdl->cis_hdl, hdl->Max_PDU_C_To_P, hdl->Max_PDU_P_To_C, hdl->BN_C_To_P, hdl->BN_P_To_C);
 
     //真正连上设备后，清除BIT(7)，使外部跑转发流程
     connected_role &= ~BIT(7);
@@ -349,9 +313,8 @@ int connected_perip_connect_deal(void *priv)
 
     log_info("hdl->flush_timeout:%d, hdl->isoIntervalUs:%d", hdl->flush_timeout_C_to_P, hdl->isoIntervalUs);
 
-    params.reference_time = connected_audio_reference_time;
     params.latency = 50 * 1000;//tx延时暂时先设置 50ms
-    params.conn = connected_hdl;
+    params.conn = hdl->cis_hdl;//使用当前路的cis_hdl
     if (get_le_audio_jl_dongle_device_type()) {
         params.service_type = LEA_SERVICE_MEDIA;
     } else {
@@ -364,6 +327,8 @@ int connected_perip_connect_deal(void *priv)
     connected_hdl->cis_hdl_info[index].cis_hdl = hdl->cis_hdl;
     connected_hdl->cis_hdl_info[index].flush_timeout = hdl->flush_timeout_C_to_P;
     connected_hdl->cis_hdl_info[index].isoIntervalUs = hdl->isoIntervalUs;
+    connected_hdl->cis_hdl_info[index].BN_C_To_P = hdl->BN_C_To_P;
+    connected_hdl->cis_hdl_info[index].BN_P_To_C = hdl->BN_P_To_C;
 
     printf("le_audio  fmt: %d %d %d %d %d %d\n", params.fmt.coding_type, params.fmt.frame_dms, params.fmt.bit_rate,
            params.fmt.sample_rate, params.fmt.sdu_period, params.fmt.nch);
@@ -435,15 +400,17 @@ void connected_perip_connect_recoder(u8 en, u16 acl_hdl)
         list_for_each_entry(p, &connected_list_head, entry) {
             for (i = 0; i < CIG_MAX_CIS_NUMS; i++) {
                 if (p->cis_hdl_info[i].acl_hdl == acl_hdl) {
-                    if (en) {
-                        params.fmt.flush_timeout = p->cis_hdl_info[i].flush_timeout;
-                        params.fmt.isoIntervalUs = p->cis_hdl_info[i].isoIntervalUs;
-                    }
+                    params.fmt.flush_timeout = p->cis_hdl_info[i].flush_timeout;
+                    params.fmt.isoIntervalUs = p->cis_hdl_info[i].isoIntervalUs;
                 }
             }
         }
         spin_unlock(&connected_lock);
         connected_mutex_post(&connected_mutex, __LINE__);
+        if (transmit_buf == NULL) {
+            transmit_buf = zalloc(get_cig_transmit_data_len());
+            ASSERT(transmit_buf, "transmit_buf is NULL");
+        }
         if (le_audio_switch_ops && le_audio_switch_ops->tx_le_audio_open) {
             recorder = le_audio_switch_ops->tx_le_audio_open(&params);
         }
@@ -454,10 +421,6 @@ void connected_perip_connect_recoder(u8 en, u16 acl_hdl)
         for (i = 0; i < CIG_MAX_CIS_NUMS; i++) {
             if (p->cis_hdl_info[i].acl_hdl == acl_hdl) {
                 if (en) {
-                    if (transmit_buf == NULL) {
-                        transmit_buf = zalloc(get_cig_transmit_data_len());
-                        ASSERT(transmit_buf, "transmit_buf is NULL");
-                    }
                     if (!p->cis_hdl_info[i].recorder) {
                         p->cis_hdl_info[i].recorder = recorder;
                     }
@@ -513,29 +476,30 @@ int connected_perip_disconnect_deal(void *priv)
     connected_mutex_pend(&connected_mutex, __LINE__);
     spin_lock(&connected_lock);
     list_for_each_entry(p, &connected_list_head, entry) {
-        if (p->cig_hdl == hdl->cig_hdl) {
-
-            for (i = 0; i < CIG_MAX_CIS_NUMS; i++) {
-                if (p->cis_hdl_info[i].cis_hdl == hdl->cis_hdl) {
-                    p->cis_hdl_info[i].cis_hdl = 0xff;
-                    if (p->cis_hdl_info[i].recorder) {
-                        recorder = p->cis_hdl_info[i].recorder;
-                        p->cis_hdl_info[i].recorder = NULL;
-                    }
-
-                    if (p->cis_hdl_info[i].rx_player.le_audio) {
-                        player.le_audio = p->cis_hdl_info[i].rx_player.le_audio;
-                        p->cis_hdl_info[i].rx_player.le_audio = NULL;
-                    }
-
-                    if (p->cis_hdl_info[i].rx_player.rx_stream) {
-                        player.rx_stream = p->cis_hdl_info[i].rx_player.rx_stream;
-                        p->cis_hdl_info[i].rx_player.rx_stream = NULL;
-                    }
-                    index = i;
-                } else if (p->cis_hdl_info[i].cis_hdl) {
-                    cis_connected_num++;
+        /* log_info("%s, cig_hdl:%x  %x", __FUNCTION__, hdl->cig_hdl, p->cig_hdl); */
+        if (p && (p->cig_hdl == hdl->cig_hdl)) {
+            for (i = 0; i < 1; i++) {
+                /* log_info("%s, cis_hdl:%x  %x", __FUNCTION__, p->cis_hdl_info[i].cis_hdl,  hdl->cis_hdl); */
+                //if (p->cis_hdl_info[i].cis_hdl == hdl->cis_hdl) {
+                p->cis_hdl_info[i].cis_hdl = 0xff;
+                if (p->cis_hdl_info[i].recorder) {
+                    recorder = p->cis_hdl_info[i].recorder;
+                    p->cis_hdl_info[i].recorder = NULL;
                 }
+
+                if (p->cis_hdl_info[i].rx_player.le_audio) {
+                    player.le_audio = p->cis_hdl_info[i].rx_player.le_audio;
+                    p->cis_hdl_info[i].rx_player.le_audio = NULL;
+                }
+
+                if (p->cis_hdl_info[i].rx_player.rx_stream) {
+                    player.rx_stream = p->cis_hdl_info[i].rx_player.rx_stream;
+                    p->cis_hdl_info[i].rx_player.rx_stream = NULL;
+                }
+                index = i;
+                //} else if (p->cis_hdl_info[i].cis_hdl) {
+                //    cis_connected_num++;
+                // }
             }
 
             spin_unlock(&connected_lock);
@@ -558,7 +522,7 @@ int connected_perip_disconnect_deal(void *priv)
             memset(&p->cis_hdl_info[index], 0, sizeof(cis_hdl_info_t));
 
             connected_hdl = p;
-            break;
+            //break;
         }
     }
     spin_unlock(&connected_lock);
@@ -598,9 +562,9 @@ static int connected_tx_align_data_handler(u8 cig_hdl)
 {
     struct connected_hdl *connected_hdl = 0;
     cis_hdl_info_t *cis_hdl_info;
-    u32 timestamp;
+    u32 timestamp = 0;
     cis_txsync_t txsync;
-    int rlen = 0, i, j;
+    int rlen = 0, i, j, k;
     int err;
     u8 capture_send_update = 0;
     u8 packet_num;
@@ -621,7 +585,9 @@ static int connected_tx_align_data_handler(u8 cig_hdl)
 
         for (i = 0; i < CIG_MAX_CIS_NUMS; i++) {
             cis_hdl_info = &connected_hdl->cis_hdl_info[i];
-            if (connected_hdl->cis_hdl_info[i].cis_hdl) {
+
+            /* printf("c:%d, i:%d, bn:%d\n", cis_hdl_info->cis_hdl, i, cis_hdl_info->BN_P_To_C); */
+            if (cis_hdl_info->cis_hdl && cis_hdl_info->BN_P_To_C) {
 
                 if (cis_hdl_info->recorder && (cis_hdl_info->recorder != last_recorder)) {
                     last_recorder = cis_hdl_info->recorder;
@@ -629,18 +595,28 @@ static int connected_tx_align_data_handler(u8 cig_hdl)
                     connected_get_cis_tick_time(&txsync);
                     timestamp = (txsync.tx_ts + connected_hdl->cig_sync_delay +
                                  get_cig_mtl_time() * 1000L + get_cig_sdu_period_us()) & 0xfffffff;
-                    rlen = le_audio_stream_tx_data_handler(cis_hdl_info->recorder, transmit_buf, get_cig_transmit_data_len(), timestamp);
                 }
 
-                if (!rlen) {
-                    putchar('^');
-                    continue;
-                }
+                for (k = 0; k < cis_hdl_info->BN_P_To_C; k++) {
 
-                param.cis_hdl = cis_hdl_info->cis_hdl;
-                err = wireless_trans_transmit((connected_role & CONNECTED_ROLE_PERIP) == CONNECTED_ROLE_PERIP ? "cig_perip" : "cig_central", transmit_buf, get_cig_transmit_data_len(), &param);
-                if (err != 0) {
-                    log_error("wireless_trans_transmit fail\n");
+                    if (timestamp) {
+                        /* printf("tm:%u\n", timestamp); */
+                        rlen = le_audio_stream_tx_data_handler(cis_hdl_info->recorder, transmit_buf, get_cig_transmit_data_len(), timestamp);
+                    }
+
+                    if (!rlen) {
+                        putchar('^');
+                        /* printf("c:%d, n\n", cis_hdl_info->cis_hdl); */
+                        continue;
+                    }
+                    /* printf("c:%d, tl:%d\n", cis_hdl_info->cis_hdl, rlen); */
+
+                    param.cis_hdl = cis_hdl_info->cis_hdl;
+                    err = wireless_trans_transmit((connected_role & CONNECTED_ROLE_PERIP) == CONNECTED_ROLE_PERIP ? "cig_perip" : "cig_central", transmit_buf, get_cig_transmit_data_len(), &param);
+                    if (err != 0) {
+                        log_error("wireless_trans_transmit fail\n");
+                    }
+
                 }
             }
         }
@@ -723,13 +699,13 @@ static void connected_iso_callback(const void *const buf, size_t length, void *p
         return;
     }
     //为了兼容配置了间隔20ms，连续两包CIS的时候timestamp一样，临时处理使用
-    if (old_timestamp == param->ts) {
-        old_count++;
-        param->ts += get_cig_sdu_period_us() * old_count;
-    } else {
-        old_count = 0;
-    }
-    old_timestamp = param->ts;
+    /* if (old_timestamp == param->ts) { */
+    /* old_count++; */
+    /* param->ts += get_cig_sdu_period_us() * old_count; */
+    /* } else { */
+    /* old_count = 0; */
+    /* } */
+    /* old_timestamp = param->ts; */
     /* log_info("<<- cis Data Out <<- TS:%d,%d", param->ts, length); */
     spin_lock(&connected_lock);
     list_for_each_entry(hdl, &connected_list_head, entry) {
@@ -758,6 +734,9 @@ static void connected_iso_callback(const void *const buf, size_t length, void *p
                     putchar('R');
                     le_audio_stream_rx_frame(hdl->cis_hdl_info[i].rx_player.rx_stream, (void *)buf, length, param->ts);
                 }
+                /* extern uint32_t bb_le_clk_get_time_us(void); */
+                /* u32 local = bb_le_clk_get_time_us(); */
+                /* printf("[%d, %d, %d]\n", local, param->ts, local - param->ts); */
             }
         }
     }

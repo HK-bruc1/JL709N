@@ -10,7 +10,7 @@
 #include "asm/hwi.h"
 #include "gpio.h"
 #include "asm/charge.h"
-#include "asm/chargestore.h"
+#include "chargestore/chargestore.h"
 #include "update.h"
 #include "app_config.h"
 #include "clock.h"

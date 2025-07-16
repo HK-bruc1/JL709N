@@ -67,6 +67,7 @@ int two_band_merge_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
     }
     return jlstream_set_node_param(NODE_UUID_2BAND_MERGE, node_name, &cfg, sizeof(cfg));
 }
+
 int vocal_remover_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
 {
     vocal_remover_param_tool_set cfg = {0};
@@ -119,6 +120,16 @@ int chorus_udpate_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
     }
     return jlstream_set_node_param(NODE_UUID_CHORUS, node_name, &cfg, sizeof(cfg));
 }
+int dynamic_eq_pro_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
+{
+    dynamic_eq_pro_param_tool_set cfg = {0};
+    int ret = jlstream_read_form_data(mode_index, node_name, cfg_index, &cfg);
+    if (!ret) {
+        printf("read parm err, %s, %s\n", __func__, node_name);
+        return -1;
+    }
+    return jlstream_set_node_param(NODE_UUID_DYNAMIC_EQ_PRO, node_name, &cfg, sizeof(cfg));
+}
 int dynamic_eq_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
 {
     dynamic_eq_param_tool_set cfg = {0};
@@ -129,6 +140,7 @@ int dynamic_eq_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
     }
     return jlstream_set_node_param(NODE_UUID_DYNAMIC_EQ, node_name, &cfg, sizeof(cfg));
 }
+
 int echo_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
 {
 
@@ -420,6 +432,7 @@ int multiband_drc_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
     free(data_buf);
     multiband_drc_param_debug(mdrc_parm);
 
+
     //common_parm 更新
     struct mdrc_common_param_update {
         int type;
@@ -444,6 +457,7 @@ int multiband_drc_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
         memcpy(drc_parm->data, mdrc_parm->drc_param[i], drc_parm->len);
         jlstream_set_node_param(NODE_UUID_MDRC, node_name, drc_parm, drc_parm->len + sizeof(int) * 2);
     }
+
 
     multiband_drc_param_free(mdrc_parm);
     free(mdrc_parm);
@@ -481,6 +495,57 @@ int virtual_surround_pro_update_parm(u8 mode_index, char *node_name, u8 cfg_inde
     }
     return jlstream_set_node_param(NODE_UUID_UPMIX_2TO5, node_name, &cfg, sizeof(cfg));
 }
+
+int effect_dev0_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
+{
+    struct user_effect_tool_param cfg = {0};
+    int ret = jlstream_read_form_data(mode_index, node_name, cfg_index, &cfg);
+    if (!ret) {
+        printf("read parm err, %s, %s\n", __func__, node_name);
+        return -1;
+    }
+    return jlstream_set_node_param(NODE_UUID_EFFECT_DEV0, node_name, &cfg, sizeof(cfg));
+}
+int effect_dev1_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
+{
+    struct user_effect_tool_param cfg = {0};
+    int ret = jlstream_read_form_data(mode_index, node_name, cfg_index, &cfg);
+    if (!ret) {
+        printf("read parm err, %s, %s\n", __func__, node_name);
+        return -1;
+    }
+    return jlstream_set_node_param(NODE_UUID_EFFECT_DEV1, node_name, &cfg, sizeof(cfg));
+}
+int effect_dev2_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
+{
+    struct user_effect_tool_param cfg = {0};
+    int ret = jlstream_read_form_data(mode_index, node_name, cfg_index, &cfg);
+    if (!ret) {
+        printf("read parm err, %s, %s\n", __func__, node_name);
+        return -1;
+    }
+    return jlstream_set_node_param(NODE_UUID_EFFECT_DEV2, node_name, &cfg, sizeof(cfg));
+}
+int effect_dev3_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
+{
+    struct user_effect_tool_param cfg = {0};
+    int ret = jlstream_read_form_data(mode_index, node_name, cfg_index, &cfg);
+    if (!ret) {
+        printf("read parm err, %s, %s\n", __func__, node_name);
+        return -1;
+    }
+    return jlstream_set_node_param(NODE_UUID_EFFECT_DEV3, node_name, &cfg, sizeof(cfg));
+}
+int effect_dev4_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
+{
+    struct user_effect_tool_param cfg = {0};
+    int ret = jlstream_read_form_data(mode_index, node_name, cfg_index, &cfg);
+    if (!ret) {
+        printf("read parm err, %s, %s\n", __func__, node_name);
+        return -1;
+    }
+    return jlstream_set_node_param(NODE_UUID_EFFECT_DEV4, node_name, &cfg, sizeof(cfg));
+}
 int limiter_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
 {
     struct limiter_param_tool_set cfg = {0};
@@ -491,6 +556,21 @@ int limiter_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
     }
     return jlstream_set_node_param(NODE_UUID_LIMITER, node_name, &cfg, sizeof(cfg));
 }
+
+
+int user_limiter_update_parm(u8 mode_index, char *node_name, u8 cfg_index, float threshold)
+{
+    struct limiter_param_tool_set cfg = {0};
+    int ret = jlstream_read_form_data(mode_index, node_name, cfg_index, &cfg);
+    if (!ret) {
+        printf("read parm err, %s, %s\n", __func__, node_name);
+        return -1;
+    }
+
+    cfg.parm.threshold = threshold * 1000;
+    return jlstream_set_node_param(NODE_UUID_LIMITER, node_name, &cfg, sizeof(cfg));
+}
+
 
 int multiband_limiter_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
 {
@@ -515,3 +595,177 @@ int pcm_delay_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
     return jlstream_set_node_param(NODE_UUID_PCM_DELAY, node_name, &cfg, sizeof(cfg));
 
 }
+
+int split_gain_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
+{
+    struct split_gain_param_tool_set cfg = {0};
+    int ret = jlstream_read_form_data(mode_index, node_name, cfg_index, &cfg);
+    if (!ret) {
+        printf("read parm err, %s, %s\n", __func__, node_name);
+        return -1;
+    }
+    return jlstream_set_node_param(NODE_UUID_SPLIT_GAIN, node_name, &cfg, sizeof(cfg));
+
+}
+int howling_gate_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
+{
+    howling_gate_param_tool_set cfg = {0};
+    int ret = jlstream_read_form_data(mode_index, node_name, cfg_index, &cfg);
+    if (!ret) {
+        printf("read parm err, %s, %s\n", __func__, node_name);
+        return -1;
+    }
+    return jlstream_set_node_param(NODE_UUID_HOWLING_GATE, node_name, &cfg, sizeof(cfg));
+}
+
+int noisegate_pro_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
+{
+    struct noisegate_pro_param_tool_set cfg = {0};
+    int ret = jlstream_read_form_data(mode_index, node_name, cfg_index, &cfg);
+    if (!ret) {
+        printf("read parm err, %s, %s\n", __func__, node_name);
+        return -1;
+    }
+    return jlstream_set_node_param(NODE_UUID_NOISEGATE_PRO, node_name, &cfg, sizeof(cfg));
+}
+
+int phaser_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
+{
+    struct phaser_param_tool_set cfg = {0};
+    int ret = jlstream_read_form_data(mode_index, node_name, cfg_index, &cfg);
+    if (!ret) {
+        printf("read parm err, %s, %s\n", __func__, node_name);
+        return -1;
+    }
+    return jlstream_set_node_param(NODE_UUID_PHASER, node_name, &cfg, sizeof(cfg));
+}
+
+int flanger_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
+{
+    struct flanger_param_tool_set cfg = {0};
+    int ret = jlstream_read_form_data(mode_index, node_name, cfg_index, &cfg);
+    if (!ret) {
+        printf("read parm err, %s, %s\n", __func__, node_name);
+        return -1;
+    }
+    return jlstream_set_node_param(NODE_UUID_FLANGER, node_name, &cfg, sizeof(cfg));
+}
+
+int chorus_advance_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
+{
+    struct chorus_advance_param_tool_set cfg = {0};
+    int ret = jlstream_read_form_data(mode_index, node_name, cfg_index, &cfg);
+    if (!ret) {
+        printf("read parm err, %s, %s\n", __func__, node_name);
+        return -1;
+    }
+    return jlstream_set_node_param(NODE_UUID_CHORUS_ADVANCE, node_name, &cfg, sizeof(cfg));
+}
+
+int pingpong_echo_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
+{
+    struct pingpong_echo_param_tool_set cfg = {0};
+    int ret = jlstream_read_form_data(mode_index, node_name, cfg_index, &cfg);
+    if (!ret) {
+        printf("read parm err, %s, %s\n", __func__, node_name);
+        return -1;
+    }
+    return jlstream_set_node_param(NODE_UUID_PINGPONG_ECHO, node_name, &cfg, sizeof(cfg));
+}
+
+int stereo_spatial_wider_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
+{
+    struct stereo_spatial_wider_param_tool_set cfg = {0};
+    int ret = jlstream_read_form_data(mode_index, node_name, cfg_index, &cfg);
+    if (!ret) {
+        printf("read parm err, %s, %s\n", __func__, node_name);
+        return -1;
+    }
+    return jlstream_set_node_param(NODE_UUID_STEREO_SPATIAL_WIDER, node_name, &cfg, sizeof(cfg));
+}
+
+
+int frequency_compressor_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
+{
+    struct frequency_compressor_param_tool_set cfg = {0};
+    int ret = jlstream_read_form_data(mode_index, node_name, cfg_index, &cfg);
+    if (!ret) {
+        printf("read parm err, %s, %s\n", __func__, node_name);
+        return -1;
+    }
+    return jlstream_set_node_param(NODE_UUID_FREQUENCY_COMPRESSOR, node_name, &cfg, sizeof(cfg));
+}
+
+int autoduck_trigger_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
+{
+    autoduck_trigger_param_tool_set cfg = {0};
+    int ret = jlstream_read_form_data(mode_index, node_name, cfg_index, &cfg);
+    if (!ret) {
+        printf("read parm err, %s, %s\n", __func__, node_name);
+        return -1;
+    }
+    return jlstream_set_node_param(NODE_UUID_AUTODUCK_TRIGGER, node_name, &cfg, sizeof(cfg));
+}
+
+int autoduck_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
+{
+    autoduck_param_tool_set cfg = {0};
+    int ret = jlstream_read_form_data(mode_index, node_name, cfg_index, &cfg);
+    if (!ret) {
+        printf("read parm err, %s, %s\n", __func__, node_name);
+        return -1;
+    }
+    return jlstream_set_node_param(NODE_UUID_AUTODUCK, node_name, &cfg, sizeof(cfg));
+}
+
+int spatial_adv_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
+{
+    struct spatial_adv_param_tool_set cfg = {0};
+    int ret = jlstream_read_form_data(mode_index, node_name, cfg_index, &cfg);
+    if (!ret) {
+        printf("read parm err, %s, %s\n", __func__, node_name);
+        return -1;
+    }
+    return jlstream_set_node_param(NODE_UUID_SPATIAL_ADV, node_name, &cfg, sizeof(cfg));
+}
+
+int virtual_bass_pro_update_parm(u8 mode_index, char *node_name, u8 cfg_index)
+{
+    struct virtual_bass_pro_param_tool_set cfg = {0};
+    int ret = jlstream_read_form_data(mode_index, node_name, cfg_index, &cfg);
+    if (!ret) {
+        printf("read parm err, %s, %s\n", __func__, node_name);
+        return -1;
+    }
+    return jlstream_set_node_param(NODE_UUID_VIRTUAL_BASS_PRO, node_name, &cfg, sizeof(cfg));
+}
+
+
+/*
+ *通用音效模块更新
+ * */
+int node_param_update_parm(u16 uuid, u8 mode_index, char *node_name, u8 cfg_index)
+{
+    struct cfg_info info = {0};
+    int ret = jlstream_read_form_node_info_base(mode_index, node_name, cfg_index, &info);
+    if (ret) {
+        printf("read info err, %s, %s, uuid:0x%x\n", __func__, node_name, uuid);
+        return -1;
+    }
+    u8 *cfg = zalloc(info.size);
+    if (!cfg) {
+        printf("read alloc err, %s, %s, uuid:0x%x\n", __func__, node_name, uuid);
+        return -1;
+    }
+    ret = jlstream_read_form_cfg_data(&info, cfg);
+    if (!ret) {
+        printf("read data err, %s, %s, uuid:0x%x\n", __func__, node_name, uuid);
+        free(cfg);
+        return -1;
+    }
+    ret = jlstream_set_node_param(uuid, node_name, cfg, ret);
+    free(cfg);
+    return ret;
+}
+
+

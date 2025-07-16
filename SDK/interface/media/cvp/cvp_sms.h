@@ -4,9 +4,6 @@
 #include "generic/typedef.h"
 #include "cvp_common.h"
 
-/*降噪版本定义*/
-#define ANS_V100	0xA1
-#define ANS_V200	0xA2
 
 //aec_cfg:
 typedef struct __AEC_CONFIG {
@@ -117,6 +114,7 @@ struct aec_s_attr {
 
     int NLP_Process_MaxFrequency;    //设定回声抑制的最大频率，设定范围（3000~8000），默认值为8000
     int NLP_Process_MinFrequency;    //设定回声抑制的最小频率，设定范围（0~1000），默认值为0
+    float TDE_EngThr;
 };
 
 /*
@@ -214,5 +212,13 @@ int cvp_sms_tde_read_ref_data(void);
 /*可写长度*/
 int get_cvp_sms_output_way_writable_len();
 int get_cvp_sms_tde_output_way_writable_len();
+
+/*spinlock*/
+void audio_cvp_sms_lock();
+void audio_cvp_sms_unlock();
+
+void audio_cvp_sms_tde_lock();
+void audio_cvp_sms_tde_unlock();
+
 
 #endif/*_CVP_SMS_H_*/

@@ -1,5 +1,5 @@
 #include "source_node.h"
-#include "asm/audio_adc.h"
+#include "audio_adc.h"
 #include "audio_config.h"
 #include "adc_file.h"
 #include "gpio_config.h"
@@ -8,6 +8,7 @@
 #include "asm/audio_common.h"
 #include "mic_effect.h"
 #include "pc_mic_recoder.h"
+#include "btstack/avctp_user.h"
 #if TCFG_AUDIO_ANC_ENABLE
 #include "audio_anc.h"
 #endif
@@ -348,7 +349,7 @@ static void adc_mic_output_handler(void *_hdl, s16 *data, int len)
         hdl->dump_cnt++;
         return;
     }
-    hdl->timestamp = audio_jiffies_usec() * TIMESTAMP_US_DENOMINATOR;
+    hdl->timestamp = adc_hdl.timestamp * TIMESTAMP_US_DENOMINATOR;
     for (int i = 0; i < AUDIO_ADC_MAX_NUM; i++) {
         if (hdl->adc_f->cfg.mic_en_map & BIT(i)) {
             handler = (void (*)(void *, void *, int))adc_chx_handle[i];
@@ -364,11 +365,6 @@ static void *adc_init(void *source_node, struct stream_node *node)
     hdl->node = node;
     node->type |= NODE_TYPE_IRQ;
 
-
-#if ((defined TCFG_CALL_KWS_SWITCH_ENABLE) && TCFG_CALL_KWS_SWITCH_ENABLE)
-    extern void smart_voice_mcu_mic_suspend();
-    smart_voice_mcu_mic_suspend();
-#endif
 
     return hdl;
 }
@@ -540,6 +536,11 @@ static int adc_file_ioc_start(struct adc_file_hdl *hdl)
     }
     if (hdl->start == 0) {
         hdl->start = 1;
+#if ((defined TCFG_CALL_KWS_SWITCH_ENABLE) && TCFG_CALL_KWS_SWITCH_ENABLE)
+        extern void smart_voice_mcu_mic_suspend();
+        smart_voice_mcu_mic_suspend();
+#endif
+
         hdl->dump_cnt = 0;
         //不启动ANC动态MIC增益时，由用户自己保证ANC与通话复用的ADC增益一致
 #if TCFG_AUDIO_ANC_ENABLE && TCFG_AUDIO_DYNAMIC_ADC_GAIN
@@ -599,6 +600,14 @@ static int adc_file_ioc_stop(struct adc_file_hdl *hdl)
     u32 i;
     if (hdl->start) {
         hdl->start = 0;
+#if ((defined TCFG_CALL_KWS_SWITCH_ENABLE) && TCFG_CALL_KWS_SWITCH_ENABLE)
+        extern u16 jl_call_kws_get_status();
+        extern int audio_phone_call_kws_start(void);
+        if (jl_call_kws_get_status() == BT_STATUS_PHONE_INCOME) {
+            audio_phone_call_kws_start();
+        }
+#endif
+
 #if TCFG_AUDIO_ANC_ENABLE && TCFG_AUDIO_DYNAMIC_ADC_GAIN
         anc_dynamic_micgain_stop();
 #endif

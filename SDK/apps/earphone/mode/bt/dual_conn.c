@@ -78,9 +78,14 @@ void write_scan_conn_enable(bool scan_enable, bool conn_enable)
         }
     }
 
+    if (((get_bt_dual_config() == DUAL_CONN_CLOSE) || (get_bt_dual_config() == DUAL_CONN_SET_ONE)) && (bt_get_total_connect_dev())) { //关闭1t2功能，或者关闭双连，已连接一台手机，屏蔽其它状态
+        g_printf("bt dual close\n");
+        scan_enable = 0;
+        conn_enable = 0;
+    }
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
-    if (is_cig_phone_conn() || is_cig_other_phone_conn() || ((get_bt_dual_config() == DUAL_CONN_SET_ONE) && bt_get_total_connect_dev())) {
-        g_printf("le_audio have connd scan conn disble=%d,%d,%d\n", is_cig_phone_conn(), is_cig_other_phone_conn(), bt_get_total_connect_dev());
+    if (is_cig_phone_conn() || is_cig_other_phone_conn()) {
+        g_printf("bt_get_total_connect_dev=%d\n", bt_get_total_connect_dev());
         scan_enable = 0;
         conn_enable = 0;
     }
@@ -368,6 +373,9 @@ static int dual_conn_btstack_event_handler(int *_event)
     printf("dual_conn_btstack_event_handler:%d\n", event->event);
     switch (event->event) {
     case BT_STATUS_INIT_OK:
+#if TCFG_NORMAL_SET_DUT_MODE
+        break;
+#endif
         puts("dual_conn BT_STATUS_INIT_OK");
         dual_conn_page_devices_init();
 #if (TCFG_BT_BACKGROUND_ENABLE)
@@ -400,11 +408,11 @@ static int dual_conn_btstack_event_handler(int *_event)
             }
             g_dual_conn.device_num_recorded++;
         }
-#if TCFG_BT_DUAL_CONN_ENABLE
-        write_scan_conn_enable(0, 1);
-#else
-        write_scan_conn_enable(0, 0);
-#endif
+        if (get_bt_dual_config() == DUAL_CONN_CLOSE) {
+            write_scan_conn_enable(0, 0);
+        } else {
+            write_scan_conn_enable(0, 1);
+        }
         break;
 #if TCFG_BT_DUAL_CONN_ENABLE
     case BT_STATUS_SECOND_CONNECTED:

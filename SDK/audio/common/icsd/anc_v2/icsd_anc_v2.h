@@ -49,7 +49,7 @@ extern int anc_v2_printf_off(const char *format, ...);
 #define TWS_STA_SIBLING_CONNECTED   0x00000002//tws已连接
 #define ANC_V2_DMA_DOUBLE_LEN         (512*4) //DMA一次拿多少数据
 #define ANC_V2_DOUBLE_TRAIN_LEN        512    //拿够多少数进行一次part1
-#define ANC_V2_DMA_DOUBLE_CNT       32 //32
+#define ANC_V2_DMA_DOUBLE_CNT       64 //32 TODO 需要修改为传参
 #define ICSD_ANC_RESOURCE_STAT      0
 
 #define HEADSET_TONES_MODE          1

@@ -29,7 +29,8 @@ void sleep_enter_callback(u8 step)
     putchar('<');
 
     //USB IO打印引脚特殊处理
-#if (CONFIG_UART_DEBUG_ENABLE && ((CONFIG_UART_DEBUG_PORT == IO_PORT_DP) || (CONFIG_UART_DEBUG_PORT == IO_PORT_DM))) || \
+#if (TCFG_DEBUG_DLOG_ENABLE && ((TCFG_DEBUG_DLOG_UART_TX_PIN == IO_PORT_DP) || (TCFG_DEBUG_DLOG_UART_TX_PIN == IO_PORT_DM))) || \
+    (CONFIG_UART_DEBUG_ENABLE && ((CONFIG_UART_DEBUG_PORT == IO_PORT_DP) || (CONFIG_UART_DEBUG_PORT == IO_PORT_DM))) || \
     (TCFG_CFG_TOOL_ENABLE && (TCFG_COMM_TYPE == TCFG_UART_COMM) && ((TCFG_ONLINE_TX_PORT == IO_PORT_DP) || (TCFG_ONLINE_RX_PORT == IO_PORT_DM))) || \
     (TCFG_CFG_TOOL_ENABLE && (TCFG_COMM_TYPE == TCFG_USB_COMM)) || \
     TCFG_USB_HOST_ENABLE || TCFG_PC_ENABLE
@@ -50,7 +51,8 @@ void sleep_enter_callback(u8 step)
 void sleep_exit_callback(u32 usec)
 {
     //USB IO打印引脚特殊处理
-#if (CONFIG_UART_DEBUG_ENABLE && ((CONFIG_UART_DEBUG_PORT == IO_PORT_DP) || (CONFIG_UART_DEBUG_PORT == IO_PORT_DM))) || \
+#if (TCFG_DEBUG_DLOG_ENABLE && ((TCFG_DEBUG_DLOG_UART_TX_PIN == IO_PORT_DP) || (TCFG_DEBUG_DLOG_UART_TX_PIN == IO_PORT_DM))) || \
+    (CONFIG_UART_DEBUG_ENABLE && ((CONFIG_UART_DEBUG_PORT == IO_PORT_DP) || (CONFIG_UART_DEBUG_PORT == IO_PORT_DM))) || \
     (TCFG_CFG_TOOL_ENABLE && (TCFG_COMM_TYPE == TCFG_UART_COMM) && ((TCFG_ONLINE_TX_PORT == IO_PORT_DP) || (TCFG_ONLINE_RX_PORT == IO_PORT_DM))) || \
     (TCFG_CFG_TOOL_ENABLE && (TCFG_COMM_TYPE == TCFG_USB_COMM)) || \
     TCFG_USB_HOST_ENABLE || TCFG_PC_ENABLE
@@ -96,7 +98,7 @@ void power_early_flowing()
     printf("get_boot_rom(): %d", get_boot_rom());
 
     // 默认关闭长按复位0，由key_driver配置
-    gpio_longpress_pin0_reset_config(IO_PORTA_03, 0, 0, 1, 1);
+    gpio_longpress_pin0_reset_config(IO_PORTA_03, 0, 0, 1, PORT_KEEP_STATE, 0);
     //长按复位1默认配置8s，写保护
     gpio_longpress_pin1_reset_config(IO_LDOIN_DET, 1, 8, 1);
 

@@ -26,6 +26,7 @@
 #include "rcsp_config.h"
 #include "rcsp_ch_loader_download.h"
 #include "btstack_rcsp_user.h"
+#include "mic_effect.h"
 #if RCSP_ADV_EN
 #include "rcsp_setting_opt.h"
 #endif
@@ -99,10 +100,12 @@ static void rcsp_update_prepare()
     rcsp_device_status_setting_stop();
 #endif
 
+#if (RCSP_MODE && RCSP_REVERBERATION_SETTING && TCFG_MIC_EFFECT_ENABLE && RCSP_ADV_EQ_SET_ENABLE)
 #if (RCSP_MODE != RCSP_MODE_SOUNDBOX)
     // 关闭混响
     extern void rcsp_close_reverbrateion_state_and_update(void);
     rcsp_close_reverbrateion_state_and_update();
+#endif
 #endif
 
 #if (SOUNDCARD_ENABLE)
@@ -112,7 +115,7 @@ static void rcsp_update_prepare()
 #endif
 
 #if (TCFG_MIC_EFFECT_ENABLE && (0 == RCSP_REVERBERATION_SETTING))
-    mic_effect_stop();
+    mic_effect_player_close();
 #endif
 
 }
@@ -120,7 +123,7 @@ static void rcsp_update_prepare()
 static void rcsp_update_fail_and_resume(void)
 {
 #if (TCFG_MIC_EFFECT_ENABLE)
-    mic_effect_start();
+    mic_effect_player_open();
 #endif
 
 #if (SOUNDCARD_ENABLE)
@@ -286,8 +289,11 @@ static void rcsp_wait_reboot_dev(void *priv)
 
 static void rcsp_rcsp_reboot_dev(void)
 {
+#if RCSP_ADV_NAME_SET_ENABLE
     extern void adv_edr_name_change_now(void);
     adv_edr_name_change_now();
+#endif
+
 #if TCFG_USER_TWS_ENABLE
     if (get_bt_tws_connect_status()) {
 #if RCSP_ADV_EN
@@ -778,7 +784,7 @@ int JL_rcsp_update_msg_deal(void *hdl, u8 event, u8 *msg)
         if ((10 == wait_cnt) || (rcsp_send_list_is_empty() && check_ble_all_packet_sent())) {
             wait_cnt = 0;
             ble_app_disconnect();
-#if TCFG_USER_TWS_ENABLE
+#if TCFG_USER_TWS_ENABLE && !TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
             rcsp_clear_ble_hdl_and_tws_sync();
 #endif
             if (check_edr_is_disconnct()) {

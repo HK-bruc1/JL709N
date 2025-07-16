@@ -9,7 +9,7 @@
 ********************************************************/
 
 /*ANC增益调节 音乐响度检测*/
-void audio_anc_music_dynamic_gain_det(s16 *data, int len);
+void audio_anc_music_dynamic_gain_det(void *data, int len);
 
 /*ANC增益调节 音乐响度初始化*/
 void audio_anc_music_dynamic_gain_open(int sr, s16 thr);
@@ -52,6 +52,19 @@ int audio_anc_mic_gain_cmp_cmd_process(u8 cmd, u8 *buf, int len);
 
 float audio_anc_mic_gain_cmp_get(u8 id);
 
+/********************************************************
+  		   			   DCC TRIM
+********************************************************/
+
+int audio_anc_dcc_trim_state_get(void);
+
+int audio_anc_dcc_trim_open(void);
+
+int audio_anc_dcc_trim_check(void);
+
+int audio_anc_dcc_trim_switch(u8 en);
+
+int audio_anc_dcc_trim_process(void);
 
 #endif/*_AUDIO_ANC_COMMON_PLUG_H_*/
 

@@ -362,12 +362,9 @@ static int audio_pcmic_channel_fifo_write(struct audio_pcmic_channel *ch, void *
     }
 
     os_mutex_pend(&hdl->mutex, 0);
-    int w_len = 0;
-    if (is_fixed_data) {
-        w_len = audio_cfifo_channel_write_fixed_data(&ch->fifo, (s16)data, len);
-    } else {
-        w_len = audio_cfifo_channel_write(&ch->fifo, data, len);
-    }
+
+    int w_len = audio_cfifo_channel_write(&ch->fifo, data, len, is_fixed_data);
+
     os_mutex_post(&hdl->mutex);
     return w_len;
 }

@@ -15,6 +15,10 @@
 #define     CFG_LE_AUDIO_EN                  7
 #define     CFG_ANC_MIC_CMP_GAIN			 8//ANC MIC补偿配置
 
+#define     CFG_ANC_ADAPTIVE_DUT_ID   		 9//保存ANC自适应产测参数id
+#define     CFG_VBG_TRIM                    10//保存VBG配置参数id
+#define     CFG_DACLDO_TRIM                 11//保存DACLDO配置参数id
+
 #define     CFG_EQ0_INDEX               	19
 #define     CFG_MIC_EFF_VOLUME_INDEX        20
 
@@ -47,6 +51,9 @@
 #define     CFG_RCSP_ADV_LED_SETTING         47
 #define     CFG_RCSP_ADV_KEY_SETTING         48
 
+#define     CFG_CHARGE_FULL_VBAT_VOLTAGE     49//充满电后记当前的VBAT的ADC值
+#define     VM_CHARGE_PROGI_VOLT             50//恒流充电的PROGI
+
 #define 	CFG_HAVE_MASS_STORAGE       52
 #define     CFG_MUSIC_MODE              53
 
@@ -58,8 +65,6 @@
 
 #define     CFG_VOLUME_ENHANCEMENT_MODE        58
 #define     CFG_ANC_ADAPTIVE_DATA_ID   		59//保存ANC自适应参数id
-#define     CFG_ANC_ADAPTIVE_DUT_ID   		61//保存ANC自适应产测参数id
-#define     CFG_VBG_TRIM                    60//保存VBG配置参数id
 
 #define     TUYA_SYNC_KEY_INFO          55
 

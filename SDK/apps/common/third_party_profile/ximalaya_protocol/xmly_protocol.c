@@ -116,10 +116,10 @@ void ximalaya_protocol_exit(void)
 #if TCFG_USER_TWS_ENABLE
 
 #define TWS_FUNC_ID_XMLY_TWS_SYNC \
-	(((u8)('M' + 'U' + 'L' + 'T' + 'I') << (3 * 8)) | \
-	 ((u8)('P' + 'R' + 'O' + 'T' + 'O') << (2 * 8)) | \
-	 ((u8)('C' + 'O' + 'L') << (1 * 8)) | \
-	 ((u8)('T' + 'W' + 'S') << (0 * 8)))
+	(((u8)('X' + 'M') << (3 * 8)) | \
+	 ((u8)('L' + 'Y') << (2 * 8)) | \
+	 ((u8)('T' + 'W' + 'S') << (1 * 8)) | \
+	 ((u8)('S' + 'N' + 'Y' + 'C') << (0 * 8)))
 
 #define XMLY_PROTOCOL_TWS_SYNC_HDL     (0x01)
 #define XMLY_PROTOCOL_TWS_SYNC_CMD     (0x02)

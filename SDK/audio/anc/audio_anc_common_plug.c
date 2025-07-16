@@ -57,6 +57,7 @@ struct anc_music_dyn_gain_t {
 #define ANC_MUSIC_DYNAMIC_GAIN_NORGAIN				1024	/*正常默认增益*/
 #define ANC_MUSIC_DYNAMIC_GAIN_TRIGGER_INTERVAL		6		/*音乐响度取样间隔*/
 
+extern struct audio_dac_hdl dac_hdl;
 static struct anc_music_dyn_gain_t *music_dyn_hdl = NULL;
 
 static void audio_anc_music_dynamic_gain_dac_node_state_cb(struct dac_node_cb_hdl *hdl);
@@ -167,11 +168,15 @@ static void audio_anc_music_dynamic_gain_dB_get(int dB)
     }
 }
 
-void audio_anc_music_dynamic_gain_det(s16 *data, int len)
+void audio_anc_music_dynamic_gain_det(void *data, int len)
 {
     /* putchar('l'); */
     if (anc_mode_get() == ANC_ON) {
-        loudness_meter_short(&music_dyn_hdl->loud_hdl, data, len >> 1);
+        if (dac_hdl.pd->bit_width) {
+            loudness_meter_24bit(&music_dyn_hdl->loud_hdl, (int *)data, len >> 2);
+        } else {
+            loudness_meter_short(&music_dyn_hdl->loud_hdl, (s16 *)data, len >> 1);
+        }
         audio_anc_music_dynamic_gain_dB_get(music_dyn_hdl->loud_hdl.peak_val);
     }
 }
@@ -221,7 +226,7 @@ static void audio_anc_music_dynamic_gain_dac_node_state_cb(struct dac_node_cb_hd
 static void audio_anc_music_dynamic_gain_dac_node_write_cb(void *buf, int len)
 {
     if (music_dyn_hdl->state == ANC_MUSIC_DYN_STATE_START) {
-        audio_anc_music_dynamic_gain_det((s16 *)buf, len);
+        audio_anc_music_dynamic_gain_det(buf, len);
     }
 }
 
@@ -580,6 +585,145 @@ int audio_anc_mic_gain_cmp_cmd_process(u8 cmd, u8 *buf, int len)
     return 0;
 }
 
+#endif
+
+#if TCFG_AUDIO_ANC_DCC_TRIM_ENABLE
+/*
+    Trim的方式，
+        0 开机不做动作
+        1 每次开机TRIM；
+        2 只TRIM 1次，并存到VM;
+*/
+#define AUDIO_ANC_DCC_TRIM_MODE         0
+
+#define AUDIO_ANC_DCC_TRIM_ONCE_TIME	20		//定时时间 ms
+#define AUDIO_ANC_DCC_TRIM_CNT			50		//定时次数
+#define AUDIO_ANC_DCC_TRIM_HOLD_TIME	1500 	//冷却时间 ms
+
+
+struct anc_dcc_trim_param {
+    u8 state;
+    u16 time_id;
+    u16 cnt;
+    u16 hold_time_id;
+};
+
+struct anc_dcc_trim_param dcc_trim_hdl;
+//dcc trim 流程-待测试
+int audio_anc_dcc_trim_switch(u8 en)
+{
+    audio_anc_t *param = audio_anc_param_get();
+    if (!param) {
+        return 1;
+    }
+    if (en) {
+        anc_plug_log("DCC_TRIM_SWITCH:USE");
+        param->dcc_trim.mode = ANC_DCC_TRIM_USE;
+    } else {	//已工具配置的DCC为准
+        anc_plug_log("DCC_TRIM_SWITCH:CLOSE");
+        param->dcc_trim.mode = ANC_DCC_TRIM_CLOSE;
+    }
+    return 0;
+}
+
+int audio_anc_dcc_trim_check(void)
+{
+#if AUDIO_ANC_DCC_TRIM_MODE == 2
+    struct anc_dcc_trim_cfg *dcc_trim =  &(audio_anc_param_get()->dcc_trim);
+    int ret = syscfg_read(PSKEY_ANC_DCC_TRIM_CFG, dcc_trim, sizeof(struct anc_dcc_trim_cfg));
+    if (ret != sizeof(struct anc_mic_gain_cmp_cfg)) {
+        printf("DCC_TRIM_STATE: DCC vm read fail !!!");
+        audio_anc_dcc_trim_open();
+    } else {
+        printf("DCC_TRIM_STATE: DCC vm read succ !!!");
+        printf("mode %d, ff_dcc %d, fb_dcc %d\n", dcc_trim->mode, dcc_trim->lff_dcc, dcc_trim->lfb_dcc);
+    }
+#elif AUDIO_ANC_DCC_TRIM_MODE == 1
+    audio_anc_dcc_trim_open();
+#endif
+    return 0;
+}
+
+int audio_anc_dcc_trim_state_get(void)
+{
+    return dcc_trim_hdl.state;
+}
+
+int audio_anc_dcc_trim_open(void)
+{
+    struct anc_dcc_trim_cfg *dcc_trim =  &(audio_anc_param_get()->dcc_trim);
+    struct anc_dcc_trim_param *p = &dcc_trim_hdl;
+    if (p->time_id) {
+        sys_timer_del(p->time_id);
+        p->time_id = 0;
+    }
+    if (p->hold_time_id) {
+        sys_timer_del(p->hold_time_id);
+        p->hold_time_id = 0;
+    }
+    p->cnt = 0;
+    p->time_id = 0;
+    p->hold_time_id = 0;
+    dcc_trim->mode = ANC_DCC_TRIM_START;
+    dcc_trim->lff_dcc = 0;
+    dcc_trim->lfb_dcc = 0;
+    anc_plug_log("DCC_TRIM_STATE:OPEN");
+    audio_anc_fade_ctr_set(ANC_FADE_MODE_DCC_TRIM, AUDIO_ANC_FDAE_CH_ALL, 0);
+    if (!anc_mode_switch(ANC_ON, 0)) {
+        p->state = 1;
+    } else {
+        dcc_trim->mode = ANC_DCC_TRIM_CLOSE;
+        audio_anc_fade_ctr_set(ANC_FADE_MODE_DCC_TRIM, AUDIO_ANC_FDAE_CH_ALL, 16384);
+    }
+
+    return 0;
+}
+
+void audio_anc_dcc_trim_timer(void *priv)
+{
+    struct anc_dcc_trim_cfg *dcc_trim = &(audio_anc_param_get()->dcc_trim);
+    struct anc_dcc_trim_param *p = &dcc_trim_hdl;
+    int lff_dcc_tmp, lfb_dcc_tmp;
+    lff_dcc_tmp = audio_anc_dc_vld_read(ANC_MIC_TYPE_LFF);
+    lfb_dcc_tmp = audio_anc_dc_vld_read(ANC_MIC_TYPE_LFB);
+    dcc_trim->lff_dcc += lff_dcc_tmp;
+    dcc_trim->lfb_dcc += lfb_dcc_tmp;
+    p->cnt++;
+
+    //anc_plug_log("dcc_trim ff_dcc %6d, fb_dcc %6d\n", lff_dcc_tmp, lfb_dcc_tmp);
+
+    if (p->cnt > AUDIO_ANC_DCC_TRIM_CNT) {
+        dcc_trim->lff_dcc /= AUDIO_ANC_DCC_TRIM_CNT;
+        dcc_trim->lfb_dcc /= AUDIO_ANC_DCC_TRIM_CNT;
+        p->state = 0;
+        dcc_trim->mode = ANC_DCC_TRIM_USE;
+        anc_plug_log("dcc_trim output ff_dcc %6d, fb_dcc %6d\n", dcc_trim->lff_dcc, dcc_trim->lfb_dcc);
+        anc_plug_log("DCC_TRIM_STATE:FINISH");
+        sys_timer_del(p->time_id);
+#if AUDIO_ANC_DCC_TRIM_MODE == 2
+        syscfg_write(PSKEY_ANC_DCC_TRIM_CFG, dcc_trim, sizeof(struct anc_dcc_trim_cfg));
+#endif
+        anc_mode_switch(ANC_OFF, 0);
+        audio_anc_fade_ctr_set(ANC_FADE_MODE_DCC_TRIM, AUDIO_ANC_FDAE_CH_ALL, 16384);
+    }
+}
+
+//form anc task
+static void audio_anc_dcc_trim_hold_timeout(void *priv)
+{
+    struct anc_dcc_trim_param *p = &dcc_trim_hdl;
+    anc_plug_log("DCC_TRIM_STATE:HOLD_END");
+    p->time_id = sys_timer_add(NULL, audio_anc_dcc_trim_timer, AUDIO_ANC_DCC_TRIM_ONCE_TIME);
+    p->hold_time_id = 0;
+}
+
+//form anc task
+int audio_anc_dcc_trim_process(void)
+{
+    struct anc_dcc_trim_param *p = &dcc_trim_hdl;
+    p->hold_time_id = sys_timeout_add(NULL, audio_anc_dcc_trim_hold_timeout, AUDIO_ANC_DCC_TRIM_HOLD_TIME);
+    return 0;
+}
 #endif
 
 

@@ -52,12 +52,6 @@
 //*********************************************************************************//
 //                                  AI配置                                         //
 //*********************************************************************************//
-#ifdef TCFG_BT_RCSP_DUAL_CONN_ENABLE
-#define TCFG_RCSP_DUAL_CONN_ENABLE							TCFG_BT_RCSP_DUAL_CONN_ENABLE// RCSP一拖二功能开关
-#else
-#define TCFG_RCSP_DUAL_CONN_ENABLE                          0
-#endif
-
 #define    RCSP_MODE_EN             (1 << 0)
 #define    TRANS_DATA_EN            (1 << 1)
 #define    LL_SYNC_EN               (1 << 2)
@@ -75,6 +69,8 @@
 #define    ONLINE_DEBUG_EN          (1 << 14)
 #define    CUSTOM_DEMO_EN           (1 << 15)   // 第三方协议的demo，用于示例客户开发自定义协议
 #define    XIMALAYA_EN              (1 << 16)
+#define    AURACAST_APP_EN          (1 << 17)
+#define    MULTI_CLIENT_EN          (1 << 18)
 
 #if TCFG_THIRD_PARTY_PROTOCOLS_ENABLE
 #define THIRD_PARTY_PROTOCOLS_SEL  TCFG_THIRD_PARTY_PROTOCOLS_SEL
@@ -84,8 +80,20 @@
 #endif
 
 #if THIRD_PARTY_PROTOCOLS_SEL && (TCFG_USER_BLE_ENABLE == 0)
-#error "开启 le audio 功能需要使能 TCFG_USER_BLE_ENABLE"
+#error "开启 第三方协议功能 需要使能 TCFG_USER_BLE_ENABLE"
 #endif
+
+#ifndef TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED
+// 三方协议简化版本，目前仅适用于RCSP
+#define TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED				0
+#endif
+
+#if TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED && TCFG_RCSP_DUAL_CONN_ENABLE
+#error "开启RCSP简化宏不支持两路rcsp"
+#endif
+
+//代码放RAM压缩宏，在RAM资源足够的情况下将代码放RAM进行压缩
+#define TCFG_CODE_TO_RAM_COMPRESS_ENABLE					0
 
 //*********************************************************************************//
 //                                  le_audio 配置                                       //
@@ -108,17 +116,27 @@
 #error "开启 le audio 功能需要使能 TCFG_USER_BLE_ENABLE"
 #endif
 
-
 #if (TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN))
 
 #if (THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN)     // rcsp与le audio共用 BLE ACL 时，使用不同地址
+
 #undef  TCFG_BT_BLE_BREDR_SAME_ADDR
 #define  TCFG_BT_BLE_BREDR_SAME_ADDR 0x0
+#if TCFG_THIRD_PARTY_PROTOCOLS_SIMPLIFIED && TCFG_RCSP_DUAL_CONN_ENABLE
+#error "三方协议简化版本不支持RCSP一拖二功能"
+#endif
+#endif
+
+#ifndef TCFG_JL_UNICAST_BOUND_PAIR_EN
+#define TCFG_JL_UNICAST_BOUND_PAIR_EN 0				// 可通过JL小板实现耳机和Dongle的绑定配对
 #endif
 
 // #undef TCFG_LOWPOWER_LOWPOWER_SEL
 // #define  TCFG_LOWPOWER_LOWPOWER_SEL 0x0//低功耗连接还有问题
 #endif
+
+
+#define ATT_OVER_EDR_DEMO_EN          0
 
 #define LE_AUDIO_STREAM_ENABLE 	(TCFG_LE_AUDIO_APP_CONFIG)
 
@@ -149,10 +167,22 @@
 #define TCFG_AUDIO_LINEIN_ENABLE   TCFG_APP_LINEIN_EN
 #endif
 
-#if TCFG_APP_PC_EN || TCFG_APP_LINEIN_EN
+#ifndef TCFG_MUSIC_PLAYER_ENABLE
+#define TCFG_MUSIC_PLAYER_ENABLE   TCFG_APP_MUSIC_EN
+#endif
+
+#if TCFG_APP_MUSIC_EN
+#define TCFG_DEV_MANAGER_ENABLE					  			1
+#elif TCFG_APP_PC_EN || TCFG_APP_LINEIN_EN
 #define TCFG_DEV_MANAGER_ENABLE					  			0
 #else
 #define TCFG_DEV_MANAGER_ENABLE					  			0
+#endif
+
+#if TCFG_APP_MUSIC_EN
+#define TCFG_FILE_MANAGER_ENABLE							1
+#else
+#define TCFG_FILE_MANAGER_ENABLE							0
 #endif
 
 #if (THIRD_PARTY_PROTOCOLS_SEL & FMNA_EN)
@@ -167,6 +197,8 @@
 //                          	文件系统相关配置                                   //
 //*********************************************************************************//
 #if (THIRD_PARTY_PROTOCOLS_SEL & REALME_EN)
+#define CONFIG_FATFS_ENABLE                                 1
+#elif TCFG_SD0_ENABLE || TCFG_SD1_ENABLE || TCFG_UDISK_ENABLE || TCFG_NOR_FAT
 #define CONFIG_FATFS_ENABLE                                 1
 #else
 #define CONFIG_FATFS_ENABLE                                 0
@@ -219,18 +251,18 @@
 #define	   RCSP_MODE			     RCSP_MODE_EARPHONE
 #include "rcsp_cfg.h"
 // 详细功能参考rcsp_cfg.h
+#if RCSP_ADV_TRANSLATOR
+#define    BT_MIC_EN                 1
+#define    TCFG_ENC_SPEEX_ENABLE     0
+#endif
 
 #elif ((THIRD_PARTY_PROTOCOLS_SEL & (TME_EN | DMA_EN | GMA_EN | XIMALAYA_EN)))
 #define    BT_MIC_EN                 1
 #define    TCFG_ENC_SPEEX_ENABLE     0
 #define    OTA_TWS_SAME_TIME_ENABLE  0     //是否支持TWS同步升级
-#elif (THIRD_PARTY_PROTOCOLS_SEL & LL_SYNC_EN)
-#define    OTA_TWS_SAME_TIME_ENABLE  1
-#define    OTA_TWS_SAME_TIME_NEW     1     //使用新的tws ota流程
-#define    TCFG_ENC_SPEEX_ENABLE     0
-#elif (THIRD_PARTY_PROTOCOLS_SEL & TUYA_DEMO_EN)
-#define    OTA_TWS_SAME_TIME_ENABLE  1
-#define    OTA_TWS_SAME_TIME_NEW     1     //使用新的tws ota流程
+#elif (THIRD_PARTY_PROTOCOLS_SEL & (LL_SYNC_EN | TUYA_DEMO_EN))
+#define    OTA_TWS_SAME_TIME_ENABLE  (TCFG_USER_TWS_ENABLE)
+#define    OTA_TWS_SAME_TIME_NEW     (TCFG_USER_TWS_ENABLE)     //使用新的tws ota流程
 #define    TCFG_ENC_SPEEX_ENABLE     0
 #else
 #define    OTA_TWS_SAME_TIME_ENABLE  0
@@ -265,6 +297,17 @@
 #if (CONFIG_BT_MODE == BT_NORMAL) && (!TCFG_NORMAL_SET_DUT_MODE)
 //enable dut mode,need disable sleep(TCFG_LOWPOWER_LOWPOWER_SEL = 0)
 // #define TCFG_NORMAL_SET_DUT_MODE                  0
+#if TCFG_NORMAL_SET_DUT_MODE
+#undef  TCFG_LOWPOWER_LOWPOWER_SEL
+#define TCFG_LOWPOWER_LOWPOWER_SEL                0
+
+#undef  TCFG_AUTO_SHUT_DOWN_TIME
+#define TCFG_AUTO_SHUT_DOWN_TIME		          0
+
+#undef  TCFG_USER_TWS_ENABLE
+#define TCFG_USER_TWS_ENABLE                      0     //tws功能使能
+
+#endif
 
 #else
 #undef TCFG_BT_DUAL_CONN_ENABLE
@@ -272,8 +315,8 @@
 #undef  TCFG_USER_TWS_ENABLE
 #define TCFG_USER_TWS_ENABLE                      0     //tws功能使能
 
-#undef  TCFG_USER_BLE_ENABLE
-#define TCFG_USER_BLE_ENABLE                      1     //BLE功能使能
+//#undef  TCFG_USER_BLE_ENABLE
+//#define TCFG_USER_BLE_ENABLE                      1     //BLE功能使能
 
 #undef  TCFG_AUTO_SHUT_DOWN_TIME
 #define TCFG_AUTO_SHUT_DOWN_TIME		          0
@@ -284,20 +327,20 @@
 #undef  TCFG_LOWPOWER_LOWPOWER_SEL
 #define TCFG_LOWPOWER_LOWPOWER_SEL                0
 
-// #undef TCFG_AUDIO_DAC_LDO_VOLT
-// #define TCFG_AUDIO_DAC_LDO_VOLT			   DUT_AUDIO_DAC_LDO_VOLT
+//#undef TCFG_AUDIO_DAC_LDO_VOLT
+//#define TCFG_AUDIO_DAC_LDO_VOLT			   DUT_AUDIO_DAC_LDO_VOLT
 
 //#undef TCFG_LOWPOWER_POWER_SEL
 //#define TCFG_LOWPOWER_POWER_SEL				PWR_LDO15
 
-#undef  TCFG_PWMLED_ENABLE
-#define TCFG_PWMLED_ENABLE					DISABLE_THIS_MOUDLE
+//#undef  TCFG_PWMLED_ENABLE
+//#define TCFG_PWMLED_ENABLE					DISABLE_THIS_MOUDLE
 
-#undef  TCFG_ADKEY_ENABLE
-#define TCFG_ADKEY_ENABLE                   DISABLE_THIS_MOUDLE
+//#undef  TCFG_ADKEY_ENABLE
+//#define TCFG_ADKEY_ENABLE                   DISABLE_THIS_MOUDLE
 
-#undef  TCFG_IOKEY_ENABLE
-#define TCFG_IOKEY_ENABLE					DISABLE_THIS_MOUDLE
+//#undef  TCFG_IOKEY_ENABLE
+//#define TCFG_IOKEY_ENABLE					DISABLE_THIS_MOUDLE
 
 //#undef TCFG_TEST_BOX_ENABLE
 //#define TCFG_TEST_BOX_ENABLE			    0
@@ -493,8 +536,13 @@
 
 
 #if TCFG_APP_MUSIC_EN
+#if TCFG_SD0_ENABLE
 #define CONFIG_SD_UPDATE_ENABLE
+#endif
+#if TCFG_USB_HOST_ENABLE && TCFG_UDISK_ENABLE
 #define CONFIG_USB_UPDATE_ENABLE
+#endif
+#define TCFG_DEV_UPDATE_IF_NOFILE_ENABLE   0//0：设备上线直接查找升级文件 1：无音乐文件时才查找升级文件
 #endif
 //*********************************************************************************//
 //                                 Audio配置                                        //
@@ -544,6 +592,8 @@
 
 #define  SYS_VOL_TYPE 	VOL_TYPE_DIGITAL/*目前仅支持软件数字音量模式*/
 
+#define AUDIO_ANC_DATA_EXPORT_VIA_UART						0		//ANC数据导出使能
+
 #define TCFG_AUDIO_ANC_ENV_NOISE_DET_ENABLE (TCFG_AUDIO_VOLUME_ADAPTIVE_ENABLE | TCFG_AUDIO_ANC_ENV_ADAPTIVE_GAIN_ENABLE)
 
 /*智能免摘，广域点击，风噪检测，实时自适应*/
@@ -561,66 +611,64 @@
 #define TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN		DISABLE_THIS_MOUDLE		//声音检测
 #endif
 
+#if (TCFG_AUDIO_CVP_SMS_ANS_MODE || TCFG_AUDIO_CVP_SMS_DNS_MODE)
+/*1mic-CVP：单mic通话算法*/
+#define TCFG_AUDIO_SINGLE_MIC_ENABLE	ENABLE_THIS_MOUDLE
+#define TCFG_AUDIO_DUAL_MIC_ENABLE		DISABLE_THIS_MOUDLE
+#define TCFG_AUDIO_TRIPLE_MIC_ENABLE    DISABLE_THIS_MOUDLE
+#define TCFG_AUDIO_DMS_SEL	  	    	DMS_NORMAL
 #if (TCFG_AUDIO_CVP_SMS_ANS_MODE)			/*单MIC+ANS通话*/
-#define TCFG_AUDIO_TRIPLE_MIC_ENABLE    DISABLE_THIS_MOUDLE
-#define TCFG_AUDIO_DUAL_MIC_ENABLE		DISABLE_THIS_MOUDLE
 #define TCFG_AUDIO_CVP_NS_MODE	  	    CVP_ANS_MODE
-#define TCFG_AUDIO_DMS_SEL	  	    	DMS_NORMAL
-
-#elif (TCFG_AUDIO_CVP_SMS_DNS_MODE) /*单MIC+DNS通话*/
-#define TCFG_AUDIO_TRIPLE_MIC_ENABLE    DISABLE_THIS_MOUDLE
-#define TCFG_AUDIO_DUAL_MIC_ENABLE		DISABLE_THIS_MOUDLE
+#elif (TCFG_AUDIO_CVP_SMS_DNS_MODE) 		/*单MIC+DNS通话*/
 #define TCFG_AUDIO_CVP_NS_MODE	  	    CVP_DNS_MODE
-#define TCFG_AUDIO_DMS_SEL	  	    	DMS_NORMAL
+#endif
 
-#elif (TCFG_AUDIO_CVP_DMS_ANS_MODE) /*双MIC+ANS通话*/
-#define TCFG_AUDIO_TRIPLE_MIC_ENABLE    DISABLE_THIS_MOUDLE
+#elif (TCFG_AUDIO_CVP_DMS_ANS_MODE || TCFG_AUDIO_CVP_DMS_DNS_MODE || \
+	TCFG_AUDIO_CVP_DMS_FLEXIBLE_ANS_MODE ||TCFG_AUDIO_CVP_DMS_FLEXIBLE_DNS_MODE || \
+	TCFG_AUDIO_CVP_DMS_HYBRID_DNS_MODE  || TCFG_AUDIO_CVP_DMS_AWN_DNS_MODE )
+/*2mic-CVP:双mic通话算法*/
+#define TCFG_AUDIO_SINGLE_MIC_ENABLE	DISABLE_THIS_MOUDLE
 #define TCFG_AUDIO_DUAL_MIC_ENABLE		ENABLE_THIS_MOUDLE
+#define TCFG_AUDIO_TRIPLE_MIC_ENABLE    DISABLE_THIS_MOUDLE
+#if (TCFG_AUDIO_CVP_DMS_ANS_MODE) /*双MIC+ANS通话*/
 #define TCFG_AUDIO_CVP_NS_MODE	  	    CVP_ANS_MODE
 #define TCFG_AUDIO_DMS_SEL	  	    	DMS_NORMAL
 
 #elif (TCFG_AUDIO_CVP_DMS_DNS_MODE) /*双MIC+DNS通话*/
-#define TCFG_AUDIO_TRIPLE_MIC_ENABLE    DISABLE_THIS_MOUDLE
-#define TCFG_AUDIO_DUAL_MIC_ENABLE		ENABLE_THIS_MOUDLE
 #define TCFG_AUDIO_CVP_NS_MODE	  	    CVP_DNS_MODE
 #define TCFG_AUDIO_DMS_SEL	  	    	DMS_NORMAL
 
 #elif (TCFG_AUDIO_CVP_DMS_FLEXIBLE_ANS_MODE) /*话务双MIC+ANS通话*/
-#define TCFG_AUDIO_TRIPLE_MIC_ENABLE    DISABLE_THIS_MOUDLE
-#define TCFG_AUDIO_DUAL_MIC_ENABLE		ENABLE_THIS_MOUDLE
 #define TCFG_AUDIO_CVP_NS_MODE	  	    CVP_ANS_MODE
 #define TCFG_AUDIO_DMS_SEL	  	    	DMS_FLEXIBLE
 
 #elif (TCFG_AUDIO_CVP_DMS_FLEXIBLE_DNS_MODE) /*话务双MIC+DNS通话*/
-#define TCFG_AUDIO_TRIPLE_MIC_ENABLE    DISABLE_THIS_MOUDLE
-#define TCFG_AUDIO_DUAL_MIC_ENABLE		ENABLE_THIS_MOUDLE
 #define TCFG_AUDIO_CVP_NS_MODE	  	    CVP_DNS_MODE
 #define TCFG_AUDIO_DMS_SEL	  	        DMS_FLEXIBLE
 
-#elif (TCFG_AUDIO_CVP_3MIC_MODE) /*3MIC通话*/
-#define TCFG_AUDIO_TRIPLE_MIC_ENABLE    ENABLE_THIS_MOUDLE
-#define TCFG_AUDIO_DUAL_MIC_ENABLE		DISABLE_THIS_MOUDLE
-#define TCFG_AUDIO_CVP_NS_MODE	  	    CVP_DNS_MODE
-#define TCFG_AUDIO_DMS_SEL	  	    	DMS_NORMAL
-
 #elif (TCFG_AUDIO_CVP_DMS_HYBRID_DNS_MODE) /*dms_hybrid通话*/
-#define TCFG_AUDIO_TRIPLE_MIC_ENABLE    DISABLE_THIS_MOUDLE
-#define TCFG_AUDIO_DUAL_MIC_ENABLE		ENABLE_THIS_MOUDLE
 #define TCFG_AUDIO_CVP_NS_MODE	  	    CVP_DNS_MODE
 #define TCFG_AUDIO_DMS_SEL	  	    	DMS_HYBRID
 
 #elif (TCFG_AUDIO_CVP_DMS_AWN_DNS_MODE) /*dms_AWN通话*/
-#define TCFG_AUDIO_TRIPLE_MIC_ENABLE    DISABLE_THIS_MOUDLE
-#define TCFG_AUDIO_DUAL_MIC_ENABLE		ENABLE_THIS_MOUDLE
 #define TCFG_AUDIO_CVP_NS_MODE	  	    CVP_DNS_MODE
 #define TCFG_AUDIO_DMS_SEL	  	    	DMS_AWN
+#endif
 
+#elif (TCFG_AUDIO_CVP_3MIC_MODE)
+/*3mic-CVP:3mic通话算法*/
+#define TCFG_AUDIO_SINGLE_MIC_ENABLE	DISABLE_THIS_MOUDLE
+#define TCFG_AUDIO_DUAL_MIC_ENABLE		DISABLE_THIS_MOUDLE
+#define TCFG_AUDIO_TRIPLE_MIC_ENABLE    ENABLE_THIS_MOUDLE
+#define TCFG_AUDIO_CVP_NS_MODE	  	    CVP_DNS_MODE
+#define TCFG_AUDIO_DMS_SEL	  	    	DMS_NORMAL
 #else
+#define TCFG_AUDIO_SINGLE_MIC_ENABLE	DISABLE_THIS_MOUDLE
 #define TCFG_AUDIO_TRIPLE_MIC_ENABLE    DISABLE_THIS_MOUDLE
 #define TCFG_AUDIO_DUAL_MIC_ENABLE		DISABLE_THIS_MOUDLE
 #define TCFG_AUDIO_CVP_NS_MODE	  	    CVP_ANS_MODE
 #define TCFG_AUDIO_DMS_SEL	  	    	DMS_NORMAL
-#endif/*TCFG_AUDIO_CVP_DMS_DNS_MODE*/
+#endif
 
 #if TCFG_ESCO_DL_CVSD_SR_USE_16K
 #define TCFG_AUDIO_CVP_BAND_WIDTH_CFG   (CVP_WB_EN) //只保留16k参数
@@ -641,7 +689,7 @@
 #define AUDIO_DATA_EXPORT_VIA_SD	3
 #define TCFG_AUDIO_DATA_EXPORT_DEFINE		DISABLE_THIS_MOUDLE
 
-#if TCFG_DATA_EXPORT_NODE_ENABLE
+#if TCFG_DATA_EXPORT_NODE_ENABLE || AUDIO_ANC_DATA_EXPORT_VIA_UART
 #undef TCFG_AUDIO_DATA_EXPORT_DEFINE
 #define TCFG_AUDIO_DATA_EXPORT_DEFINE		AUDIO_DATA_EXPORT_VIA_UART
 #endif
@@ -800,17 +848,12 @@
 #error "开辅听需要固定全局输出采样率"
 #endif
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_JL_UNICAST_SINK_EN)))
-#if (TCFG_AUDIO_GLOBAL_SAMPLE_RATE != 48000)
-#error "open LE_AUDIO_JL_UNICAST TCFG_AUDIO_GLOBAL_SAMPLE_RATE 需要设置48000"
+#if ((TCFG_AUDIO_GLOBAL_SAMPLE_RATE % 16000 ) != 0)
+#error "open LE_AUDIO_JL_UNICAST TCFG_AUDIO_GLOBAL_SAMPLE_RATE 需要设置采样率为16k的倍数，方便做变采样给通话算法处理"
 #endif
 #endif
 
-#if (TCFG_AUDIO_CVP_SMS_ANS_MODE + TCFG_AUDIO_CVP_SMS_DNS_MODE \
-   + TCFG_AUDIO_CVP_DMS_ANS_MODE + TCFG_AUDIO_CVP_DMS_DNS_MODE \
-   + TCFG_AUDIO_CVP_DMS_FLEXIBLE_ANS_MODE + TCFG_AUDIO_CVP_DMS_FLEXIBLE_DNS_MODE \
-   + TCFG_AUDIO_CVP_3MIC_MODE \
-   + TCFG_AUDIO_CVP_DMS_HYBRID_DNS_MODE + TCFG_AUDIO_CVP_DMS_AWN_DNS_MODE \
-   ) > 1
+#if (TCFG_AUDIO_SINGLE_MIC_ENABLE + TCFG_AUDIO_DUAL_MIC_ENABLE + TCFG_AUDIO_TRIPLE_MIC_ENABLE > 1)
 #error "整个SDK数据流里面只能使用一种模式的CVP通话节点"
 #endif
 
@@ -863,6 +906,8 @@
 		|| TCFG_AUDIO_TRIPLE_MIC_ENABLE || (TCFG_USB_SLAVE_AUDIO_MIC_ENABLE && (TCFG_AUDIO_CVP_DMS_DNS_MODE)) \
 		|| TCFG_AUDIO_FIT_DET_ENABLE)
 #define TCFG_LOWPOWER_RAM_SIZE				2	                // 低功耗掉电ram大小，单位：128K，可设置值：0、2、3
+#elif ((THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN) && RCSP_ADV_TRANSLATOR)
+#define TCFG_LOWPOWER_RAM_SIZE              2	                // 低功耗掉电ram大小，单位：128K，可设置值：0、2、3
 #else
 #define TCFG_LOWPOWER_RAM_SIZE				3	                // 低功耗掉电ram大小，单位：128K，可设置值：0、2、3
 
@@ -922,7 +967,7 @@
 
 #if APP_ONLINE_DEBUG
 #undef THIRD_PARTY_PROTOCOLS_SEL
-#if (TCFG_THIRD_PARTY_PROTOCOLS_ENABLE && (TCFG_THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | CUSTOM_DEMO_EN | XIMALAYA_EN))) || ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
+#if (TCFG_THIRD_PARTY_PROTOCOLS_ENABLE && (TCFG_THIRD_PARTY_PROTOCOLS_SEL & (RCSP_MODE_EN | GFPS_EN | MMA_EN | FMNA_EN | REALME_EN | SWIFT_PAIR_EN | DMA_EN | CUSTOM_DEMO_EN | XIMALAYA_EN | AURACAST_APP_EN | MULTI_CLIENT_EN))) || ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 #define THIRD_PARTY_PROTOCOLS_SEL  (TCFG_THIRD_PARTY_PROTOCOLS_SEL | ONLINE_DEBUG_EN)
 #else
 #define THIRD_PARTY_PROTOCOLS_SEL  (ONLINE_DEBUG_EN)
@@ -950,11 +995,23 @@
 #undef  TCFG_BT_SUPPORT_PBAP
 #define  TCFG_BT_SUPPORT_PBAP 0x1
 #endif
-#define  TCFG_BT_SUPPORT_MAP 0x0
+#define  TCFG_BT_SUPPORT_MAP 0x0	// 蓝牙连接后，会向系统发送短信权限申请
 #define  TCFG_BLE_BRIDGE_EDR_ENALBE 0x0   //ios 一键连接，ctkd
 #if TCFG_BLE_BRIDGE_EDR_ENALBE   //一键连接必须同地址
 #undef  TCFG_BT_BLE_BREDR_SAME_ADDR
 #define  TCFG_BT_BLE_BREDR_SAME_ADDR 0x1
+#endif
+
+#define TCFG_IFLYTEK_ENABLE			0
+#ifdef TCFG_BT_SUPPORT_PAN
+#if TCFG_BT_SUPPORT_PAN
+#undef TCFG_IFLYTEK_ENABLE
+#define TCFG_IFLYTEK_ENABLE			1
+#endif
+#endif
+#if TCFG_IFLYTEK_ENABLE//目前耳机没有rtc，先用蓝牙时间转UTC再转GMT(earphone.c)
+#undef  TCFG_BT_SUPPORT_MAP
+#define  TCFG_BT_SUPPORT_MAP 0x1
 #endif
 
 //*********************************************************************************//
@@ -965,18 +1022,46 @@
 #define TCFG_CHARGE_CUR_MAX         0//烧写器电流筛选最高值 -- 配置0不使能筛选,根据方案自行配置筛选范围
 #endif
 
+//*********************************************************************************//
+//                   NTC配置                                      //
+//*********************************************************************************//
+#if NTC_DET_EN && NTC_DET_PULLUP_TYPE   //ntc如果选择内部上拉的，检测IO要选择对应的内部上拉引脚，具体看各芯片方案的原理图
+#if defined(CONFIG_CPU_BR56) && (NTC_DETECT_IO != IO_PORTC_01)
+#error "710 NTC_DETECT_IO must be IO_PORTC_01"
+#elif defined(CONFIG_CPU_BR52) && (NTC_DETECT_IO != IO_PORTC_03)
+#error "709 NTC_DETECT_IO must be IO_PORTC_03"
+#elif defined(CONFIG_CPU_BR50) && (NTC_DETECT_IO != IO_PORTC_05)
+#error "708 NTC_DETECT_IO must be IO_PORTC_05"
+#endif
+#endif
 
 //*********************************************************************************//
 //                    异常记录/离线log配置                                      //
 //*********************************************************************************//
 #define TCFG_CONFIG_DEBUG_RECORD_ENABLE    0
 
-// #if !TCFG_DEBUG_UART_ENABLE
+#if !TCFG_DEBUG_UART_ENABLE
 #define TCFG_DEBUG_DLOG_ENABLE             0      // 离线log功能
 #define TCFG_DEBUG_DLOG_FLASH_SEL          0      // 选择log保存到内置flash还是外置flash; 0:内置flash; 1:外置flash
+#if TCFG_DEBUG_DLOG_FLASH_SEL
+#if (!defined(TCFG_NORFLASH_DEV_ENABLE) || (TCFG_NORFLASH_DEV_ENABLE == 0))
+#undef TCFG_NORFLASH_DEV_ENABLE
+#define TCFG_NORFLASH_DEV_ENABLE           1
+#endif
+#endif
 #define TCFG_DEBUG_DLOG_RESET_ERASE        0      // 开机擦除flash的log数据
 #define TCFG_DEBUG_DLOG_AUTO_FLUSH_TIMEOUT (30)   // 主动刷新的超时时间(当指定时间没有刷新过缓存数据到flash, 则主动刷新)(单位秒)
-// #endif
+#define TCFG_DEBUG_DLOG_UART_TX_PIN        IO_PORTA_04//IO_PORT_DP //IO_PORT_LDOIN
+#if (defined(LIB_DEBUG) && TCFG_DEBUG_DLOG_ENABLE)
+#undef LIB_DEBUG
+#define LIB_DEBUG    1
+#undef CONFIG_DEBUG_LIB
+#define CONFIG_DEBUG_LIB(x)         (x & LIB_DEBUG)
+#endif
+#if ((TCFG_DEBUG_DLOG_ENABLE) && (!defined(DLOG_PRINT_FUNC_USE_MACRO) || (DLOG_PRINT_FUNC_USE_MACRO == 0)))
+#error "DLOG_PRINT_FUNC_USE_MACRO must be enable"
+#endif
+#endif
 
 //*********************************************************************************//
 //                    关中断时间过长函数追踪配置                                      //

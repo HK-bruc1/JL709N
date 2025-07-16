@@ -21,6 +21,10 @@
 #if TCFG_LE_AUDIO_APP_CONFIG
 #include "le_audio_player.h"
 #endif
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+#include "app_le_auracast.h"
+#endif
+
 
 #if TCFG_APP_BT_EN
 
@@ -69,6 +73,11 @@ u8 check_local_not_accept_sniff_by_remote()
     if (le_audio_player_is_playing()) {
         return TRUE;
     }
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+    if (le_auracast_is_running()) {
+        return TRUE;
+    }
+#endif
 #endif
     return FALSE;
 }
@@ -117,7 +126,6 @@ void bt_check_enter_sniff()
     if (check_local_not_accept_sniff_by_remote()) {
         return;
     }
-
 
     int conn_cnt = bt_api_enter_sniff_status_check(SNIFF_CNT_TIME, addr);
     ASSERT(conn_cnt <= 2);

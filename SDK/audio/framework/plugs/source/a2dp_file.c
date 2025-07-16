@@ -37,8 +37,10 @@ struct a2dp_file_hdl {
     void *ts_handle;
     u32 sample_rate;
     u16 codec_version;
+    u8 chconfig_id;
     u8 channel_num;
     u16 seqn;
+    u16 pcm_frames;
     u32 base_time;
     u32 timestamp;
     u32 ts_sample_rate;
@@ -55,13 +57,14 @@ struct a2dp_file_hdl {
     u8 handshake_state;
     u32 request_timeout;
     u32 handshake_timeout;
-    /*struct stream_frame *reassembled_frame;*/
 
     u8 link_jl_dongle; //连接jl_dongle
     u8 rtp_ts_en; //使用rtp的时间戳
-    u16 jl_dongle_latency ;
+    u16 jl_dongle_latency;
     u8 edr_to_local_time;
     u8 timestamp_enable;
+    u8 reset_frame_clkn;
+    u32 frame_clkn;
     u32 ts_align_time;//统计时间戳对齐动作的耗时
 };
 
@@ -73,16 +76,12 @@ extern const int CONFIG_A2DP_DELAY_TIME_LO;
 extern const int CONFIG_A2DP_SBC_DELAY_TIME_LO;
 extern const int CONFIG_BTCTLER_TWS_ENABLE;
 extern const int CONFIG_DONGLE_SPEAK_ENABLE;
+extern const int CONFIG_A2DP_MAX_BUF_SIZE;
 
-extern void bt_audio_reference_clock_select(void *addr, u8 network);
-extern u32 bt_audio_reference_clock_time(u8 network);
 extern int a2dp_get_packet_pcm_frames(struct a2dp_file_hdl *hdl, u8 *data, int len);
 static int a2dp_stream_ts_enable_detect(struct a2dp_file_hdl *hdl, u8 *packet, int *drop);
 static void a2dp_frame_pack_timestamp(struct a2dp_file_hdl *hdl, struct stream_frame *frame, u8 *data, int pcm_frames);
 static void a2dp_file_timestamp_setup(struct a2dp_file_hdl *hdl);
-
-extern void bt_edr_conn_system_clock_init(void *addr, u8 factor);
-extern u32 bt_edr_conn_master_to_local_time(void *addr, u32 usec);
 
 static u8 a2dp_low_latency = 0;
 
@@ -90,6 +89,11 @@ static u8 a2dp_low_latency = 0;
 #define a2dp_seqn_before(a, b)  ((a < b && (u16)(b - a) < 1000) || (a > b && (u16)(a - b) > 1000))
 #define RB16(b)    (u16)(((u8 *)b)[0] << 8 | (((u8 *)b))[1])
 #define RB32(b)    (u32)(((u8 *)b)[0] << 24 | (((u8 *)b))[1] << 16 | (((u8 *)b))[2] << 8 | (((u8 *)b))[3])
+
+#define A2DP_TWS_ALIGN_STATE_OVERRUN        -1
+#define A2DP_TWS_ALIGN_STATE_NOERR          0
+#define A2DP_TWS_ALIGN_STATE_UNDERRUN       1
+#define A2DP_TWS_ALIGN_STATE_BUF_OVERFLOW   2
 
 #include "a2dp_handshake.c"
 /*#include "a2dp_aac_demuxer.c"*/
@@ -114,6 +118,7 @@ static void abandon_a2dp_data(void *p)
     /*a2dp_media_clear_packet_before_seqn(hdl->file, 0);*/
 }
 
+__A2DP_DEC_BANK_CODE
 static void a2dp_file_start_abandon_data(struct a2dp_file_hdl *hdl)
 {
     int role = TWS_ROLE_MASTER;
@@ -130,6 +135,7 @@ static void a2dp_file_start_abandon_data(struct a2dp_file_hdl *hdl)
     }
 }
 
+__A2DP_DEC_BANK_CODE
 static void a2dp_file_stop_abandon_data(struct a2dp_file_hdl *hdl)
 {
     if (hdl->timer) {
@@ -164,7 +170,7 @@ static enum stream_node_state a2dp_get_frame(void *_hdl, struct stream_frame **p
 {
     struct a2dp_file_hdl *hdl = (struct a2dp_file_hdl *)_hdl;
     struct a2dp_media_frame _frame;
-    int drop = 0;
+    int drop_state = 0;
     int stream_error = 0;
 
     *pframe = NULL;
@@ -187,7 +193,7 @@ static enum stream_node_state a2dp_get_frame(void *_hdl, struct stream_frame **p
         a2dp_file_timestamp_setup(hdl);
     }
 #endif
-    if ((!hdl->ts_handle || hdl->edr_to_local_time) && hdl->start == 0) {
+    if ((!hdl->ts_handle /* || hdl->edr_to_local_time */) && hdl->start == 0) {
         int delay = a2dp_media_get_remain_play_time(hdl->file, 1);
         if (delay < (hdl->ts_handle ? hdl->delay_time : 300)) {
             return NODE_STA_RUN | NODE_STA_SOURCE_NO_DATA;
@@ -195,6 +201,7 @@ static enum stream_node_state a2dp_get_frame(void *_hdl, struct stream_frame **p
         hdl->start = 1;
     }
 
+pull_frame:
     int len = hdl->frame_len;
     if (len == 0) {
         if (hdl->stream_ctrl) {
@@ -211,33 +218,35 @@ static enum stream_node_state a2dp_get_frame(void *_hdl, struct stream_frame **p
         memcpy(&_frame, &hdl->frame, sizeof(struct a2dp_media_frame));
     }
 
-    hdl->seqn = RB16((u8 *)_frame.packet + 2);
-    int err = a2dp_stream_ts_enable_detect(hdl, _frame.packet, &drop);
+    if (stream_error != FRAME_FLAG_FILL_PACKET) {
+        hdl->seqn = RB16((u8 *)_frame.packet + 2);
+    }
+    int err = a2dp_stream_ts_enable_detect(hdl, _frame.packet, &drop_state);
     if (err) {
-        if (drop) {
+        if (drop_state == A2DP_TWS_ALIGN_STATE_UNDERRUN || drop_state == A2DP_TWS_ALIGN_STATE_BUF_OVERFLOW) {
             if (hdl->stream_ctrl) {
                 a2dp_stream_control_free_frame(hdl->stream_ctrl, &_frame);
             } else {
                 a2dp_media_free_packet(hdl->file, _frame.packet);
             }
             hdl->frame_len = 0;
+            if (drop_state == A2DP_TWS_ALIGN_STATE_UNDERRUN) {
+                goto pull_frame;
+            }
         }
-        a2dp_tws_media_try_handshake_ack(0, hdl->seqn);
-        if (!hdl->wake_up_timer) {//快速唤醒数据流，加速tws时间戳交互的过程
-            hdl->ts_align_time = 0;
-            hdl->wake_up_timer = sys_hi_timer_add((void *)hdl, a2dp_source_direct_wake_jlstream_run, 4);
-        }
+        a2dp_tws_media_try_handshake_ack(0, hdl->seqn, _frame.clkn);
         return NODE_STA_RUN | NODE_STA_SOURCE_NO_DATA;
     }
-    if (hdl->wake_up_timer) {
-        sys_hi_timer_del(hdl->wake_up_timer);
-        hdl->wake_up_timer = 0;
-    }
 
-    int head_len = a2dp_media_get_rtp_header_len(hdl->media_type, _frame.packet, len);
+    int head_len = 0;
+    if (stream_error != FRAME_FLAG_FILL_PACKET) {
+        head_len = a2dp_media_get_rtp_header_len(hdl->media_type, _frame.packet, len);
+    }
 
     struct stream_frame *frame;
     int frame_len = len - head_len;
+    int pcm_frames = a2dp_get_packet_pcm_frames(hdl, _frame.packet + head_len, frame_len);
+
     frame = jlstream_get_frame(hdl->node->oport, frame_len);
     if (frame == NULL) {
         return NODE_STA_RUN;
@@ -245,11 +254,9 @@ static enum stream_node_state a2dp_get_frame(void *_hdl, struct stream_frame **p
     frame->len          = frame_len;
     frame->timestamp    = _frame.clkn;
     frame->flags        |= (stream_error);
-    a2dp_frame_pack_timestamp(hdl, frame, _frame.packet + 4,  //时间戳的地址
-                              a2dp_get_packet_pcm_frames(hdl,
-                                      _frame.packet + head_len, frame_len));
+    a2dp_frame_pack_timestamp(hdl, frame, _frame.packet + 4, pcm_frames);
 
-    a2dp_tws_media_try_handshake_ack(1, hdl->seqn);
+    a2dp_tws_media_try_handshake_ack(1, hdl->seqn, _frame.clkn);
 
     memcpy(frame->data, _frame.packet + head_len, frame_len);
 
@@ -258,6 +265,11 @@ static enum stream_node_state a2dp_get_frame(void *_hdl, struct stream_frame **p
     } else {
         a2dp_media_free_packet(hdl->file, _frame.packet);
     }
+#if A2DP_TIMESTAMP_ENABLE
+    if (!(frame->flags & FRAME_FLAG_FILL_PACKET)) {
+        a2dp_stream_bandwidth_detect_handler(hdl->stream_ctrl, len, pcm_frames, hdl->sample_rate);
+    }
+#endif
     hdl->frame_len = 0;
     hdl->start = 1;
 
@@ -288,6 +300,7 @@ static const u16 sbc_sample_rates[] = {16000, 32000, 44100, 48000};
 
 static const u32 ldac_sample_rates[] = {44100, 48000, 88200, 96000};
 
+__A2DP_DEC_BANK_CODE
 static int a2dp_ioc_get_fmt(struct a2dp_file_hdl *hdl, struct stream_fmt *fmt)
 {
     struct a2dp_media_frame _frame;
@@ -314,16 +327,13 @@ static int a2dp_ioc_get_fmt(struct a2dp_file_hdl *hdl, struct stream_fmt *fmt)
     case A2DP_CODEC_LHDC_V5: //LHDC 直接从蓝牙获取格式信息。
         fmt->coding_type = AUDIO_CODING_LHDC_V5;
         fmt->sample_rate = a2dp_media_get_sample_rate(hdl->file);
-        fmt->dec_bit_wide = a2dp_media_get_bit_wide(hdl->file);
-        fmt->codec_version = a2dp_media_get_codec_version(hdl->file);
         fmt->channel_mode = AUDIO_CH_LR;
         hdl->media_type = type;
-        hdl->codec_version = fmt->codec_version;
+        hdl->codec_version = a2dp_media_get_codec_version(hdl->file);
         hdl->sample_rate = fmt->sample_rate;
         hdl->channel_num = (fmt->channel_mode == AUDIO_CH_LR) ? 2 : 1;
 
-        printf("a2dp  format %s, sample_rate %d, bit_wide %d, codec_version %d\n",
-               "LHDC_v5", hdl->sample_rate, fmt->dec_bit_wide, fmt->codec_version);
+        printf("a2dp  format %s, sample_rate %d\n", "LHDC_v5", hdl->sample_rate);
         return 0;
         break;
 #endif
@@ -331,16 +341,13 @@ static int a2dp_ioc_get_fmt(struct a2dp_file_hdl *hdl, struct stream_fmt *fmt)
     case A2DP_CODEC_LHDC: //LHDC 直接从蓝牙获取格式信息。
         fmt->coding_type = AUDIO_CODING_LHDC;
         fmt->sample_rate = a2dp_media_get_sample_rate(hdl->file);
-        fmt->dec_bit_wide = a2dp_media_get_bit_wide(hdl->file);
-        fmt->codec_version = a2dp_media_get_codec_version(hdl->file);
         fmt->channel_mode = AUDIO_CH_LR;
         hdl->media_type = type;
-        hdl->codec_version = fmt->codec_version;
+        hdl->codec_version = a2dp_media_get_codec_version(hdl->file);
         hdl->sample_rate = fmt->sample_rate;
         hdl->channel_num = (fmt->channel_mode == AUDIO_CH_LR) ? 2 : 1;
 
-        printf("a2dp  format %s, sample_rate %d, bit_wide %d, codec_version %s\n",
-               "LHDC", hdl->sample_rate, fmt->dec_bit_wide, ((fmt->codec_version == 500) ? "LLAC" : "LHDC V3/V4"));
+        printf("a2dp  format %s, sample_rate %d\n", "LHDC", hdl->sample_rate);
         return 0;
 #endif
     default:
@@ -408,10 +415,10 @@ __again:
         int chconfig_id = (frame[2] >> (8 - 5)) & 0x03;
 
         fmt->channel_mode = AUDIO_CH_LR;
-        fmt ->sample_rate = ldac_sample_rates[sr];
-        fmt->chconfig_id = chconfig_id;
+        fmt->sample_rate = ldac_sample_rates[sr];
+        hdl->chconfig_id = chconfig_id;
         //printf(" %x  %x  %x\n",frame[0],frame[1],frame[2]);
-        //printf("sr:%d, sample_rate : %d  chconfig_id : %d\n",sr,fmt->sample_rate,chconfig_id);
+        printf("LDAC param : sr:%d, sample_rate : %d  chconfig_id : %d\n", sr, fmt->sample_rate, chconfig_id);
 #endif
     } else {
         /*
@@ -429,8 +436,39 @@ __again:
     return 0;
 }
 
+__A2DP_DEC_BANK_CODE
+static int a2dp_ioc_get_fmt_ex(struct a2dp_file_hdl *hdl, struct stream_fmt_ex *fmt)
+{
+    switch (hdl->media_type) {
+    case A2DP_CODEC_SBC:
+    case A2DP_CODEC_MPEG24:
+        break;
+#if (defined(TCFG_BT_SUPPORT_LHDC_V5) && TCFG_BT_SUPPORT_LHDC_V5)
+    case A2DP_CODEC_LHDC_V5: //LHDC 直接从蓝牙获取格式信息。
+        fmt->dec_bit_wide = a2dp_media_get_bit_wide(hdl->file);
+        fmt->codec_version = hdl->codec_version;
+        printf("LHDC_V5, bit_wide %d, codec_version %d\n", fmt->dec_bit_wide, fmt->codec_version);
+        return 1;
+#endif
+#if (defined(TCFG_BT_SUPPORT_LHDC) && TCFG_BT_SUPPORT_LHDC)
+    case A2DP_CODEC_LHDC: //LHDC 直接从蓝牙获取格式信息。
+        fmt->dec_bit_wide = a2dp_media_get_bit_wide(hdl->file);
+        fmt->codec_version = hdl->codec_version;
+        printf("LHDC, bit_wide %d, codec_version %s\n",
+               fmt->dec_bit_wide, ((fmt->codec_version == 500) ? "LLAC" : "LHDC V3/V4"));
+        return 1;
+#endif
+#if (defined(TCFG_BT_SUPPORT_LDAC) && TCFG_BT_SUPPORT_LDAC)
+    case A2DP_CODEC_LDAC:
+        fmt->chconfig_id = hdl->chconfig_id;
+        return 1;
+#endif
+    }
+    return 0;
+}
 
 
+__A2DP_DEC_BANK_CODE
 static int a2dp_ioc_set_bt_addr(struct a2dp_file_hdl *hdl, u8 *bt_addr)
 {
     hdl->file = a2dp_open_media_file(bt_addr);
@@ -439,6 +477,7 @@ static int a2dp_ioc_set_bt_addr(struct a2dp_file_hdl *hdl, u8 *bt_addr)
         put_buf(bt_addr, 6);
         return -EINVAL;
     }
+    /*r_printf("a2dp packet : %d\n", a2dp_media_get_packet_num(hdl->file));*/
     memcpy(hdl->bt_addr, bt_addr, 6);
 
     if (CONFIG_DONGLE_SPEAK_ENABLE) {
@@ -454,7 +493,8 @@ static int a2dp_ioc_set_bt_addr(struct a2dp_file_hdl *hdl, u8 *bt_addr)
     return 0;
 }
 
-static void a2dp_ioc_stop(struct a2dp_file_hdl *hdl)
+__A2DP_DEC_BANK_CODE
+static void __a2dp_ioc_stop(struct a2dp_file_hdl *hdl, u8 suspend)
 {
     if (hdl->wake_up_timer) {
         sys_hi_timer_del(hdl->wake_up_timer);
@@ -471,7 +511,11 @@ static void a2dp_ioc_stop(struct a2dp_file_hdl *hdl)
     }
     a2dp_file_stop_abandon_data(hdl);
     /*a2dp_media_clear_packet_before_seqn(hdl->file, 0);*/
-    a2dp_media_stop_play(hdl->file);
+    if (suspend) {
+        a2dp_media_suspend_play(hdl->file);
+    } else {
+        a2dp_media_stop_play(hdl->file);
+    }
     hdl->start = 0;
 }
 
@@ -531,6 +575,9 @@ static int a2dp_get_packet_pcm_frames(struct a2dp_file_hdl *hdl, u8 *data, int l
     u32 frames = 0;
     u8 codec_type = hdl->media_type;
 
+    if (len == 2 && (data[0] == 0x02 && data[1] == 0x00)) {
+        return hdl->pcm_frames;
+    }
     switch (hdl->media_type) {
     case A2DP_CODEC_SBC:
         frames = sbc_get_packet_pcm_frames(data, len);//frame_num * 128 * (unit);
@@ -573,6 +620,7 @@ static int a2dp_get_packet_pcm_frames(struct a2dp_file_hdl *hdl, u8 *data, int l
 }
 
 
+__A2DP_DEC_BANK_CODE
 static void a2dp_stream_control_open(struct a2dp_file_hdl *hdl)
 {
     /*
@@ -585,10 +633,10 @@ static void a2dp_stream_control_open(struct a2dp_file_hdl *hdl)
         return;
     }
     if (hdl->link_jl_dongle) {
-        hdl->stream_ctrl = a2dp_stream_control_plan_select(hdl->file, a2dp_low_latency, hdl->media_type, A2DP_STREAM_JL_DONGLE_CONTROL);
+        hdl->stream_ctrl = a2dp_stream_control_plan_select(hdl->file, a2dp_low_latency, hdl->media_type, A2DP_STREAM_JL_DONGLE_CONTROL, hdl->bt_addr);
 
     } else {
-        hdl->stream_ctrl = a2dp_stream_control_plan_select(hdl->file, a2dp_low_latency, hdl->media_type, 0);
+        hdl->stream_ctrl = a2dp_stream_control_plan_select(hdl->file, a2dp_low_latency, hdl->media_type, 0, hdl->bt_addr);
     }
     if (hdl->stream_ctrl) {
         hdl->delay_time = a2dp_stream_control_delay_time(hdl->stream_ctrl);
@@ -596,6 +644,7 @@ static void a2dp_stream_control_open(struct a2dp_file_hdl *hdl)
     }
 }
 
+__A2DP_DEC_BANK_CODE
 static void a2dp_stream_control_close(struct a2dp_file_hdl *hdl)
 {
     if (hdl->stream_ctrl) {
@@ -610,15 +659,14 @@ static u32 a2dp_stream_update_base_time(struct a2dp_file_hdl *hdl)
     int distance_time = 0;
     int len = a2dp_media_try_get_packet(hdl->file, &frame);
     if (len > 0) {
-        u32 base_clkn = frame.clkn;
-        /* if (CONFIG_BTCTLER_TWS_ENABLE && a2dp_low_latency) { */
-        /* base_clkn = bt_audio_reference_clock_time(0); */
-        /* } */
-        a2dp_media_put_packet(hdl->file, frame.packet);
-        u32 base_time =  base_clkn + msecs_to_bt_time((hdl->delay_time < 100 ? 100 : hdl->delay_time));
-        if ((int)(base_time - bt_audio_reference_clock_time(0)) < msecs_to_bt_time(150)) {//启动过程耗时很长，此处为避免时间戳超时，加上150ms
-            base_time = bt_audio_reference_clock_time(0) + msecs_to_bt_time(150);
+        u32 base_clkn = hdl->reset_frame_clkn ? hdl->frame_clkn : frame.clkn;
+        /*
+        if (hdl->reset_frame_clkn) {
+            g_printf("reset frame clkn : %d, %d\n", hdl->frame_clkn, frame.clkn);
         }
+        */
+        a2dp_media_put_packet(hdl->file, frame.packet);
+        u32 base_time =  base_clkn + msecs_to_bt_time((hdl->delay_time < 100 ? 100 : (hdl->delay_time + 50)));
         return base_time;
     }
     distance_time = a2dp_low_latency ? hdl->delay_time : (hdl->delay_time - a2dp_media_get_remain_play_time(hdl->file, 1));
@@ -632,6 +680,7 @@ static u32 a2dp_stream_update_base_time(struct a2dp_file_hdl *hdl)
 }
 
 
+__A2DP_DEC_BANK_CODE
 void a2dp_ts_handle_create(struct a2dp_file_hdl *hdl)
 {
     if (!hdl || (hdl->rtp_ts_en)) {
@@ -660,10 +709,13 @@ void a2dp_ts_handle_create(struct a2dp_file_hdl *hdl)
     }
     hdl->sync_step = 0;
     hdl->frame_len = 0;
+    hdl->reset_frame_clkn = 0;
+    hdl->handshake_timeout = jiffies + msecs_to_jiffies(1500); /*TWS时间戳对齐复用该超时计时*/
     hdl->dts = 0;
 #endif
 }
 
+__A2DP_DEC_BANK_CODE
 void a2dp_ts_handle_release(struct a2dp_file_hdl *hdl)
 {
     if (!hdl) {
@@ -707,43 +759,63 @@ static void a2dp_frame_pack_timestamp(struct a2dp_file_hdl *hdl, struct stream_f
         distance_time = 0;
     }
     a2dp_audio_delay_offset_update(hdl->ts_handle, distance_time);
+
+    int sample_rate = a2dp_audio_sample_rate(hdl->ts_handle);
     frame->flags |= (FRAME_FLAG_TIMESTAMP_ENABLE | FRAME_FLAG_UPDATE_TIMESTAMP | FRAME_FLAG_UPDATE_DRIFT_SAMPLE_RATE);
-    a2dp_stream_mark_next_timestamp(hdl->stream_ctrl, timestamp + PCM_SAMPLE_TO_TIMESTAMP(pcm_frames, hdl->sample_rate));
+    a2dp_stream_update_next_timestamp(hdl->stream_ctrl, timestamp + PCM_SAMPLE_TO_TIMESTAMP(pcm_frames, sample_rate));
     if (hdl->edr_to_local_time) {
         timestamp = bt_edr_conn_master_to_local_time(hdl->bt_addr, timestamp);
     }
     frame->timestamp = timestamp;
-    frame->d_sample_rate = a2dp_audio_sample_rate(hdl->ts_handle) - hdl->sample_rate;
+    frame->d_sample_rate = sample_rate - hdl->sample_rate;
     /*printf("drift : %d\n", frame->d_sample_rate);*/
     /*printf("-%u, %u, %u-\n", timestamp, bt_edr_conn_master_to_local_time(hdl->bt_addr, timestamp), local_time);*/
     hdl->dts += pcm_frames;
-    a2dp_stream_bandwidth_detect_handler(hdl->stream_ctrl, pcm_frames, hdl->sample_rate);
+    hdl->pcm_frames = pcm_frames;
 }
 
-static int a2dp_stream_ts_enable_detect(struct a2dp_file_hdl *hdl, u8 *packet, int *drop)
+static int a2dp_stream_ts_enable_detect(struct a2dp_file_hdl *hdl, u8 *packet, int *drop_state)
 {
     if (hdl->sync_step) {
         return 0;
     }
 
-    if (!drop) {
+    if (!drop_state) {
         printf("wrong argument 'drop'!\n");
     }
     if (CONFIG_BTCTLER_TWS_ENABLE && hdl->ts_handle) {
-        if (hdl->tws_case != 1 && \
-            !a2dp_audio_timestamp_is_available(hdl->ts_handle, hdl->seqn, 0, drop)) {
-            if (*drop) {
+        if (hdl->tws_case == 0) {
+            hdl->sync_step = 2;
+            return 0;
+        }
+
+        /*TWS 音频握手对齐失败，强制进入时间戳对齐流程*/
+        if (hdl->tws_case != 3 && \
+            !a2dp_audio_timestamp_is_available(hdl->ts_handle, hdl->seqn, 0, drop_state)) {
+            if (*drop_state == A2DP_TWS_ALIGN_STATE_UNDERRUN) {
                 hdl->base_time = a2dp_stream_update_base_time(hdl);
                 a2dp_audio_set_base_time(hdl->ts_handle, hdl->base_time);
+            } else {/*TWS加入和握手超时容错处理*/
+                if (*drop_state == A2DP_TWS_ALIGN_STATE_OVERRUN && time_after(jiffies, hdl->handshake_timeout)) {
+                    r_printf("tws slave overrun : %d\n", hdl->seqn);
+                    goto release;
+                }
+                int max_buf_size = a2dp_stream_max_buf_size(hdl->media_type);
+                if (a2dp_media_get_sbc_data_len(hdl->file) >= (max_buf_size * 9 / 10)) {
+                    *drop_state = A2DP_TWS_ALIGN_STATE_BUF_OVERFLOW;
+                }
             }
             return -EINVAL;
         }
     }
+
+release:
     log_d(">>>>ts align time %d ms<<<<\n", hdl->ts_align_time);
     hdl->sync_step = 2;
     return 0;
 }
 
+__A2DP_DEC_BANK_CODE
 static void a2dp_media_reference_time_setup(struct a2dp_file_hdl *hdl)
 {
 #if A2DP_TIMESTAMP_ENABLE
@@ -766,6 +838,7 @@ static void a2dp_media_reference_time_setup(struct a2dp_file_hdl *hdl)
 #endif
 }
 
+__A2DP_DEC_BANK_CODE
 static void a2dp_media_reference_time_close(struct a2dp_file_hdl *hdl)
 {
 #if A2DP_TIMESTAMP_ENABLE
@@ -775,17 +848,47 @@ static void a2dp_media_reference_time_close(struct a2dp_file_hdl *hdl)
 #endif
 }
 
+__A2DP_DEC_BANK_CODE
 static void a2dp_file_timestamp_setup(struct a2dp_file_hdl *hdl)
 {
     a2dp_stream_control_open(hdl);
     a2dp_ts_handle_create(hdl);
 }
 
+__A2DP_DEC_BANK_CODE
 static void a2dp_file_timestamp_close(struct a2dp_file_hdl *hdl)
 {
     a2dp_tws_media_handshake_exit(hdl);
     a2dp_stream_control_close(hdl);
     a2dp_ts_handle_release(hdl);
+}
+
+__A2DP_DEC_BANK_CODE
+static void a2dp_ioc_start(struct a2dp_file_hdl *hdl)
+{
+    a2dp_media_start_play(hdl->file);
+    a2dp_media_set_rx_notify(hdl->file, hdl, a2dp_source_wake_jlstream_run);
+    a2dp_file_stop_abandon_data(hdl);
+    a2dp_media_reference_time_setup(hdl);
+}
+
+__A2DP_DEC_BANK_CODE
+static void a2dp_ioc_suspend(struct a2dp_file_hdl *hdl)
+{
+    a2dp_media_set_rx_notify(hdl->file, NULL, NULL);
+    __a2dp_ioc_stop(hdl, 1);
+    a2dp_file_timestamp_close(hdl);
+    a2dp_media_reference_time_close(hdl);
+    a2dp_file_start_abandon_data(hdl);
+}
+
+__A2DP_DEC_BANK_CODE
+static void a2dp_ioc_stop(struct a2dp_file_hdl *hdl)
+{
+    a2dp_media_set_rx_notify(hdl->file, NULL, NULL);
+    __a2dp_ioc_stop(hdl, 0);
+    a2dp_file_timestamp_close(hdl);
+    a2dp_media_reference_time_close(hdl);
 }
 
 static int a2dp_ioctl(void *_hdl, int cmd, int arg)
@@ -803,33 +906,24 @@ static int a2dp_ioctl(void *_hdl, int cmd, int arg)
     case NODE_IOC_GET_FMT:
         err = a2dp_ioc_get_fmt(hdl, (struct stream_fmt *)arg);
         break;
-    case NODE_IOC_SET_PRIV_FMT:
+    case NODE_IOC_GET_FMT_EX:
+        err = a2dp_ioc_get_fmt_ex(hdl, (struct stream_fmt_ex *)arg);
         break;
     case NODE_IOC_START:
-        a2dp_media_start_play(hdl->file);
-        a2dp_media_set_rx_notify(hdl->file, hdl, a2dp_source_wake_jlstream_run);
-        a2dp_file_stop_abandon_data(hdl);
-        a2dp_media_reference_time_setup(hdl);
+        a2dp_ioc_start(hdl);
         break;
     case NODE_IOC_SUSPEND:
-        /*hdl->sample_rate = 0;*/
-        a2dp_media_set_rx_notify(hdl->file, NULL, NULL);
-        a2dp_ioc_stop(hdl);
-        a2dp_file_timestamp_close(hdl);
-        a2dp_media_reference_time_close(hdl);
-        a2dp_file_start_abandon_data(hdl);
+        a2dp_ioc_suspend(hdl);
         break;
     case NODE_IOC_STOP:
-        a2dp_media_set_rx_notify(hdl->file, NULL, NULL);
         a2dp_ioc_stop(hdl);
-        a2dp_file_timestamp_close(hdl);
-        a2dp_media_reference_time_close(hdl);
         break;
     }
 
     return err;
 }
 
+__A2DP_DEC_BANK_CODE
 static void a2dp_release(void *_hdl)
 {
     struct a2dp_file_hdl *hdl = (struct a2dp_file_hdl *)_hdl;

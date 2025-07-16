@@ -127,6 +127,12 @@ SECTIONS
         *(.math_fast_funtion_code)
 
 		. = ALIGN(4);
+        _SPI_CODE_START = . ;
+        *(.spi_code)
+		. = ALIGN(4);
+        _SPI_CODE_END = . ;
+
+		. = ALIGN(4);
 	} > ram0
 
 	__report_overlay_begin = .;
@@ -154,6 +160,11 @@ SECTIONS
         app_mode_begin = .;
 		KEEP(*(.app_mode))
         app_mode_end = .;
+
+		. = ALIGN(4);
+        prot_flash_begin = .;
+        KEEP(*(.prot_flash))
+        prot_flash_end = .;
 
 		. = ALIGN(4);
         #include "btctrler/crypto/data.ld"
@@ -337,20 +348,77 @@ SECTIONS
 	  } > code0
 
     . = ORIGIN(dlog0);
-    .dlog_data ALIGN(4):SUBALIGN(4)
+    /* .dlog_data (NOLOAD):SUBALIGN(4) */
+    .dlog_data :SUBALIGN(4)
     {
+        dlog_seg_begin = .;
         // 头部的0x100空间
         KEEP(*(.dlog.rodata.head))
         /* . = 0x100 + ORIGIN(dlog0); */
 		. = ALIGN(0x100);
 
         dlog_str_tab_seg_begin = .;
+        dlog_str_tab_seg0_begin = .;
+        *(.dlog.rodata.str_tab.0)
+
+        dlog_str_tab_seg1_begin = .;
+        *(.dlog.rodata.str_tab.1)
+
+        dlog_str_tab_seg2_begin = .;
+        *(.dlog.rodata.str_tab.2)
+
+        dlog_str_tab_seg3_begin = .;
+        *(.dlog.rodata.str_tab.3)
+
+        dlog_str_tab_seg4_begin = .;
+        *(.dlog.rodata.str_tab.4)
+
+        dlog_str_tab_seg5_begin = .;
+        *(.dlog.rodata.str_tab.5)
+
+        dlog_str_tab_seg6_begin = .;
+        *(.dlog.rodata.str_tab.6)
+
+        dlog_str_tab_seg7_begin = .;
+        *(.dlog.rodata.str_tab.7)
+
+        dlog_str_tab_segAll_begin = .;
         *(.dlog.rodata.str_tab*)
+        dlog_str_tab_segAll_end = .;
         dlog_str_tab_seg_end = .;
+
 		. = ALIGN(32);
         dlog_str_seg_begin = .;
+        dlog_str_seg0_begin = .;
+        *(.dlog.rodata.string.0)
+
+        dlog_str_seg1_begin = .;
+        *(.dlog.rodata.string.1)
+
+        dlog_str_seg2_begin = .;
+        *(.dlog.rodata.string.2)
+
+        dlog_str_seg3_begin = .;
+        *(.dlog.rodata.string.3)
+
+        dlog_str_seg4_begin = .;
+        *(.dlog.rodata.string.4)
+
+        dlog_str_seg5_begin = .;
+        *(.dlog.rodata.string.5)
+
+        dlog_str_seg6_begin = .;
+        *(.dlog.rodata.string.6)
+
+        dlog_str_seg7_begin = .;
+        *(.dlog.rodata.string.7)
+
+        dlog_str_segAll_begin = .;
         *(.dlog.rodata.string*)
+        dlog_str_segAll_end = .;
         dlog_str_seg_end = .;
+
+        dlog_seg_end = .;
     } > dlog0
 }
 
@@ -432,6 +500,8 @@ ASSERT(ADDR(.mmu_tlb) - (ADDR(.irq_stack) + SIZEOF(.irq_stack)) <= 0x200, "MMU t
 STR_TAB_SIZE = 16;
 ASSERT((dlog_str_tab_seg_end - dlog_str_tab_seg_begin) <= (STR_TAB_SIZE * 0xFFFF), "err: log index out of range, only 0x0000 ~ 0xFFFF !!!");
 ASSERT((dlog_str_tab_seg_begin - ADDR(.dlog_data)) <= 0x100, "err: .dlog.rodata.head out of range, only less than 0x100 !!!");
+/* ASSERT((dlog_str_tab_segAll_end - dlog_str_tab_segAll_begin) == 0, "err: have variable in sec .dlog.rodata.str_tab* !!!"); */
+/* ASSERT((dlog_str_segAll_end - dlog_str_segAll_begin) == 0, "err: have variable in sec .dlog.rodata.string* !!!"); */
 
 //============================================================//
 //=== report section info begin:

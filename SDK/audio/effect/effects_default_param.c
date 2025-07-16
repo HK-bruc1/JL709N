@@ -142,13 +142,23 @@ int get_eff_default_param(int arg)
     //cppcheck-suppress unreadVariable
     struct _name *name = (struct _name *)arg;
 #if TCFG_VIRTUAL_BASS_PRO_MODULE_NODE_ENABLE
-//virtual bass pro 模块节点默认参数配置, virtual bass pro节点名需配置成：VBassPro,此处默认配置才会生效
-    char virtual_bass_pro[16];
-#if TCFG_SOFWARE_EQ_NODE_ENABLE
-    char *sw_eqname_tab[] = {"HPEQ", "PEAKEQ"};//子节点名
-    for (int i = 0; i < ARRAY_SIZE(sw_eqname_tab); i++) {
-        jlstream_module_node_get_name(sw_eqname_tab[i], "VBassPro", virtual_bass_pro);
-        if (!strcmp(name->name, virtual_bass_pro)) {
+    if (!strncmp(name->name, "VBassPro", strlen("VBassPro"))) {
+        struct eff_default_parm *get_parm = (struct eff_default_parm *)arg;
+        get_parm->cfg_index = 0;//目标配置项
+        get_parm->mode_index = get_current_scene();
+        ret = 1;
+    }
+#endif
+
+
+#if TCFG_3D_PLUS_MODULE_NODE_ENABLE
+//3D plus 模块节点默认参数配置, 3D Plus节点名需配置成：3dPlus,此处默认配置才会生效
+    char threeD_Plus[16];
+#if TCFG_EQ_ENABLE
+    char *eqname_tab[] = {"LowEQ", "MidEQ"};//子节点名
+    for (int i = 0; i < ARRAY_SIZE(eqname_tab); i++) {
+        jlstream_module_node_get_name(eqname_tab[i], "3dPlus", threeD_Plus);
+        if (!strcmp(name->name, threeD_Plus)) {
             struct eq_default_parm *get_eq_parm = (struct eq_default_parm *)arg;
             get_eq_parm->cfg_index = 0;
             get_eq_parm->mode_index = get_current_scene();
@@ -158,10 +168,10 @@ int get_eff_default_param(int arg)
     }
 #endif
 
-    char *virtual_bass_classic_name[] = {"MFreqGen", "HPDRC"};//子节点名
-    for (int i = 0; i < ARRAY_SIZE(virtual_bass_classic_name); i++) {
-        jlstream_module_node_get_name(virtual_bass_classic_name[i], "VBassPro", virtual_bass_pro);
-        if (!strcmp(name->name, virtual_bass_pro)) {
+    char *_3dPlus_name[] = {"LRGain", "MidSMix", "LowSMix", "MixerGain"};//子节点名
+    for (int i = 0; i < ARRAY_SIZE(_3dPlus_name); i++) {
+        jlstream_module_node_get_name(_3dPlus_name[i], "3dPlus", threeD_Plus);
+        if (!strcmp(name->name, threeD_Plus)) {
             struct eff_default_parm *get_parm = (struct eff_default_parm *)arg;
             get_parm->mode_index = get_current_scene();
             get_parm->cfg_index = 0;//目标配置项
@@ -171,14 +181,13 @@ int get_eff_default_param(int arg)
     }
 #endif
 
-
 #if TCFG_VIRTUAL_SURROUND_PRO_MODULE_NODE_ENABLE
-// virtual surround pro 模块节点默认参数配置
+// virtual surround pro/2to4/2to5 模块节点默认参数配置, virtual surround pro/2to4/2to5节点名需配置成：VSPro,此处默认配置才会生效
     char out[16];
 #if TCFG_EQ_ENABLE
-    char *eqname_tab[] = {"CEq", "LRSEq"};
-    for (int i = 0; i < ARRAY_SIZE(eqname_tab); i++) {
-        jlstream_module_node_get_name(eqname_tab[i], "VSPro", out);
+    char *vsp_eqname_tab[] = {"CEq", "LRSEq"}; //子节点名
+    for (int i = 0; i < ARRAY_SIZE(vsp_eqname_tab); i++) {
+        jlstream_module_node_get_name(vsp_eqname_tab[i], "VSPro", out);
         if (!strcmp(name->name, out)) {
             struct eq_default_parm *get_eq_parm = (struct eq_default_parm *)arg;
             get_eq_parm->cfg_index = 0;
@@ -190,9 +199,11 @@ int get_eff_default_param(int arg)
 #endif
 
     char *vspro_name[] = {"PreLimiter", "LRLimiter", "CLimiter", "LRSLimiter",
-                          "CDrcAdv", "LRSDrcAdv", "LRCross", "LRBand", "LSCBand", "RSCBand",
-                          "LRPcmDly", "LRSNsGate", "UpMix2to5"
-                         };
+                          "CDrcAdv", "LRSDrcAdv", "LRCross", "LRBand", "LR3Band", "LSCBand", "RSCBand",
+                          "LRPcmDly", "LRSNsGate", "UpMix2to5", "RLSCBand", "RRSCBand",
+                          "SPWider"
+                         };//子节点名
+
     for (int i = 0; i < ARRAY_SIZE(vspro_name); i++) {
         jlstream_module_node_get_name(vspro_name[i], "VSPro", out);
         if (!strcmp(name->name, out)) {
@@ -405,9 +416,7 @@ int get_eff_default_param(int arg)
         /*
          *默认系数使用eq文件内的哪个配置表
          * */
-        char tar_cfg_index = 0;
-        get_cur_eq_num(&tar_cfg_index);//获取当前配置项序号
-        get_eq_parm->cfg_index = tar_cfg_index;
+        get_eq_parm->cfg_index = 0;
 
         if (audio_icsd_adaptive_eq_read()) {
             get_eq_parm->default_tab = *(audio_icsd_adaptive_eq_read());
