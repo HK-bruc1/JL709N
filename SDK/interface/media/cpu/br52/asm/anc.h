@@ -46,6 +46,12 @@ enum {
     ANC_MIC_TYPE_RFB,
 };
 
+//ANC滤波器更新类型
+enum {
+    ANC_COEFF_TYPE_FF = BIT(0),		//FF滤波器
+    ANC_COEFF_TYPE_FB = BIT(1),		//FB滤波器
+};
+
 typedef enum {
     //OLD
     ANC_L_FF_IIR  = 0x0,		//左FF滤波器ID
@@ -743,7 +749,15 @@ u8 anc_fade_ctr_ch_check(u8 ch);
 
 u8 anc_api_get_fade_en(void);
 
+//更新所有滤波器
 void anc_coeff_online_update(audio_anc_t *param, u8 hd_reset_en);
+
+//更新FF滤波器
+void anc_coeff_ff_online_update(audio_anc_t *param);
+
+//更新FB滤波器
+void anc_coeff_fb_online_update(audio_anc_t *param);
+
 
 int anc_coeff_size_count(audio_anc_t *param);
 

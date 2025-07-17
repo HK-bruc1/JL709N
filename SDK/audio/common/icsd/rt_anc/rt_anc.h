@@ -146,6 +146,7 @@ typedef struct {
     u8 sdrc_flag_rls_ls;
     u8 update_cnt;
     u8 music2norm_cnt;
+    u8 cmp_ind_last;
 
     float part1_ref_lf_dB;
     float part1_err_lf_dB;
@@ -221,6 +222,9 @@ struct __rtanc_bt_inf {
     u8  cmp_eq_szidx;
 
     s16 log_buf[40];
+
+    u16 mode_sel;
+    float ff_fgq[31];
 };
 
 struct __rtanc_bt_cfg {

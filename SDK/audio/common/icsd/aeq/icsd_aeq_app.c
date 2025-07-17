@@ -803,7 +803,8 @@ static int audio_adaptive_eq_cur_list_add(s16 volume, struct eq_default_seg_tab 
     return 0;
 }
 
-static int audio_adaptive_eq_cur_list_del(void)
+//删除AEQ系数链表
+int audio_adaptive_eq_cur_list_del(void)
 {
     struct audio_aeq_bulk *bulk;
     struct audio_aeq_bulk *temp;
@@ -933,16 +934,20 @@ static struct eq_default_seg_tab *audio_adaptive_eq_run(float maxgain_dB, int cn
         aeq_log("aeq sz_sel %d -> %d\n", aeq_hdl->fre_out->sz_l_sel_idx, sz_l_sel_idx);
         /* fgq_getfrom_table((s16 *)eq_fgq_table, sz_l_sel_idx - 1, lib_eq_cur); */
         fgq_getfrom_table(ext_cfg->aeq_mem_iir->mem_iir, sz_l_sel_idx - 1, lib_eq_cur);
+        audio_adaptive_eq_data_packet(NULL, sz_cur, lib_eq_cur, cnt, aeq_cfg);
     } else {
+        audio_adaptive_eq_start();
         aeq_output = icsd_aeq_run(aeq_hdl->sz_ref, sz_cur, \
                                   (void *)aeq_hdl->eq_ref, aeq_hdl->sz_dut_cmp, maxgain_dB, lib_eq_cur, aeq_cfg);
         if (aeq_output->state) {
             aeq_debug_log("AEQ OUTPUT ERR!\n");
+            audio_adaptive_eq_stop();
             goto __exit;
         }
+        audio_adaptive_eq_data_packet(aeq_output, sz_cur, lib_eq_cur, cnt, aeq_cfg);
+        audio_adaptive_eq_stop();
     }
 
-    audio_adaptive_eq_data_packet(aeq_output, sz_cur, lib_eq_cur, cnt, aeq_cfg);
 
     //格式化算法输出
     int seg_size = sizeof(struct eq_seg_info) * output_seg_num;
@@ -1031,7 +1036,8 @@ static void audio_adaptive_eq_afq_output_hdl(struct audio_afq_output *p)
     }
 #endif
 
-    if (esco_player_runing() || (!(p->cmp_eq_update & AUDIO_ADAPTIVE_AEQ_UPDATE_FLAG))) { //通话下不支持AEQ
+    if ((esco_player_runing() && (p->sz_l_sel_idx == 0))\
+        || (!(p->cmp_eq_update & AUDIO_ADAPTIVE_AEQ_UPDATE_FLAG))) { //通话下不支持AEQ
         if (aeq_hdl->fre_sel == AUDIO_ADAPTIVE_FRE_SEL_ANC) {
             aeq_debug_log("icsd_aeq:in_phone or AEQ no need update, return\n");
             audio_anc_real_time_adaptive_resume("AEQ");
@@ -1088,7 +1094,6 @@ static void audio_adaptive_eq_afq_output_hdl(struct audio_afq_output *p)
             target_volume = aeq_volume_grade_list[i];
             maxgain_dB = aeq_hdl->thr.max_dB[dot_lvl][i];
             aeq_debug_log("max_dB %d/10, lvl %d\n", (int)(maxgain_dB * 10), aeq_volume_grade_list[i]);
-            audio_adaptive_eq_start();
             eq_output = audio_adaptive_eq_run(maxgain_dB, i);
             if (!eq_output) {
                 aeq_log("aeq forced exit! i=%d\n", i);
@@ -1096,7 +1101,6 @@ static void audio_adaptive_eq_afq_output_hdl(struct audio_afq_output *p)
                 break;
             }
             audio_adaptive_eq_cur_list_add(aeq_volume_grade_list[i], eq_output);
-            audio_adaptive_eq_stop();
             break;
         }
     }
@@ -1108,7 +1112,6 @@ static void audio_adaptive_eq_afq_output_hdl(struct audio_afq_output *p)
         wdt_clear();
         maxgain_dB = aeq_hdl->thr.max_dB[dot_lvl][i];
         aeq_debug_log("max_dB %d/10, lvl %d\n", (int)(maxgain_dB * 10), aeq_volume_grade_list[i]);
-        audio_adaptive_eq_start();
         eq_output = audio_adaptive_eq_run(maxgain_dB, i);
         if (!eq_output) {
             aeq_log("aeq forced exit! i=%d\n", i);
@@ -1116,11 +1119,9 @@ static void audio_adaptive_eq_afq_output_hdl(struct audio_afq_output *p)
             break;
         }
         audio_adaptive_eq_cur_list_add(aeq_volume_grade_list[i], eq_output);
-        audio_adaptive_eq_stop();
     }
 #endif
 #else
-    audio_adaptive_eq_start();
     //固定使用大音量的配置
     maxgain_dB = aeq_hdl->thr.max_dB[dot_lvl][2];
     aeq_debug_log("max_dB %d/10\n", (int)(maxgain_dB * 10));
@@ -1128,7 +1129,6 @@ static void audio_adaptive_eq_afq_output_hdl(struct audio_afq_output *p)
     if (eq_output) {
         audio_adaptive_eq_cur_list_add(0, eq_output);
     }
-    audio_adaptive_eq_stop();
 
 #endif
 

@@ -25,6 +25,23 @@
 #include "rt_anc_app.h"
 #endif
 
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+/*
+   RTANC 默认配置：
+   		固定高频滤波器，左右独立收敛性能
+*/
+#define ANC_ADAPTIVE_HIGH_FILTER_FIX_FGQ	1	//固定高频滤波器
+#define ANC_ADAPPTIVE_DE_ALG_SEL			1	//左右独立收敛到最优, 不做平衡
+
+#else
+/*
+   耳道自适应 默认配置：
+   		不固定高频滤波器，平衡左右性能
+*/
+#define ANC_ADAPTIVE_HIGH_FILTER_FIX_FGQ	0
+#define ANC_ADAPPTIVE_DE_ALG_SEL			0
+#endif
+
 const u8 ICSD_ANC_VERSION = 2;
 const u8 ICSD_ANC_TOOL_PRINTF = 0;
 const u8 msedif_en = 0;
@@ -48,7 +65,7 @@ void fgq_getfrom_table(s16 *fgq_table, u8 idx, float *fgq)
     fgq[0] = fgq_sel[0] / 1e3;
     for (int i = 0; i < 10; i++) {
         fgq[3 * i + 1] = fgq_sel[3 * i + 1];
-        fgq[3 * i + 2] = fgq_sel[3 * i + 2] / 1e3;
+        fgq[3 * i + 2] = fgq_sel[3 * i + 2] / 1e2;
         fgq[3 * i + 3] = fgq_sel[3 * i + 3] / 1e3;
     }
 
@@ -330,8 +347,8 @@ void icsd_sd_cfg_set(__icsd_anc_config_data *SD_CFG, void *_ext_cfg)
         SD_CFG->adpt_cfg.pnc_times = ext_cfg->base_cfg->adaptive_times;
 
         // de alg config
-        SD_CFG->adpt_cfg.high_fgq_fix = 1; // gali TODO  需要工具做传参
-        SD_CFG->adpt_cfg.de_alg_sel = (ext_cfg->dut_mode == 2) ? 0 : 1;
+        SD_CFG->adpt_cfg.high_fgq_fix = ANC_ADAPTIVE_HIGH_FILTER_FIX_FGQ;
+        SD_CFG->adpt_cfg.de_alg_sel = (ext_cfg->dut_mode == 2) ? 0 : ANC_ADAPPTIVE_DE_ALG_SEL;
 
         // target配置
         SD_CFG->adpt_cfg.cmp_en = ext_cfg->ff_target_param->cmp_en;

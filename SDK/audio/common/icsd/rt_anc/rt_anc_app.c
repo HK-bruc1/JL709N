@@ -689,11 +689,13 @@ int audio_adt_rtanc_set_infmt(void *rtanc_tool)
     audio_rtanc_sz_pz_cmp_process();
 #endif
 
+    infmt.var_buf = &hdl->var_cache_buff;
     if (hdl->sz_sel.state & RTANC_SZ_STA_INIT) {
         hdl->sz_sel.state |= RTANC_SZ_STA_START;
         rtanc_log("RTANC_STATE_SZ:START\n");
         if (hdl->sz_sel.state == RTANC_SZ_STATE_TRIGGER) {
             os_taskq_post_msg("anc", 1, ANC_MSG_RTANC_SZ_OUTPUT);
+            infmt.var_buf->cmp_ind_last = hdl->sz_sel.sel_idx - 1;
         }
     }
     infmt.id = hdl->seq;
@@ -704,9 +706,8 @@ int audio_adt_rtanc_set_infmt(void *rtanc_tool)
     infmt.anc_param_r = anc_malloc("ICSD_RTANC", sizeof(__rt_anc_param));
 
     //rtanc_log("rtanc_init flag %d, ind_last %d, ff_use_outfgq %d\n", hdl->var_cache_buff.flag, hdl->var_cache_buff.ind_last, hdl->out.ff_use_outfgq);
-    infmt.var_buf = &hdl->var_cache_buff;
-    rtanc_log("rtanc_init flag %d, %d, %d, %d, %d\n", infmt.var_buf->flag, infmt.var_buf->ind_last, infmt.var_buf->ls_gain_flag, \
-              infmt.var_buf->sdrc_flag_fix_ls, infmt.var_buf->sdrc_flag_rls_ls);
+    rtanc_log("rtanc_init flag %d, %d, %d, %d, %d, %d\n", infmt.var_buf->flag, infmt.var_buf->ind_last, infmt.var_buf->ls_gain_flag, \
+              infmt.var_buf->sdrc_flag_fix_ls, infmt.var_buf->sdrc_flag_rls_ls, infmt.var_buf->cmp_ind_last);
     rtanc_log("part1 %d, %d, fb_gain %d\n", (int)(infmt.var_buf->part1_ref_lf_dB * 1000.0f), (int)(infmt.var_buf->part1_err_lf_dB * 1000.0f), \
               (int)(infmt.var_buf->fb_aim_gain * 1000.0f));
     rt_anc_get_param(infmt.anc_param_l, infmt.anc_param_r);
@@ -735,6 +736,7 @@ static void audio_rt_anc_param_updata(void *rt_param_l, void *rt_param_r)
     audio_anc_t *param = hdl->param;
     u8 ff_updat = 0;
     u8 fb_updat = 0;
+    u8 cmp_eq_updat = 0;
 
     __rt_anc_param *anc_param = (__rt_anc_param *)rt_param_l;
 
@@ -756,6 +758,7 @@ static void audio_rt_anc_param_updata(void *rt_param_l, void *rt_param_r)
     param->gains.l_fbgain = anc_param->fbgain;
     ff_updat |= anc_param->ff_updat;
     fb_updat |= anc_param->fb_updat;
+    cmp_eq_updat |= anc_param->cmp_eq_updat;
 
     //param->lfb_coeff = &anc_param->lfb_coeff[0];
 #if ANC_CONFIG_RFB_EN
@@ -773,12 +776,18 @@ static void audio_rt_anc_param_updata(void *rt_param_l, void *rt_param_r)
 
         ff_updat |= anc_param_r->ff_updat;
         fb_updat |= anc_param_r->fb_updat;
+        cmp_eq_updat |= anc_param_r->cmp_eq_updat;
     }
 #endif
 
-    if (ff_updat || fb_updat) {
+    if (ff_updat) {
         audio_anc_coeff_check_crc(ANC_CHECK_RTANC_UPDATE);
-        anc_coeff_online_update(hdl->param, 0);			//更新ANC滤波器
+        anc_coeff_ff_online_update(hdl->param);		//更新ANC FF滤波器
+    }
+    //有CMP更新时，统一在CMP输出后更新FB
+    if (fb_updat && (!(cmp_eq_updat & AUDIO_ADAPTIVE_CMP_UPDATE_FLAG))) {
+        audio_anc_coeff_check_crc(ANC_CHECK_RTANC_UPDATE);
+        anc_coeff_fb_online_update(hdl->param);		//更新ANC FB滤波器
     }
 }
 
@@ -821,7 +830,7 @@ void audio_rtanc_cmp_update(void)
     rtanc_log("ANC_CHECK:CMP_UPDATE, crc %x-%d/100\n", CRC16(cmp_p.l_coeff, ANC_ADAPTIVE_CMP_ORDER * AUDIO_RTANC_COEFF_SIZE), (int)(cmp_p.l_gain * 100));
 #endif
     if (param->mode != ANC_OFF) {
-        audio_anc_coeff_smooth_update();
+        audio_anc_coeff_fb_smooth_update();
     }
 }
 
@@ -951,12 +960,14 @@ static void audio_rtanc_suspend_list_query(u8 init_flag)
         if (hdl->state == RT_ANC_STATE_OPEN) {
             rtanc_log("RTANC_STATE:SUSPEND\n");
             hdl->state = RT_ANC_STATE_SUSPEND;
+            anc_ext_algorithm_state_update(ANC_EXT_ALGO_RTANC, ANC_EXT_ALGO_STA_SUSPEND, 0);
             icsd_adt_rtanc_suspend();
         }
     } else {
         if (hdl->state == RT_ANC_STATE_SUSPEND) {
             rtanc_log("RTANC_STATE:SUSPEND->OPEN\n");
             audio_rtanc_spp_send_data(RTANC_SPP_CMD_RESUME_STATE, NULL, 0);
+            anc_ext_algorithm_state_update(ANC_EXT_ALGO_RTANC, ANC_EXT_ALGO_STA_OPEN, 0);
             hdl->state = RT_ANC_STATE_OPEN;
             icsd_adt_rtanc_resume();
         }
@@ -1129,8 +1140,13 @@ u8 audio_rtanc_app_func_en_get(void)
 
 int audio_anc_real_time_adaptive_open(void)
 {
+    int ret;
     hdl->app_func_en = 1;
-    return audio_rtanc_adaptive_en(1);
+    ret = audio_rtanc_adaptive_en(1);
+    if (!ret) {
+        anc_ext_algorithm_state_update(ANC_EXT_ALGO_RTANC, ANC_EXT_ALGO_STA_OPEN, 0);
+    }
+    return ret;
 }
 
 int audio_anc_real_time_adaptive_close(void)
@@ -1138,6 +1154,9 @@ int audio_anc_real_time_adaptive_close(void)
     int ret;
     hdl->app_func_en = 0;
     ret = audio_rtanc_adaptive_en(0);
+
+    anc_ext_algorithm_state_update(ANC_EXT_ALGO_RTANC, ANC_EXT_ALGO_STA_CLOSE, 0);
+
 #if AUDIO_RT_ANC_KEEP_LAST_PARAM == 1
     if (!(audio_anc_production_mode_get() || get_app_anctool_spp_connected_flag())) {
         return ret;

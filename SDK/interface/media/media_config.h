@@ -98,7 +98,7 @@ extern const int config_audio_gain_enable;
 extern const int config_audio_split_gain_enable;
 extern const int config_audio_stereomix_enable;
 extern const int voicechanger_effect_v_config;
-extern const int mb_limiter_3band_run_en;
+extern const int audio_crossover_3band_enable;
 extern const int limiter_run_mode;
 extern const int drc_advance_run_mode;
 extern const int drc_run_mode;
@@ -126,7 +126,7 @@ extern const u8 config_m4a_id3_enable;
 extern const u8 config_wav_id3_enable;
 extern const u8 config_wma_id3_enable;
 
-
+extern const int JLA_V2_CODEC_WITH_FRAME_HEADER ;
 
 
 

@@ -154,6 +154,11 @@
 /*ADC性能模式*/
 #define	ADC_MODE_HIGH_PERFORMANCE           (0) //高性能模式
 #define	ADC_MODE_LOW_POWER		            (1)	//低功耗模式
+
+/*MIC输入工作模式定义*/
+#define AUDIO_MIC_CAP_MODE                  0   //单端隔直电容模式
+#define AUDIO_MIC_CAP_DIFF_MODE             1   //差分隔直电容模式
+#define AUDIO_MIC_CAPLESS_MODE              2   //单端省电容模式
 /*
  *******************************************************************
  *						FFT Definitions

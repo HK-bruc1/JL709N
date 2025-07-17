@@ -105,6 +105,9 @@ enum {
     /* CMD_ADAPTIVE_DCC_OPEN		 = 0x1B, //打开自适应DCC */
     /* CMD_ADAPTIVE_DCC_STOP		 = 0x1C, //关闭自适应DCC */
     CMD_FUNCTION_SPP_DEBUG_SET	 = 0x1D, //设置算法模块SPP打印使能
+
+    CMD_FUNCTION_ALGO_EN_SET   		 = 0X1E, //设置算法使能
+    CMD_FUNCTION_ALGO_STATE_GET   	 = 0X1F, //获取小机算法状态
 };
 
 struct __anc_ext_tool_hdl {
@@ -114,6 +117,9 @@ struct __anc_ext_tool_hdl {
     u32 DEBUG_TOOL_FUNCTION;						//工具调试模式:算法SPP打印使能
     struct list_head alloc_list;
     struct anc_ext_ear_adaptive_param ear_adaptive;	//耳道自适应工具参数
+
+    u8 *report_state_buf;							//上报buffer
+    int report_state_len;							//上报buffer长度
 };
 
 
@@ -277,6 +283,7 @@ static void anc_file_adaptive_eq_thr_printf(int id, void *buf, int len);
 static void anc_file_wind_det_cfg_printf(int id, void *buf, int len);
 static void anc_file_wind_trigger_cfg_printf(int id, void *buf, int len);
 static void anc_file_soft_howl_det_cfg_printf(int id, void *buf, int len);
+static void anc_file_adaptive_mem_iir_printf(int id, void *buf, int len);
 
 struct __anc_ext_printf {
     void (*p)(int id, void *buf, int len);
@@ -404,6 +411,9 @@ const struct __anc_ext_printf anc_ext_printf[] = {
 static int anc_cfg_analysis_ear_adaptive(u8 *file_data, int file_len, u8 alloc_flag);
 static u8 *anc_ext_tool_data_alloc(u32 id, u8 *data, int len);
 static struct anc_ext_alloc_bulk_t *anc_ext_tool_data_alloc_query(u32 id);
+static int anc_ext_algorithm_en_set(u8 func, u8 enable);
+static int anc_ext_algorithm_state_report(void);
+static void anc_ext_algorithm_state_init(void);
 
 static struct __anc_ext_tool_hdl *tool_hdl = NULL;
 
@@ -417,6 +427,9 @@ void anc_ext_tool_init(void)
     if (anc_ext_rsfile_read()) {
         anc_ext_log("ERR! anc_ext.bin read error\n");
     }
+
+    anc_ext_algorithm_state_init();
+
     //获取耳道自适应产测数据文件
     u8 *tmp_dut_buf = anc_malloc("ANC_EXT", ANC_EXT_EAR_ADAPTIVE_DUT_MAX_LEN);
     ret = syscfg_read(CFG_ANC_ADAPTIVE_DUT_ID, tmp_dut_buf, ANC_EXT_EAR_ADAPTIVE_DUT_MAX_LEN);
@@ -749,13 +762,20 @@ void anc_ext_tool_cmd_deal(u8 *data, u16 len, enum ANC_EXT_UART_SEL uart_sel)
     case CMD_ADAPTIVE_DCC_STOP:
         anc_ext_log("CMD_ADAPTIVE_DCC_STOP\n");
         /* audio_icsd_wind_detect_en(0); */
-        tool_hdl->
         break;
 #endif
     case CMD_FUNCTION_SPP_DEBUG_SET:
         memcpy(&tool_hdl->DEBUG_TOOL_FUNCTION, data + 1, 4);
         anc_ext_log("CMD_FUNCTION_SPP_DEBUG_SET, 0x%x\n", tool_hdl->DEBUG_TOOL_FUNCTION);
         break;
+    case CMD_FUNCTION_ALGO_EN_SET:
+        anc_ext_log("CMD_FUNCTION_ALGO_EN_SET 0x%x, en 0x%x\n", data[1], data[2]);
+        anc_ext_algorithm_en_set(data[1], data[2]);
+    case CMD_FUNCTION_ALGO_STATE_GET:
+        anc_ext_log("CMD_FUNCTION_ALGO_STATE_GET\n");
+        //内部回复命令
+        anc_ext_algorithm_state_report();
+        return;
     default:
         ret = FALSE;
         break;
@@ -1396,7 +1416,7 @@ static void anc_file_adaptive_mem_iir_printf(int id, void *buf, int len)
     anc_ext_log("input_crc 0x%x\n", cfg->input_crc);
 #if ANC_EXT_CFG_FLOAT_EN
     for (int i = 0; i < cnt; i++) {
-        anc_ext_log("mem_iir :%d \n", cfg->mem_iir);
+        anc_ext_log("mem_iir[%d] :%d \n", i, cfg->mem_iir[i]);
     }
 #endif
     //put_buf(buf, len);
@@ -1591,6 +1611,10 @@ u8 anc_ext_tool_online_get(void)
 void anc_ext_tool_disconnect(void)
 {
     if (tool_hdl) {
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+        //退出工具恢复工具挂起的RTANC
+        audio_anc_real_time_adaptive_resume("ANC_EXT_TOOL");
+#endif
         /* tool_hdl->tool_online = 0; */
     }
 }
@@ -1639,5 +1663,86 @@ int anc_ext_debug_tool_function_get(void)
     return 0;
 }
 
+static int anc_ext_algorithm_en_set(u8 func, u8 enable)
+{
+    switch (func) {
+#if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
+    case ANC_EXT_ALGO_ADAPTIVE_CMP:
+        break;
+#endif
+#if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
+    case ANC_EXT_ALGO_ADAPTIVE_EQ:
+        break;
+#endif
+#if TCFG_AUDIO_ANC_WIND_NOISE_DET_ENABLE
+    case ANC_EXT_ALGO_WIND_DET:
+        audio_icsd_wind_detect_en(enable);
+        break;
+#endif
+#if TCFG_AUDIO_ANC_HOWLING_DET_ENABLE
+    case ANC_EXT_ALGO_SOFT_HOWL_DET:
+        break;
+#endif
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+    case ANC_EXT_ALGO_RTANC:
+        if (enable) {
+            audio_real_time_adaptive_app_open_demo();
+        } else {
+            audio_real_time_adaptive_app_close_demo();
+        }
+        break;
+#endif
+    default:
+        break;
+    }
+    return 0;
+}
+
+static void anc_ext_algorithm_state_init(void)
+{
+    if (!tool_hdl) {
+        return;
+    }
+    tool_hdl->report_state_len = ANC_EXT_ALGO_EXIT << 1;
+    u8 *buf = anc_malloc("ANC_EXT", tool_hdl->report_state_len);
+    for (int i = 0; i < ANC_EXT_ALGO_EXIT; i++) {
+        buf[i << 1] = i;
+    }
+    tool_hdl->report_state_buf = buf;
+}
+
+static int anc_ext_algorithm_state_report(void)
+{
+    if (!tool_hdl) {
+        return 0;
+    }
+    anc_ext_tool_send_buf(CMD_FUNCTION_ALGO_STATE_GET, tool_hdl->report_state_buf, tool_hdl->report_state_len);
+    return 0;
+}
+
+/*
+   算法状态更新函数
+   规则：保证UI一致性，在APP层操作接口时更新，内部互斥暂不更新；
+*/
+int anc_ext_algorithm_state_update(enum ANC_EXT_ALGO func, u8 state, u8 info)
+{
+    u8 state_buf = state | (info << 4);
+
+    if (!tool_hdl) {
+        return 0;
+    }
+
+    //buf[0] func_a, buf[1] func_a state ...
+    for (int i = 0; i < ANC_EXT_ALGO_EXIT; i++) {
+        if (tool_hdl->report_state_buf[i << 1] == func) {
+            tool_hdl->report_state_buf[(i << 1) + 1] = state_buf;
+            break;
+        }
+    }
+
+    //数据上报
+    anc_ext_algorithm_state_report();
+    return 0;
+}
 
 #endif

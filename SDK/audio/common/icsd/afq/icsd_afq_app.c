@@ -203,20 +203,7 @@ static void audio_icsd_afq_mutex_suspend(ANC_mode_t exit_mode)
         /*进入AFQ前关闭adt*/
         afq_hdl->icsd_adt_suspend = audio_icsd_adt_is_running();
         if (afq_hdl->icsd_adt_suspend) {
-            audio_icsd_adt_close(0, 0, 0, 1);
-        }
-
-        printf("======================= %d", audio_icsd_adt_is_running());
-        int cnt;
-        //adt关闭时间较短，预留100ms
-        for (cnt = 0; cnt < 10; cnt++) {
-            if (!audio_icsd_adt_is_running()) {
-                break;
-            }
-            os_time_dly(1);  //  等待ADT 关闭
-        }
-        if (cnt == 10) {
-            printf("Err:afq_suspend adt wait timeout\n");
+            audio_icsd_adt_close(0, 1, 0, 1);
         }
 #endif /*TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN*/
 

@@ -23,6 +23,24 @@
 #define ANC_EXT_FUNC_EN_RTANC				BIT(6)	//RTANC
 #define ANC_EXT_FUNC_EN_DYNAMIC				BIT(7)	//DYNAMIC
 
+//ANC_EXT 列表(u8)：状态获取，使能控制
+enum ANC_EXT_ALGO {
+    ANC_EXT_ALGO_EAR_ADAPTIVE = 1,
+    ANC_EXT_ALGO_ADAPTIVE_CMP,
+    ANC_EXT_ALGO_ADAPTIVE_EQ,
+    ANC_EXT_ALGO_WIND_DET,
+    ANC_EXT_ALGO_SOFT_HOWL_DET,
+    ANC_EXT_ALGO_RTANC,
+    ANC_EXT_ALGO_DYNAMIC,
+    ANC_EXT_ALGO_EXIT,
+};
+
+enum ANC_EXT_ALGO_STATE {
+    ANC_EXT_ALGO_STA_CLOSE = 0,
+    ANC_EXT_ALGO_STA_OPEN,
+    ANC_EXT_ALGO_STA_SUSPEND,
+};
+
 //文件 SUBFILE ID
 enum {
     /* FILE_ID_ANC_EXT_START = 0XB0, */
@@ -887,6 +905,8 @@ int anc_ext_debug_tool_function_get(void);
 
 //设置耳道自适应测试模式
 void anc_ext_ear_adaptive_dut_mode_set(u8 dut_mode);
+
+int anc_ext_algorithm_state_update(enum ANC_EXT_ALGO func, u8 state, u8 info);
 
 /*-------------------ANCTOOL交互接口---------------------*/
 //事件处理

@@ -190,7 +190,6 @@ static void audio_anc_fade_ctr_set_base(enum anc_fade_mode_t mode, u8 ch, u16 ga
     if ((lff_gain == AUDIO_ANC_FADE_GAIN_DEFAULT && lfb_gain == AUDIO_ANC_FADE_GAIN_DEFAULT && \
          rff_gain == AUDIO_ANC_FADE_GAIN_DEFAULT && rfb_gain == AUDIO_ANC_FADE_GAIN_DEFAULT && \
          anc_fade_hdl->rtanc_suspend) || anc_mode_get() == ANC_OFF) {
-        anc_fade_hdl->rtanc_suspend = 0;
         if (anc_fade_hdl->rtanc_resume_id) {
             sys_timer_del(anc_fade_hdl->rtanc_resume_id);
             anc_fade_hdl->rtanc_resume_id = 0;

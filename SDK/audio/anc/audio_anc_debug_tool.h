@@ -12,6 +12,15 @@ enum {
     ANC_DEBUG_STA_RUN,
 };
 
+//SPP-命令
+enum {
+    ANC_DEBUG_CMD_ICSD = 0,		//算法指令
+    ANC_DEBUG_CMD_APP,			//应用指令
+    ANC_DEBUG_CMD_PASS,			//透传指令
+    ANC_DEBUG_CMD_ERR,			//错误上报
+};
+
+//SPP-APP 子命令
 enum {
     ANC_DEBUG_APP_CMD_AEQ = 0,
     ANC_DEBUG_APP_CMD_RTANC,

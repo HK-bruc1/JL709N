@@ -803,10 +803,18 @@ static void anc_task(void *p)
                 audio_anc_coeff_check_crc(ANC_CHECK_UPDATE);
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
                 audio_anc_real_time_adaptive_suspend("COEFF_UPDATE");
-                anc_coeff_online_update(&anc_hdl->param, 0);			//更新ANC滤波器
+#endif
+                //更新ANC滤波器
+                if (msg[2] == ANC_COEFF_TYPE_FF) {
+                    anc_coeff_ff_online_update(&anc_hdl->param);
+                } else if (msg[2] == ANC_COEFF_TYPE_FB) {
+                    anc_coeff_fb_online_update(&anc_hdl->param);
+                } else {
+                    anc_coeff_online_update(&anc_hdl->param, 0);			//更新ANC滤波器
+                }
+
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
                 audio_anc_real_time_adaptive_resume("COEFF_UPDATE");
-#else
-                anc_coeff_online_update(&anc_hdl->param, 0);			//更新ANC滤波器
 #endif
                 break;
             }
@@ -2859,11 +2867,33 @@ void audio_anc_adc_ch_set(void)
  */
 void audio_anc_coeff_smooth_update(void)
 {
-    uint32_t rets_addr;
-    __asm__ volatile("%0 = rets ;" : "=r"(rets_addr));
+    /* uint32_t rets_addr; */
+    /* __asm__ volatile("%0 = rets ;" : "=r"(rets_addr)); */
     if ((anc_hdl->param.mode != ANC_OFF) && !anc_hdl->mode_switch_lock) {
-        user_anc_log("audio_anc_coeff_smooth_update %x\n", rets_addr);
-        os_taskq_post_msg("anc", 1, ANC_MSG_COEFF_UPDATE);	//无缝切换滤波器
+        /* user_anc_log("audio_anc_coeff_smooth_update %x\n", rets_addr); */
+        os_taskq_post_msg("anc", 2, ANC_MSG_COEFF_UPDATE, ANC_COEFF_TYPE_FF | ANC_COEFF_TYPE_FB);	//无缝切换滤波器
+    }
+}
+
+/*无缝更新FF滤波器*/
+void audio_anc_coeff_ff_smooth_update(void)
+{
+    /* uint32_t rets_addr; */
+    /* __asm__ volatile("%0 = rets ;" : "=r"(rets_addr)); */
+    if ((anc_hdl->param.mode != ANC_OFF) && !anc_hdl->mode_switch_lock) {
+        /* user_anc_log("audio_anc_coeff_smooth_update %x\n", rets_addr); */
+        os_taskq_post_msg("anc", 2, ANC_MSG_COEFF_UPDATE, ANC_COEFF_TYPE_FF);	//无缝切换滤波器
+    }
+}
+
+/*无缝更新FB/CMP滤波器*/
+void audio_anc_coeff_fb_smooth_update(void)
+{
+    /* uint32_t rets_addr; */
+    /* __asm__ volatile("%0 = rets ;" : "=r"(rets_addr)); */
+    if ((anc_hdl->param.mode != ANC_OFF) && !anc_hdl->mode_switch_lock) {
+        /* user_anc_log("audio_anc_coeff_smooth_update %x\n", rets_addr); */
+        os_taskq_post_msg("anc", 2, ANC_MSG_COEFF_UPDATE, ANC_COEFF_TYPE_FB);	//无缝切换滤波器
     }
 }
 

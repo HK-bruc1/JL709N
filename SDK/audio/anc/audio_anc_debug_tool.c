@@ -344,16 +344,36 @@ int audio_anc_debug_user_cmd_process(u8 *data, int len)
     return 0;
 }
 
+/*
+   APP SPP打印命令
+ */
 void audio_anc_debug_app_send_data(u8 cmd, u8 cmd_2nd, u8 *buf, int len)
 {
     u8 *send_buf = anc_malloc("ANC_DEBUG", len + 3);
-    send_buf[0] = 0x1;
+    send_buf[0] = ANC_DEBUG_CMD_APP;
     send_buf[1] = cmd;
     send_buf[2] = cmd_2nd;
     if (len) {
         memcpy(send_buf + 3, buf, len);
     }
     audio_anc_debug_send_data(send_buf, len + 3);
+    anc_free(send_buf);
+}
+
+/*
+   透传命令
+   cmd 0: put_buf
+   cmd 1: 打印字符串
+ */
+void audio_anc_debug_pass_send_data(u8 cmd, u8 *buf, int len)
+{
+    u8 *send_buf = anc_malloc("ANC_DEBUG", len + 2);
+    send_buf[0] = ANC_DEBUG_CMD_PASS;
+    send_buf[1] = cmd;
+    if (len) {
+        memcpy(send_buf + 2, buf, len);
+    }
+    audio_anc_debug_send_data(send_buf, len + 2);
     anc_free(send_buf);
 }
 

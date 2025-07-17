@@ -388,7 +388,9 @@ void bt_function_select_init()
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
     if (get_bt_le_audio_config_for_vm()) {
         log_info("le_audio en");
+#if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN)))
         g_bt_hdl.bt_dual_conn_config = DUAL_CONN_SET_ONE;
+#endif
     }
 #endif
 #if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
@@ -451,6 +453,15 @@ void bt_function_select_init()
         bt_change_hci_class_type(BD_CLASS_WEARABLE_HEADSET | LE_AUDIO_CLASS);   //经典蓝牙地址跟le audio地址一样要置上BIT(14)
 
     }
+#endif
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
+#if (LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_CONFIG&LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX)
+    extern void set_le_audio_unicast_witch_phone_play_mix(u8 en);
+    extern int tws_api_pure_monitor_enable(bool enable);
+    set_le_audio_unicast_witch_phone_play_mix(1);
+    tws_api_pure_monitor_enable(1);
+
+#endif
 #endif
 #if TCFG_USER_BLE_ENABLE
     u8 tmp_ble_addr[6];
@@ -945,7 +956,8 @@ static void bt_no_background_exit_check(void *priv)
 
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
     if (is_cig_phone_conn()) {
-        return;
+        //BLE还没完全断开就往下走的话，可能会直接释放导致有些事件流程没有执行了
+        return ;
     }
 #endif
 
@@ -1020,6 +1032,8 @@ int bt_mode_init()
 {
     log_info("bt mode\n");
 
+    /* extern void set_debug_edr_info(int debug_edr_info); */
+    /* set_debug_edr_info(BIT(0)|BIT(1)); */
 #if (defined CONFIG_CPU_BR56) && (CONFIG_BT_MODE == BT_FCC || CONFIG_BT_MODE == BT_BQB || TCFG_NORMAL_SET_DUT_MODE == 1)
     u32 curr_clk = clk_get_max_frequency();
     y_printf("DUT test,set clock:%d\n", curr_clk);

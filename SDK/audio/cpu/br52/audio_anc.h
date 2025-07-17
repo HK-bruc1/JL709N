@@ -471,7 +471,9 @@ void audio_ear_adaptive_train_app_suspend(void);
    前置条件:1、更新前后的滤波器个数一致
    			2、需在 "非ANC_OFF" 模式下调用
  */
-void audio_anc_coeff_smooth_update(void);
+void audio_anc_coeff_smooth_update(void);		//更新全部滤波器
+void audio_anc_coeff_ff_smooth_update(void);	//只更新FF滤波器
+void audio_anc_coeff_fb_smooth_update(void);	//只更新FB滤波器
 
 /*
    ANC 驱动复位（包括滤波器），会淡出淡出

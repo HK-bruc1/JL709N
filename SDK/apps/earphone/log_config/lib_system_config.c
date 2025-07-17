@@ -176,6 +176,9 @@ const int config_irq_time_debug_enable = 0;
 const int config_irq_time_debug_time = 0;
 #endif
 
+//0: 自由分配, 1: 固定核
+const int config_os_core_affinity_en = 0;
+
 /**
  * @brief Log (Verbose/Info/Debug/Warn/Error)
  */

@@ -82,6 +82,9 @@ objs += \
       $(ROOT)/audio/framework/nodes/ai_tx_node.o
 
 objs += \
+      $(ROOT)/audio/framework/plugs/source/ai_rx_file.o
+
+objs += \
       $(ROOT)/audio/framework/nodes/data_export_node.o
 
 objs += \
@@ -181,6 +184,7 @@ objs += \
 	  $(ROOT)/audio/interface/player/dev_flow_player.o \
 	  $(ROOT)/audio/interface/player/adda_loop_player.o \
 	  $(ROOT)/audio/interface/player/linein_player.o \
+	  $(ROOT)/audio/interface/player/ai_rx_player.o \
 
 objs += \
 	  $(ROOT)/audio/interface/recoder/esco_recoder.o \
@@ -479,11 +483,9 @@ objs += \
 
 
 
-#ifdef TCFG_DEBUG_DLOG_ENABLE
 objs += \
 	$(ROOT)/apps/common/debug/dlog_config.o \
     $(ROOT)/apps/common/debug/dlog_output_config.o
-#endif
 
 
 
@@ -510,6 +512,8 @@ objs += \
 	$(ROOT)/apps/common/update/uart_update_master.o
 #endif
 
+objs += \
+    $(ROOT)/apps/common/device/storage_device/norflash/norflash.o
 
 
 
@@ -876,6 +880,8 @@ objs += \
 	$(ROOT)/apps/common/third_party_profile/jieli/rcsp/server/functions/sensors/sport_info_sync.o \
 	$(ROOT)/apps/common/third_party_profile/jieli/rcsp/server/functions/sensors/sport_info_vm.o
 
+objs += \
+	$(ROOT)/apps/common/third_party_profile/jieli/rcsp/server/functions/translator/rcsp_translator.o
 
 objs += \
 	$(ROOT)/apps/common/third_party_profile/jieli/rcsp/server/rcsp_cmd_recieve.o \
@@ -1210,6 +1216,7 @@ objs += \
 	  $(ROOT)/audio/cpu/br52/audio_dai/audio_pdm.o \
 	  $(ROOT)/audio/cpu/br52/audio_config.o \
 	  $(ROOT)/audio/cpu/br52/audio_pmu.o \
+	  $(ROOT)/audio/cpu/br52/audio_configs_dump.o \
 
 objs += \
 	  $(ROOT)/audio/cpu/br52/audio_anc.o \
@@ -1300,18 +1307,18 @@ objs += \
 
 
 objs += \
-	$(ROOT)/apps/$(APP_CASE)/mode/bt/le_audio/le_audio_common.o \
+	$(ROOT)/apps/earphone/mode/bt/le_audio/le_audio_common.o \
 
 
 objs += \
-	$(ROOT)/apps/$(APP_CASE)/mode/bt/le_audio/cig/app_le_connected.o \
-	$(ROOT)/apps/$(APP_CASE)/mode/bt/le_audio/cig/le_connected.o \
-	$(ROOT)/apps/$(APP_CASE)/mode/bt/le_audio/cig/le_connected_config.o \
+	$(ROOT)/apps/earphone/mode/bt/le_audio/cig/app_le_connected.o \
+	$(ROOT)/apps/earphone/mode/bt/le_audio/cig/le_connected.o \
+	$(ROOT)/apps/earphone/mode/bt/le_audio/cig/le_connected_config.o \
 
 
 objs += \
-	$(ROOT)/apps/$(APP_CASE)/mode/bt/le_audio/big/app_le_auracast.o \
-	$(ROOT)/apps/$(APP_CASE)/mode/bt/le_audio/big/le_broadcast.o \
-	$(ROOT)/apps/$(APP_CASE)/mode/bt/le_audio/big/le_broadcast_config.o \
+	$(ROOT)/apps/earphone/mode/bt/le_audio/big/app_le_auracast.o \
+	$(ROOT)/apps/earphone/mode/bt/le_audio/big/le_broadcast.o \
+	$(ROOT)/apps/earphone/mode/bt/le_audio/big/le_broadcast_config.o \
 
 
