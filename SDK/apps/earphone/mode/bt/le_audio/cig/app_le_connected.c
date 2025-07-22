@@ -114,13 +114,13 @@ static struct app_cig_conn_info app_cig_conn_info[CIG_MAX_NUMS];		// cig对象
 /**
  * @brief 申请互斥量，用于保护临界区代码，与app_connected_mutex_post成对使用
  *
- * @param mutex:已创建的互斥量指针变量
+ * @param _mutex:已创建的互斥量指针变量
  */
 /* ----------------------------------------------------------------------------*/
-static inline void app_connected_mutex_pend(OS_MUTEX *mutex, u32 line)
+static inline void app_connected_mutex_pend(OS_MUTEX *_mutex, u32 line)
 {
     int os_ret;
-    os_ret = os_mutex_pend(mutex, 0);
+    os_ret = os_mutex_pend(_mutex, 0);
     if (os_ret != OS_NO_ERR) {
         log_error("%s err, os_ret:0x%x", __FUNCTION__, os_ret);
         ASSERT(os_ret != OS_ERR_PEND_ISR, "line:%d err, os_ret:0x%x", line, os_ret);
@@ -137,13 +137,13 @@ enum {
 /**
  * @brief 释放互斥量，用于保护临界区代码，与app_connected_mutex_pend成对使用
  *
- * @param mutex:已创建的互斥量指针变量
+ * @param _mutex:已创建的互斥量指针变量
  */
 /* ----------------------------------------------------------------------------*/
-static inline void app_connected_mutex_post(OS_MUTEX *mutex, u32 line)
+static inline void app_connected_mutex_post(OS_MUTEX *_mutex, u32 line)
 {
     int os_ret;
-    os_ret = os_mutex_post(mutex);
+    os_ret = os_mutex_post(_mutex);
     if (os_ret != OS_NO_ERR) {
         log_error("%s err, os_ret:0x%x", __FUNCTION__, os_ret);
         ASSERT(os_ret != OS_ERR_PEND_ISR, "line:%d err, os_ret:0x%x", line, os_ret);
@@ -1421,6 +1421,7 @@ static u16 ble_user_priv_cmd_handle(u16 handle, u8 *cmd, u8 len, u8 *rsp)
  * */
 void le_audio_profile_init()
 {
+    printf("le_audio_profile_init:%d\n", g_le_audio_hdl.le_audio_profile_ok);
     if (get_bt_le_audio_config() && g_le_audio_hdl.le_audio_profile_ok == 0) {
 #if (THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN)
         le_audio_user_server_profile_init(rcsp_profile_data);
@@ -1448,9 +1449,13 @@ void le_audio_profile_init()
  * */
 void le_audio_profile_exit()
 {
+    printf("le_audio_profile_exit:%d\n", g_le_audio_hdl.le_audio_profile_ok);
+    if (g_le_audio_hdl.le_audio_profile_ok == 0) {
+        return;
+    }
     le_audio_adv_api_enable(0);
     g_le_audio_hdl.le_audio_profile_ok = 0;
-    if (!is_cig_phone_conn()) { // 有连接就卸载否则会异常
+    if (!is_cig_phone_conn()) { // 有连接先不卸载，等cis断开再卸载
         app_connected_close_in_other_mode();
     } else {
         local_irq_disable();

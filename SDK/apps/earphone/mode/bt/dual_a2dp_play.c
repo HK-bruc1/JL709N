@@ -381,7 +381,7 @@ void try_play_preempted_a2dp(void *p)
         memset(a2dp_preempted_addr, 0xff, 6);
         return;
     }
-    if (bt_get_call_status() != BT_CALL_HANGUP) {
+    if (esco_player_runing()) {
         sys_timeout_add(NULL, try_play_preempted_a2dp, 500);
         return;
     }

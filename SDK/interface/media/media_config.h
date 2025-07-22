@@ -28,6 +28,7 @@ extern const int CONFIG_MEDIA_MEM_DEBUG;
  *						DAC Configs
  *******************************************************************
  */
+extern const int config_audio_dac_enable;
 extern const int config_audio_dac_output_channel;
 extern const int config_audio_dac_output_mode;
 extern const int config_audio_dac_channel_left_enable;

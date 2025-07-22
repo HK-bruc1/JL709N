@@ -657,9 +657,14 @@ c_SRC_FILES += \
 	apps/common/update/update_tws.c
 #endif
 
-#if (OTA_TWS_SAME_TIME_ENABLE && OTA_TWS_SAME_TIME_NEW)
+#if (OTA_TWS_SAME_TIME_ENABLE && OTA_TWS_SAME_TIME_NEW && !OTA_TWS_SAME_TIME_NEW_LESS)
 c_SRC_FILES += \
 	apps/common/update/update_tws_new.c
+#endif
+
+#if (OTA_TWS_SAME_TIME_ENABLE && OTA_TWS_SAME_TIME_NEW && OTA_TWS_SAME_TIME_NEW_LESS)
+c_SRC_FILES += \
+	apps/common/update/update_tws_new_less.c
 #endif
 
 #ifdef CONFIG_UPDATE_MUTIL_CPU_UART

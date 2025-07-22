@@ -111,8 +111,12 @@ const struct spi_platform_data spix_p_data[HW_SPI_MAX_NUM] = {
             TCFG_HW_SPI1_PORT_CLK, //clk any io
             TCFG_HW_SPI1_PORT_DO, //do any io
             TCFG_HW_SPI1_PORT_DI, //di any io
+#ifdef  TCFG_HW_SPI1_PORT_D2
             TCFG_HW_SPI1_PORT_D2, //d2 any io
+#endif
+#ifdef  TCFG_HW_SPI1_PORT_D3
             TCFG_HW_SPI1_PORT_D3, //d3 any io
+#endif
             0xff, //cs any io(主机不操作cs)
         },
         .role = TCFG_HW_SPI1_ROLE,//SPI_ROLE_MASTER,
@@ -132,8 +136,12 @@ const struct spi_platform_data spix_p_data[HW_SPI_MAX_NUM] = {
             TCFG_HW_SPI2_PORT_CLK, //clk any io
             TCFG_HW_SPI2_PORT_DO, //do any io
             TCFG_HW_SPI2_PORT_DI, //di any io
-            0xff, //d2 any io
-            0xff, //d3 any io
+#ifdef  TCFG_HW_SPI2_PORT_D2
+            TCFG_HW_SPI2_PORT_D2, //d2 any io
+#endif
+#ifdef  TCFG_HW_SPI2_PORT_D3
+            TCFG_HW_SPI2_PORT_D3, //d3 any io
+#endif
             0xff, //cs any io(主机不操作cs)
         },
         .role = TCFG_HW_SPI2_ROLE,//SPI_ROLE_MASTER,

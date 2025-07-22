@@ -500,6 +500,9 @@ objs += \
 objs += \
 	$(ROOT)/apps/common/update/update_tws_new.o
 
+objs += \
+	$(ROOT)/apps/common/update/update_tws_new_less.o
+
 #ifdef CONFIG_UPDATE_MUTIL_CPU_UART
 objs += \
 	$(ROOT)/apps/common/update/uart_update_driver.o \

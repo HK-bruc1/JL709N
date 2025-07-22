@@ -33,6 +33,7 @@ const int config_bt_audio_enable = 0;
 #endif
 
 const int config_audio_dac_ng_debug = 0;
+const int config_audio_dac_enable = TCFG_DAC_NODE_ENABLE;
 
 /* 16bit数据流中也存在32bit位宽数据的处理 */
 const int config_ch_adapter_32bit_enable = 1;

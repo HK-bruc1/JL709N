@@ -23,6 +23,7 @@
 #include "le_audio_stream.h"
 #include "le_audio_player.h"
 #include "le_audio_recorder.h"
+#include "btstack/le/ble_api.h"
 
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 
@@ -92,6 +93,7 @@ static u16 multi_cis_rx_temp_buf_len = 0;
 static u8 *multi_cis_rx_buf = NULL;
 static u16 multi_cis_data_offect = {0};
 static bool multi_cis_plc_flag = false;
+static bool rcsp_update_flag  = false;
 
 /**************************************************************************************************
   Static Prototypes
@@ -100,6 +102,7 @@ static int connected_dec_data_receive_handler(void *_hdl, void *data, int len);
 static void connected_iso_callback(const void *const buf, size_t length, void *priv);
 static void connected_perip_event_callback(const CIG_EVENT event, void *priv);
 static void connected_free_cig_hdl(u8 cig_hdl);
+extern void set_aclMaxPduPToC_test(uint8_t aclMaxPduPToC);
 
 /**************************************************************************************************
   Global Variables
@@ -751,12 +754,23 @@ int connected_iso_recv_handle_register(void *priv, void (*recv_handle)(u16 conn_
         item->recv_handle = recv_handle;
         list_add_tail(&item->entry, &acl_data_recv_list_head);
     }
+
+    rcsp_update_flag = 1;
     return 0;
 }
 
 static void connected_iso_recv_handle(u16 conn_handle, const void *const buf, size_t length, void *priv)
 {
     struct acl_recv_hdl *item = NULL;
+
+    if (rcsp_update_flag) {
+        //set rcsp acl param
+        printf("Set rcsp acl param:0x%x", conn_handle);
+        set_aclMaxPduPToC_test(255);
+        ble_op_set_rxmaxbuf(conn_handle, 255);
+        rcsp_update_flag = 0;
+    }
+
     list_for_each_entry(item, &acl_data_recv_list_head, entry) {
         item->recv_handle(conn_handle, buf, length, priv);
     }
