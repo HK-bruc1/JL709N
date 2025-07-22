@@ -112,10 +112,8 @@ void audio_dac_power_state(u8 state)
 }
 #endif
 
-void audio_dac_initcall(void)
+static void audio_common_initcall()
 {
-    printf("audio_dac_initcall\n");
-
     audio_common_param_t common_param = {0};
     common_param.cic.en = 1;
     common_param.cic.scale = 0;
@@ -173,16 +171,25 @@ void audio_dac_initcall(void)
     common_param.pa_sel = dac_data.pa_sel;
     common_param.vcm_cap_en = TCFG_AUDIO_VCM_CAP_EN;
     audio_common_init(&common_param);
+    common_param.aud_en = 1;
+    audio_common_clock_open();
+}
 
-#if (SYS_VOL_TYPE == VOL_TYPE_DIGITAL)
-    audio_digital_vol_init(NULL, 0);
-#endif
+void audio_dac_initcall(void)
+{
+    printf("audio_dac_initcall\n");
+
     dac_data.epa_clk_sel = clk_get("bt_pll") / 1000000;
     dac_data.max_sample_rate    = AUDIO_DAC_MAX_SAMPLE_RATE;
     dac_data.hpvdd_sel = audio_dac_hpvdd_check();
     dac_data.bit_width = audio_general_out_dev_bit_width();
     dac_data.mute_delay_isel = 2;
     dac_data.mute_delay_time = 15;
+    if ((get_chip_version() >= 0x03) && (get_chip_version() < 0x0C)) {
+        dac_data.performance_mode = DAC_MODE_HIGH_PERFORMANCE;
+        dac_data.pa_isel0 = (TCFG_AUDIO_DAC_HP_PA_ISEL0 < 5) ? (5) : (TCFG_AUDIO_DAC_HP_PA_ISEL0);
+        dac_data.pa_isel1 = (TCFG_AUDIO_DAC_HP_PA_ISEL1 < 3) ? (3) : (TCFG_AUDIO_DAC_HP_PA_ISEL1);
+    }
     audio_dac_init(&dac_hdl, &dac_data);
     //dac_hdl.ng.threshold = 4;			//DAC底噪优化阈值
     //dac_hdl.ng.detect_interval = 200;	//DAC底噪优化检测间隔ms
@@ -338,7 +345,7 @@ struct dac_platform_data dac_data = {//临时处理
     .power_mode     = TCFG_DAC_POWER_MODE,
     .l_ana_gain     = TCFG_AUDIO_L_CHANNEL_GAIN,
     .r_ana_gain     = TCFG_AUDIO_R_CHANNEL_GAIN,
-    .dcc_level      = 14,
+    .dcc_level      = 15,
     .bit_width      = DAC_BIT_WIDTH_16,
     .fade_en        = 1,
     .fade_points    = 1,
@@ -373,8 +380,18 @@ static int audio_init()
 #if TCFG_AUDIO_ANC_ENABLE
     anc_init();
 #endif
+
+#if (SYS_VOL_TYPE == VOL_TYPE_DIGITAL)
+    audio_digital_vol_init(NULL, 0);
+#endif
+
+#if (TCFG_DAC_NODE_ENABLE || TCFG_AUDIO_ADC_ENABLE)
+    audio_common_initcall();
+#endif
     //AC700N DAC初始化在ANC之后，因为需要读取ANC 采样率以及DAC DRC配置
+#if TCFG_DAC_NODE_ENABLE
     audio_dac_initcall();
+#endif
 
 #if TCFG_SMART_VOICE_ENABLE
     audio_smart_voice_detect_init(NULL);

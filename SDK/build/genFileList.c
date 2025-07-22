@@ -653,9 +653,14 @@ c_SRC_FILES += \
 	apps/common/update/update_tws.c
 #endif
 
-#if (OTA_TWS_SAME_TIME_ENABLE && OTA_TWS_SAME_TIME_NEW)
+#if (OTA_TWS_SAME_TIME_ENABLE && OTA_TWS_SAME_TIME_NEW && !OTA_TWS_SAME_TIME_NEW_LESS)
 c_SRC_FILES += \
 	apps/common/update/update_tws_new.c
+#endif
+
+#if (OTA_TWS_SAME_TIME_ENABLE && OTA_TWS_SAME_TIME_NEW && OTA_TWS_SAME_TIME_NEW_LESS)
+c_SRC_FILES += \
+	apps/common/update/update_tws_new_less.c
 #endif
 
 #ifdef CONFIG_UPDATE_MUTIL_CPU_UART
@@ -1663,6 +1668,7 @@ c_SRC_FILES += \
 	  audio/cpu/br52/audio_dai/audio_pdm.c \
 	  audio/cpu/br52/audio_config.c \
 	  audio/cpu/br52/audio_pmu.c \
+	  audio/cpu/br52/audio_configs_dump.c \
 
 #if TCFG_AUDIO_ANC_ENABLE
 c_SRC_FILES += \

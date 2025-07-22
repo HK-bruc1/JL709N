@@ -118,6 +118,9 @@ void cpu_assert_debug()
     log_flush();
     local_irq_disable();
     while (1);
+#elif !(defined(CONFIG_CPU_BR56) || defined(CONFIG_CPU_BR50))
+    local_irq_disable();
+    while (1);
 #else
     system_reset(ASSERT_FLAG);
 #endif

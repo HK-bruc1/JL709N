@@ -496,6 +496,9 @@ objs += \
 objs += \
 	$(ROOT)/apps/common/update/update_tws_new.o
 
+objs += \
+	$(ROOT)/apps/common/update/update_tws_new_less.o
+
 #ifdef CONFIG_UPDATE_MUTIL_CPU_UART
 objs += \
 	$(ROOT)/apps/common/update/uart_update_driver.o \
@@ -1212,6 +1215,7 @@ objs += \
 	  $(ROOT)/audio/cpu/br52/audio_dai/audio_pdm.o \
 	  $(ROOT)/audio/cpu/br52/audio_config.o \
 	  $(ROOT)/audio/cpu/br52/audio_pmu.o \
+	  $(ROOT)/audio/cpu/br52/audio_configs_dump.o \
 
 objs += \
 	  $(ROOT)/audio/cpu/br52/audio_anc.o \

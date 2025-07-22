@@ -166,6 +166,9 @@ struct audio_dac_hdl {
     u8 power_on;
     u8 need_close;
     u8 mute_ch;               //DAC PA Mute Channel
+    u8 mute_step;             //DAC MUTE当前步骤
+    u8 mute_state;            //DAC MUTE当前状态
+    u8 mute_update;           //DAC MUTE最新状态
 	u8 dvol_mute;             //DAC数字音量是否mute
     u8 dac_read_flag;	//AEC可读取DAC参考数据的标志
     u8 anc_dac_open;
