@@ -486,7 +486,7 @@ int bt_phone_esco_play(u8 *bt_addr)
         return 1;
     }
     int ret = 0;
-#if (LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_CONFIG&LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX)
+#if (LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX)
     ret = le_audio_unicast_play_stop_by_esco();
 #endif
     esco_smart_voice_detect_handler();
@@ -540,7 +540,7 @@ int bt_phone_esco_play(u8 *bt_addr)
 #endif
     tws_page_scan_deal_by_esco(1);
     pbg_user_mic_fixed_deal(1);
-#if (LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_CONFIG&LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX)
+#if (LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX)
     if (ret) {
         le_audio_unicast_play_resume_by_esco();
     }
@@ -553,6 +553,10 @@ int bt_phone_esco_stop(u8 *bt_addr)
 {
 
     if (!esco_player_is_playing(bt_addr)) {
+        if (ed_ctl.timer && memcmp(ed_ctl.esco_addr, bt_addr, 6) == 0) {
+            sys_timer_del(ed_ctl.timer);
+            ed_ctl.timer = 0;
+        }
         puts("esco_player_is_close\n");
         return 0;
     }

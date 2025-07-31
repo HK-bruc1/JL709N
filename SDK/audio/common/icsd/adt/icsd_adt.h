@@ -52,6 +52,8 @@ extern const u16 ADT_DEBUG_INF;
 #define ADT_TLKMIC_L				BIT(4)
 #define ADT_TLKMIC_R				BIT(5)
 
+#define ICSD_WDT_SYNC_CNT_THR		20
+
 struct adt_function {
     //sys
     void (*os_time_dly)(int tick);
@@ -117,8 +119,12 @@ struct icsd_acoustic_detector_infmt {
     u16 sample_rate;     //当前播放采样率
     u16 adc_sr;           //MIC数据采样率
     u8 ein_state;
-    u8 ff_gain;
-    u8 fb_gain;
+    s8 lff_gain;         //dB值
+    s8 lfb_gain;
+    s8 rff_gain;
+    s8 rfb_gain;
+    s8 talk_gain;
+
     u8 adt_mode;         // TWS: 0 HEADSET: 1
     u8 dac_mode;		 //低压0 高压1
     u8 mic0_type;        // MIC0 类型
@@ -174,6 +180,17 @@ typedef struct {
     u16 rptr;    //通道1数据读指针
 } __adt_anc46k_ctl;
 extern __adt_anc46k_ctl *ANC46K_CTL;
+
+struct icsd_adt_input_param_v3 {
+    void *priv;
+    s16 *lff;
+    s16 *rff;
+    s16 *lfb;
+    s16 *rfb;
+    s16 *ltalk;
+    s16 *rtalk;
+    int len;
+};
 
 enum {
     ICSD_ANC_LFF_MIC  = 0,
@@ -248,6 +265,7 @@ void icsd_acoustic_detector_suspend();
 void icsd_acoustic_detector_ancdma_done();//ancdma done回调
 void icsd_acoustic_detector_mic_input_hdl(void *priv, s16 *buf, int len);
 void icsd_acoustic_detector_mic_input_hdl_v2(void *priv, s16 *talk_mic, s16 *ff_mic, s16 *fb_mic, int len);
+void icsd_acoustic_detector_mic_input_hdl_v3(struct icsd_adt_input_param_v3 *param);
 void icsd_adt_rtanc_suspend();
 void icsd_adt_rtanc_resume();
 u8 	 icsd_adt_current_mic_num();//获取当前ADT使用的mic数量
@@ -291,5 +309,6 @@ extern const u8 avc_run_interval;
 extern const u8 tidy_avc_run_interval;
 extern const u8 icsd_ancdma_dac_debug;
 extern u16 adt_debug_ramsize;
+extern const u8 ADT_MIC_VERSION;
 
 #endif

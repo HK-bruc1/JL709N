@@ -23,6 +23,7 @@
 
 #include "icsd_adt.h"
 #include "icsd_adt_app.h"
+#include "icsd_common_v2_app.h"
 
 #if ICSD_VDT_LIB
 #include "icsd_vdt.h"
@@ -56,8 +57,6 @@
 #if ICSD_ADJDCC_LIB
 #include "icsd_adjdcc.h"
 #endif
-
-#define ICSD_ADT_RTANC_OFFLINE_PRINTF           1       //RTANC 离线log 使能 （200ms/次）
 
 u16 adt_debug_ramsize = 0;
 //===========ADJDCC============================================
@@ -780,10 +779,10 @@ void icsd_adt_alg_vdt_run(__adt_vdt_run_parm *_run_parm, __adt_vdt_output *_outp
 #endif
 }
 
-void icsd_adt_vdt_data_init(u8 _anc_mode_ind, float ref_mgain, float err_mgain, float tlk_mgain)
+void icsd_adt_vdt_data_init(u8 _anc_mode_ind, float refl_mgain, float errl_mgain, float refr_mgain, float errr_mgain, float tlk_mgain)
 {
 #if ICSD_VDT_LIB
-    icsd_vdt_data_init(_anc_mode_ind, ref_mgain, err_mgain, tlk_mgain);
+    icsd_vdt_data_init(_anc_mode_ind, refl_mgain, errl_mgain, refr_mgain, errr_mgain, tlk_mgain, ADT_MIC_VERSION);
 #endif
 }
 

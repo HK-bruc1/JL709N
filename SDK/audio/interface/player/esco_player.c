@@ -11,9 +11,12 @@
 #include "aec_ref_dac_ch_data.h"
 #include "encoder_node.h"
 
+#if TCFG_AUDIO_ANC_ENABLE
+#include "audio_anc.h"
 #if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
 #include "icsd_adt_app.h"
-#endif /*TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN*/
+#endif
+#endif
 
 struct esco_player {
     u8 bt_addr[6];
@@ -69,10 +72,13 @@ int esco_player_open_extended(u8 *bt_addr, int ext_type, void *ext_param)
     }
 #endif
 
+#if TCFG_AUDIO_ANC_ENABLE
+    audio_anc_mic_gain_check(1);
 
 #if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
     audio_icsd_adt_scene_set(ADT_SCENE_ESCO, 1);
     audio_icsd_adt_reset(ADT_SCENE_ESCO);
+#endif
 #endif
 
 #if TCFG_ESCO_DL_CVSD_SR_USE_16K

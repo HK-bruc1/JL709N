@@ -408,6 +408,10 @@ static void anc_task(void *p)
                 break;
             case ANC_MSG_RUN:
                 anc_hdl->param.mode = msg[2];
+
+                //检查通话和ANC MIC增益是否一致，不一致则报错
+                audio_anc_mic_gain_check(0);
+
 #if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
                 if (anc_hdl->param.gains.trans_alogm != 5) {
                     ASSERT(0, "ERR!!ANC ADT trans_alogm %d != 5\n", anc_hdl->param.gains.trans_alogm);
@@ -2207,6 +2211,37 @@ u8 audio_anc_mic_gain_get(u8 mic_sel)
         }
     }
     return 0;
+}
+
+/*获取anc mic是否使能*/
+u8 audio_anc_mic_en_get(u8 mic_sel)
+{
+    if (anc_hdl) {
+        if (mic_sel < AUDIO_ADC_MAX_NUM)  {
+            return anc_hdl->param.mic_param[mic_sel].en;
+        }
+    }
+    return 0;
+}
+
+//不同系列需要确认
+static const s8 mic_gain_dB_table[] = {-6, -2, 0, 3, 9, 15, 21, 27};
+s8 audio_anc_mic_gain_get_dB(u8 mic_ch, u8 is_talk_mic)
+{
+    u8 i;
+    for (i = 0; i < AUDIO_ADC_MAX_NUM; i++) {
+        if (BIT(i) == mic_ch) {
+            break;
+        }
+    }
+    u8 index = 0;
+    if (is_talk_mic) {
+        index = audio_adc_file_get_gain(i);
+    } else {
+        index = audio_anc_mic_gain_get(i);
+    }
+    user_anc_log("mic_ch 0x%x, is_talk_mic %d, index %d, i %d\n", mic_ch, is_talk_mic, index, i);
+    return mic_gain_dB_table[index];
 }
 
 void audio_anc_drc_toggle_set(u8 toggle)

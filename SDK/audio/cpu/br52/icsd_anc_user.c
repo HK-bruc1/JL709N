@@ -117,7 +117,7 @@ int audio_mic_en(u8 en, audio_mic_param_t *mic_param,
                 audio_anc_mic_mult_flag_set(0, 1);
             }
 #endif
-#if ICSD_ADT_SHARE_ADC_ENABLE
+#ifdef TCFG_AUDIO_ADC_ENABLE_ALL_DIGITAL_CH
             audio_adc_mic_ch_close(&audio_mic->mic_ch, audio_mic->mic_ch_map);
 #else
             //依赖ADC底层驱动修改 gali debug
@@ -341,14 +341,22 @@ void icsd_set_tws_t_sniff(u16 slot)
     /* set_tws_t_sniff(slot); */
 }
 
-static u8 talk_mic_ch_cfg_read_flag = 0;
 u8 icsd_get_talk_mic_ch(void)
 {
+#ifdef TCFG_AUDIO_ANC_TALK_MIC
+    if (TCFG_AUDIO_ANC_TALK_MIC != MIC_NULL) {
+        return BIT(TCFG_AUDIO_ANC_TALK_MIC);
+    } else {
+        return 0;
+    }
+#else
+    static u8 talk_mic_ch_cfg_read_flag = 0;
     if (!talk_mic_ch_cfg_read_flag) {
         talk_mic_ch_cfg_read_flag = 1;
         cvp_param_cfg_read();
     }
     return cvp_get_talk_mic_ch();
+#endif
 }
 
 u8 icsd_get_ref_mic_L_ch(void)

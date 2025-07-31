@@ -455,11 +455,13 @@ void bt_function_select_init()
     }
 #endif
 #if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_JL_UNICAST_SINK_EN)
-#if (LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_CONFIG&LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX)
+#if (LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX)
     extern void set_le_audio_unicast_witch_phone_play_mix(u8 en);
-    extern int tws_api_pure_monitor_enable(bool enable);
     set_le_audio_unicast_witch_phone_play_mix(1);
+#if TCFG_USER_TWS_ENABLE
+    extern int tws_api_pure_monitor_enable(bool enable);
     tws_api_pure_monitor_enable(1);
+#endif
 
 #endif
 #endif

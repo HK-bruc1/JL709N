@@ -9,6 +9,7 @@
 #include "audio_config.h"
 #include "icsd_anc_user.h"
 #include "sniff.h"
+#include "icsd_common_v2_app.h"
 
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
 #include "rt_anc_app.h"
@@ -19,8 +20,6 @@
 #else
 #define env_log(...)
 #endif/*log_en*/
-
-#define ICSD_ENV_LVL_PRINTF             1   //环境自适应阈值打印使能
 
 struct audio_anc_env_adaptive_det {
     u8 lvl1_l_thr;
@@ -191,9 +190,6 @@ int audio_env_noise_event_process(u8 spldb_iir)
 #endif
         anc_env_noise_lvl = anc_env_gain_det.cur_lvl;
 
-        if (anc_env_noise_lvl == 0) {
-            return -1;
-        }
     } else {
         return -1;
     }

@@ -4,12 +4,21 @@
 #include "generic/typedef.h"
 #include "icsd_common_v2.h"
 
+//*****************************************
+//*	          ANC_EXT APP打印管理         *
+//*****************************************
+#define ICSD_ADT_RTANC_OFFLINE_PRINTF           1   //RTANC 离线log 使能 （200ms/次）
+#define ICSD_WIND_LVL_PRINTF            		1   //风噪阈值打印使能
+#define ICSD_ENV_LVL_PRINTF             		1   //环境自适应阈值打印使能
+
 /*AFQ COMMON MSG List*/
 enum {
     AFQ_COMMON_MSG_RUN = 0xA1,
 };
 
+//ANC_EXT错误显示，与DLL解析对齐
 enum {
+    //------公共错误--------
     ANC_EXT_OPEN_FAIL_REENTRY = 0x1,	//重入
     ANC_EXT_OPEN_FAIL_FUNC_CONFLICT,	//功能冲突
     ANC_EXT_OPEN_FAIL_CFG_MISS,			//参数缺失
@@ -18,7 +27,26 @@ enum {
     ANC_EXT_OPEN_FAIL_SWITCH_LOCK, 		//切模式锁存
     ANC_EXT_OPEN_FAIL_AFQ_RUNNING, 		//AFQ运行中
     ANC_EXT_OPEN_FAIL_MAX_IIR_LIMIT, 	//最大滤波器限制
-    ANC_EXT_OPEN_FAIL_RTANC_CFG_MISS, 	//缺失RTANC参数
+    ANC_EXT_OPEN_FAIL_CONFLICT_PHONE,	//通话功能冲突
+    ANC_EXT_OPEN_FAIL_CONFLICT_RTANC,	//RTANC功能冲突
+
+    //-----功能特征错误-------
+    //耳道自适应
+    ANC_EXT_FAIL_EAR_BASE_CFG_MISS = 0xA0,		//缺失耳道自适应参数-基础
+    ANC_EXT_FAIL_EAR_TARGET_CFG_MISS,			//缺失耳道自适应参数-target
+    ANC_EXT_FAIL_EAR_MEM_CFG_MISS,				//缺失耳道自适应参数-记忆
+    ANC_EXT_FAIL_CMP_CFG_MISS,					//缺失耳道自适应参数-CMP
+
+    //RTANC
+    ANC_EXT_FAIL_RTANC_CFG_MISS, 				//缺失RTANC参数或耳道自适应参数
+    ANC_EXT_FAIL_DYNAMIC_CFG_MISS,				//缺失DYNAMIC参数
+    ANC_EXT_FAIL_SPZ_COEFF_CFG_MISS, 			//缺失RTANC参数-SZ/PZ COEFF
+    ANC_EXT_FAIL_CMP_MEM_CFG_MISS, 				//缺失CMP_MEM参数
+
+    //AEQ
+    ANC_EXT_FAIL_AEQ_GAIN_CFG_MISS,				//缺失AEQ增益参数
+    ANC_EXT_FAIL_AEQ_MEM_CFG_MISS,				//缺失AEQ_MEM参数
+    ANC_EXT_FAIL_AEQ_NODE_MISS,					//缺失AEQ节点
 };
 
 //频响获取选择

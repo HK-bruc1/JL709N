@@ -20,6 +20,8 @@
 #if TCFG_AUDIO_ANC_ENABLE
 #include "audio_anc.h"
 #include "audio_anc_common_plug.h"
+#include "esco_player.h"
+#include "adc_file.h"
 
 #if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
 #include "icsd_adt.h"
@@ -94,5 +96,35 @@ int audio_anc_production_mode_get(void)
 {
     return __this->production_mode;
 }
+
+/*
+	检查通话和ANC复用MIC 模拟增益是否一致
+	param:is_phone_caller		0 非通话调用，1 通话调用
+	note:如外部使用ADC模拟开关，可能导致MIC序号匹配错误，需屏蔽检查，人工对齐增益
+*/
+int audio_anc_mic_gain_check(u8 is_phone_caller)
+{
+    /* return 0;	//屏蔽检查 */
+
+    struct adc_file_cfg *cfg;
+    u8 anc_gain, phone_gain;
+    //当前处于ANC_ON 且在通话中
+    if (anc_mode_get() != ANC_OFF && (esco_player_runing() || is_phone_caller)) {
+        cfg = audio_adc_file_get_cfg();
+        if (cfg == NULL) {
+            return 0;
+        }
+        for (int i = 0; i < AUDIO_ADC_MAX_NUM; i++) {
+            if ((cfg->mic_en_map & BIT(i)) && audio_anc_mic_en_get(i)) {
+                phone_gain = audio_adc_file_get_gain(i);
+                anc_gain = audio_anc_mic_gain_get(i);
+                ASSERT(phone_gain == anc_gain, "ERR! [mic%d_gain], esco %d != anc %d, please check MIC gain in the anc_gains.bin and the stream.bin \n", \
+                       i, phone_gain, anc_gain);
+            }
+        }
+    }
+    return 0;
+}
+
 
 #endif

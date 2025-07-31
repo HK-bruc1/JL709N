@@ -218,7 +218,7 @@ int  icsd_adt_vdt_get_libfmt();
 int  icsd_adt_vdt_set_infmt(int _ram_addr);
 void icsd_adt_alg_rtanc_de_run_l();
 void icsd_adt_alg_vdt_run(__adt_vdt_run_parm *_run_parm, __adt_vdt_output *_output);
-void icsd_adt_vdt_data_init(u8 _anc_mode_ind, float ref_mgain, float err_mgain, float tlk_mgain);
+void icsd_adt_vdt_data_init(u8 _anc_mode_ind, float refl_mgain, float errl_mgain, float refr_mgain, float errr_mgain, float tlk_mgain);
 void icsd_adt_alg_rtanc_adjdcc_flag_set(u8 flag);
 u8 icsd_adt_alg_adjdcc_trigger_update(u8 env_level, float *table);
 u8 icsd_adt_alg_rtanc_adjdcc_flag_get();

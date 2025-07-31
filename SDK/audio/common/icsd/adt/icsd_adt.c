@@ -15,7 +15,7 @@
 #include "icsd_adt_app.h"
 #include "icsd_anc_user.h"
 #include "audio_anc.h"
-#include "asm/audio_src.h"
+#include "audio_src.h"
 #include "audio_anc_debug_tool.h"
 #include "effects/convert_data.h"
 #include "asm/dac.h"

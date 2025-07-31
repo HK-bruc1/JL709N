@@ -28,6 +28,9 @@ int audio_anc_switch_adt_app_open(void);
 
 int audio_anc_switch_adt_app_close(void);
 
+//检查通话和ANC复用MIC 模拟增益是否匹配
+int audio_anc_mic_gain_check(u8 is_phone_caller);
+
 //==============ANC 内存管理=================
 
 //打印当前未释放的内存
@@ -62,8 +65,10 @@ void anc_mem_clear(void *pv);
 #endif/*TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN*/
 
 #if (TCFG_AUDIO_ANC_EXT_VERSION == ANC_EXT_V2) && \
-	 (TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN || \
-	 TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE)
+	(TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN 			|| \
+	 TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE 	|| \
+	 TCFG_AUDIO_ANC_HOWLING_DET_ENABLE 			|| \
+	 TCFG_AUDIO_ANC_WIND_NOISE_DET_ENABLE)
 #define TCFG_AUDIO_ANC_EXT_TOOL_ENABLE		1
 #else
 #define TCFG_AUDIO_ANC_EXT_TOOL_ENABLE		0

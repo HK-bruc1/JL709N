@@ -31,6 +31,7 @@
 #endif/*TCFG_USER_TWS_ENABLE*/
 #include "anc_ext_tool.h"
 #include "adc_file.h"
+#include "audio_anc_debug_tool.h"
 
 #if ANC_MULT_ORDER_ENABLE
 #include "audio_anc_mult_scene.h"
@@ -277,33 +278,35 @@ static void audio_anc_dac_check_slience_cb(void *buf, int len)
 /* 耳道自适应启动限制 */
 int audio_anc_mode_ear_adaptive_permit(void)
 {
+    int ret;
 #if AUDIO_ANC_DATA_EXPORT_VIA_UART
     if (audio_anc_develop_is_running()) {
         printf("EAR_ANC_STATE:ERR ANC_DEV OPEN NOW\n");
         return -1;
     }
 #endif
-    if (anc_ext_ear_adaptive_param_check()) { //没有自适应参数
-        return ANC_EXT_OPEN_FAIL_CFG_MISS;
+    ret = anc_ext_ear_adaptive_param_check();
+    if (ret) { //没有自适应参数
+        return ret;
     }
     if (hdl->adaptive_state != EAR_ADAPTIVE_STATE_END) { //重入保护
         return ANC_EXT_OPEN_FAIL_REENTRY;
     }
     if (adc_file_is_runing()) { //通话不支持
         /* if (esco_player_runing()) { //通话不支持 */
-        return ANC_EXT_OPEN_FAIL_FUNC_CONFLICT;
+        return ANC_EXT_OPEN_FAIL_CONFLICT_PHONE;
     }
     if (anc_mode_switch_lock_get()) { //其他切模式过程不支持
-        return ANC_EXT_OPEN_FAIL_FUNC_CONFLICT;
+        return ANC_EXT_OPEN_FAIL_SWITCH_LOCK;
     }
 #if TCFG_AUDIO_FREQUENCY_GET_ENABLE
     if (audio_icsd_afq_is_running()) {	//AFQ 运行过程中不支持
-        return ANC_EXT_OPEN_FAIL_FUNC_CONFLICT;
+        return ANC_EXT_OPEN_FAIL_AFQ_RUNNING;
     }
 #endif
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
     if (audio_anc_real_time_adaptive_state_get()) {	//RTANC运行过程不支持
-        return ANC_EXT_OPEN_FAIL_FUNC_CONFLICT;
+        return ANC_EXT_OPEN_FAIL_CONFLICT_RTANC;
     }
 #endif
     return 0;
@@ -365,6 +368,7 @@ void audio_anc_mode_ear_adaptive_sync_cb(void *_data, u16 len, bool rx)
 #if (RCSP_ADV_EN && RCSP_ADV_ANC_VOICE && RCSP_ADV_ADAPTIVE_NOISE_REDUCTION)
         set_adaptive_noise_reduction_reset_callback(0);		//	无法进入自适应，返回失败结果
 #endif
+        audio_anc_debug_err_send_data(ANC_DEBUG_APP_EAR_ADAPTIVE, &ret, sizeof(int));
         return;
     }
 
@@ -542,21 +546,27 @@ void anc_user_train_cb(u8 mode, u8 forced_exit)
         if (hdl->ear_adaptive_data_from == ANC_ADAPTIVE_DATA_FROM_VM) {		//释放掉原来VM使用的资源
             if (hdl->param->adaptive->lff_coeff) {
                 free(hdl->param->adaptive->lff_coeff);
+                hdl->param->adaptive->lff_coeff = NULL;
             };
             if (hdl->param->adaptive->lfb_coeff) {
                 free(hdl->param->adaptive->lfb_coeff);
+                hdl->param->adaptive->lfb_coeff = NULL;
             };
             if (hdl->param->adaptive->lcmp_coeff) {
                 free(hdl->param->adaptive->lcmp_coeff);
+                hdl->param->adaptive->lcmp_coeff = NULL;
             };
             if (hdl->param->adaptive->rff_coeff) {
                 free(hdl->param->adaptive->rff_coeff);
+                hdl->param->adaptive->rff_coeff = NULL;
             };
             if (hdl->param->adaptive->rfb_coeff) {
                 free(hdl->param->adaptive->rfb_coeff);
+                hdl->param->adaptive->rfb_coeff = NULL;
             };
             if (hdl->param->adaptive->rcmp_coeff) {
                 free(hdl->param->adaptive->rcmp_coeff);
+                hdl->param->adaptive->rcmp_coeff = NULL;
             };
         }
 

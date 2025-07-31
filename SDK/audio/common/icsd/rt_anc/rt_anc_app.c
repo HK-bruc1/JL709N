@@ -29,7 +29,7 @@
 #include "icsd_afq_app.h"
 #endif
 
-#if ANC_EAR_ADAPTIVE_CMP_EN
+#if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
 #include "icsd_cmp_app.h"
 #endif
 
@@ -372,8 +372,9 @@ void audio_anc_real_time_adaptive_init(audio_anc_t *param)
 /* Real Time ANC 自适应启动限制 */
 int audio_rtanc_permit(u8 sync_mode)
 {
-    if (anc_ext_rtanc_param_check()) { //RTANC 工具参数缺失
-        return ANC_EXT_OPEN_FAIL_CFG_MISS;
+    int ret = anc_ext_rtanc_param_check();
+    if (ret) { //RTANC 工具参数缺失
+        return ret;
     }
     if (hdl->param->mode == ANC_OFF) {	//非ANC模式
         //QHH: anc off开rtanc
@@ -780,6 +781,10 @@ static void audio_rt_anc_param_updata(void *rt_param_l, void *rt_param_r)
     }
 #endif
 
+    //工具没有开CMP则不输出
+    if (!anc_ext_adaptive_cmp_tool_en_get()) {
+        cmp_eq_updat &= ~AUDIO_ADAPTIVE_CMP_UPDATE_FLAG;
+    }
     if (ff_updat) {
         audio_anc_coeff_check_crc(ANC_CHECK_RTANC_UPDATE);
         anc_coeff_ff_online_update(hdl->param);		//更新ANC FF滤波器
@@ -795,7 +800,7 @@ void audio_rtanc_cmp_update(void)
 {
     audio_anc_t *param = hdl->param;
 
-#if ANC_EAR_ADAPTIVE_CMP_EN
+#if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
     struct anc_cmp_param_output cmp_p;
     if (hdl->out.lcmp_coeff) {
         anc_free(hdl->out.lcmp_coeff);
@@ -900,13 +905,15 @@ void audio_adt_rtanc_output_handle(void *rt_param_l, void *rt_param_r)
 
     if (((__rt_anc_param *)rt_param_l)->cmp_eq_updat) {
         audio_afq_common_cmp_eq_update_set(((__rt_anc_param *)rt_param_l)->cmp_eq_updat);
-#if ANC_EAR_ADAPTIVE_CMP_EN
-        audio_anc_real_time_adaptive_suspend("RTCMP");
+#if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
+        if (anc_ext_adaptive_cmp_tool_en_get()) {
+            audio_anc_real_time_adaptive_suspend("RTCMP");
+        }
 #endif
 
 #if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
         //如果AEQ在运行就挂起RTANC
-        if (audio_adaptive_eq_state_get()) {
+        if (audio_adaptive_eq_state_get() && anc_ext_adaptive_eq_tool_en_get()) {
             audio_anc_real_time_adaptive_suspend("AEQ");
         }
 #endif
@@ -1063,6 +1070,7 @@ int audio_rtanc_adaptive_init(u8 sync_mode)
     ret = audio_rtanc_permit(sync_mode);
     if (ret) {
         rtanc_log("Err:rt_anc_open permit sync:%d, ret:%d\n", sync_mode, ret);
+        audio_anc_debug_err_send_data(ANC_DEBUG_APP_RTANC, &ret, sizeof(int));
         return ret;
     }
 
@@ -1076,7 +1084,7 @@ int audio_rtanc_adaptive_init(u8 sync_mode)
     hdl->sz_cmp = anc_malloc("ICSD_RTANC", 50 * sizeof(float));
 #endif
     hdl->rtanc_p = anc_malloc("ICSD_RTANC", sizeof(struct rtanc_param));
-#if ANC_EAR_ADAPTIVE_CMP_EN
+#if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
     audio_anc_ear_adaptive_cmp_open(CMP_FROM_RTANC);
 #endif
     return 0;
@@ -1101,7 +1109,7 @@ int audio_rtanc_adaptive_exit(void)
     hdl->sz_cmp = NULL;
 #endif
 
-#if ANC_EAR_ADAPTIVE_CMP_EN
+#if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
     audio_anc_ear_adaptive_cmp_close();
 #endif
     rtanc_log("rt_anc_close ok\n");
@@ -1278,7 +1286,7 @@ void audio_rtanc_cmp_data_packet(void)
     if (!hdl->rtanc_tool) {
         return;
     }
-#if ANC_EAR_ADAPTIVE_CMP_EN
+#if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
     int cmp_yorder = ANC_ADAPTIVE_CMP_ORDER;
     int cmp_dat_len =  sizeof(anc_fr_t) * cmp_yorder + 4;
 #if ANC_CONFIG_LFB_EN
@@ -1320,9 +1328,9 @@ void audio_rtanc_cmp_data_packet(void)
 
 #if ANC_CONFIG_RFB_EN
     anc_free(rcmp_dat);
-#endif/*ANC_EAR_ADAPTIVE_CMP_EN*/
-
 #endif
+
+#endif/*TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN*/
 }
 
 #endif
@@ -1458,9 +1466,7 @@ void audio_rtanc_self_talk_output(u8 flag)
 
 static void audio_rtanc_spp_send_data(u8 cmd, u8 *buf, int len)
 {
-    if (anc_ext_debug_tool_function_get() & TFUNCTION_RTANC) {
-        audio_anc_debug_app_send_data(ANC_DEBUG_APP_CMD_RTANC, cmd, buf, len);
-    }
+    audio_anc_debug_app_send_data(ANC_DEBUG_APP_RTANC, cmd, buf, len);
 }
 
 void audio_rtanc_dut_mode_set(u8 mode)

@@ -53,6 +53,7 @@ int audio_anc_howling_detect_open()
 {
     howl_printf("audio_anc_howling_detect_open");
     u16 adt_mode = ADT_HOWLING_DET_MODE;
+    anc_ext_algorithm_state_update(ANC_EXT_ALGO_SOFT_HOWL_DET, ANC_EXT_ALGO_STA_OPEN, 0);
     return audio_icsd_adt_sync_open(adt_mode);
 }
 
@@ -61,6 +62,7 @@ int audio_anc_howling_detect_close()
 {
     howl_printf("audio_anc_howling_detect_open");
     u16 adt_mode = ADT_HOWLING_DET_MODE;
+    anc_ext_algorithm_state_update(ANC_EXT_ALGO_SOFT_HOWL_DET, ANC_EXT_ALGO_STA_CLOSE, 0);
     return audio_icsd_adt_sync_close(adt_mode, 0);
 }
 

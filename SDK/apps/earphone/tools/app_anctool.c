@@ -158,6 +158,9 @@ enum {
     CMD_MIC_CMP_GAIN_GET = 0X61,	//FF/FB 增益补偿读取
     CMD_MIC_CMP_GAIN_CLEAN = 0X62,	//FF/FB 增益补偿清0
     CMD_MIC_CMP_GAIN_SAVE = 0X63,	//FF/FB 增益补偿保存
+    CMD_MIC_CMP_GAIN_ALL_GET = 0X64, //FF/FB 增益补偿结构体获取
+    CMD_MIC_CMP_GAIN_ALL_SET = 0X65, //FF/FB 增益补偿结构体设置
+
 
     CMD_ANC_EXT_TOOL = 0XB0,
     CMD_DEBUG_USER_CMD = 0XB1,		//用户自定义命令
@@ -800,6 +803,7 @@ static void app_anctool_passthrough_deal(u8 *data, u16 len)
     case CMD_MIC_CMP_GAIN_SET:
     case CMD_MIC_CMP_GAIN_CLEAN:
     case CMD_MIC_CMP_GAIN_SAVE:
+    case CMD_MIC_CMP_GAIN_ALL_SET:
         if (audio_anc_mic_gain_cmp_cmd_process(cmd, data + 1, len - 1)) {
             app_anctool_passthrough_send_ack(cmd, FALSE, ERR_NO);
         } else {
@@ -810,6 +814,12 @@ static void app_anctool_passthrough_deal(u8 *data, u16 len)
         anctool_printf("CMD_MIC_CMP_GAIN_GET\n");
         float cmp_gain = audio_anc_mic_gain_cmp_get(data[1]);
         app_anctool_passthrough_send_buf(cmd, (u8 *)&cmp_gain, 4);
+        break;
+    case CMD_MIC_CMP_GAIN_ALL_GET:
+        anctool_printf("CMD_MIC_CMP_GAIN_ALL_GET\n");
+        int mic_cmp_len = 0;
+        u8 *mic_cmp_p = audio_anc_mic_gain_cmp_cfg_get(&mic_cmp_len);
+        app_anctool_passthrough_send_buf(cmd, mic_cmp_p, mic_cmp_len);
         break;
 #endif
     default:
@@ -1026,12 +1036,12 @@ static void app_anctool_module_deal(u8 *data, u16 len)
 #if TCFG_AUDIO_ANC_BASE_DEBUG_ENABLE
     case CMD_DEBUG_TOOL_OPEN:
         anctool_printf("CMD_DEBUG_TOOL_OPEN\n");
-        audio_anc_debug_tool_open();
+        audio_anc_debug_spp_log_en(1);
         app_anctool_send_ack(CMD_DEBUG_TOOL_OPEN, TRUE, ERR_NO);
         break;
     case CMD_DEBUG_TOOL_CLOSE:
         anctool_printf("CMD_DEBUG_TOOL_CLOSE\n");
-        audio_anc_debug_tool_close();
+        audio_anc_debug_spp_log_en(0);
         app_anctool_send_ack(CMD_DEBUG_TOOL_CLOSE, TRUE, ERR_NO);
         break;
 #endif
@@ -1082,12 +1092,22 @@ void app_anctool_spp_connect(void)
     anctool_printf("%s, spp_connect!\n", __FUNCTION__);
     anctool_api_init(&app_anctool_data);
     __this->para = anc_api_get_train_param();
+
+#if TCFG_AUDIO_ANC_BASE_DEBUG_ENABLE
+    audio_anc_debug_tool_open();
+#endif
+
 }
 
 void app_anctool_spp_disconnect(void)
 {
     anctool_printf("%s, spp_disconnect!\n", __FUNCTION__);
     audio_anc_production_exit();	//退出产测模式
+
+#if TCFG_AUDIO_ANC_BASE_DEBUG_ENABLE
+    audio_anc_debug_tool_close();
+#endif
+
 #if TCFG_AUDIO_ANC_EXT_TOOL_ENABLE
     anc_ext_tool_disconnect();
 #endif

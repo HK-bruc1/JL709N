@@ -330,20 +330,20 @@ static int audio_adaptive_eq_permit(enum audio_adaptive_fre_sel fre_sel)
 {
     if (anc_ext_ear_adaptive_cfg_get()->aeq_gains == NULL) {
         aeq_log("ERR: ANC_EXT adaptive eq cfg no enough!\n");
-        return ANC_EXT_OPEN_FAIL_CFG_MISS;
+        return ANC_EXT_FAIL_AEQ_GAIN_CFG_MISS;
     }
     if ((anc_ext_ear_adaptive_cfg_get()->aeq_mem_iir == NULL) && aeq_hdl->real_time_eq_en) {
         aeq_log("ERR: ANC_EXT adaptive eq cfg mem_iir no enough!\n");
-        return ANC_EXT_OPEN_FAIL_CFG_MISS;
+        return ANC_EXT_FAIL_AEQ_MEM_CFG_MISS;
     }
 #if TCFG_AUDIO_DAC_CONNECT_MODE == DAC_OUTPUT_LR
     if (anc_ext_ear_adaptive_cfg_get()->raeq_gains == NULL) {
         aeq_log("ERR: ANC_EXT adaptive eq cfg no enough!\n");
-        return ANC_EXT_OPEN_FAIL_CFG_MISS;
+        return ANC_EXT_FAIL_AEQ_GAIN_CFG_MISS;
     }
     if ((anc_ext_ear_adaptive_cfg_get()->raeq_mem_iir == NULL) && aeq_hdl->real_time_eq_en) {
         aeq_log("ERR: ANC_EXT adaptive eq cfg mem_iir no enough!\n");
-        return ANC_EXT_OPEN_FAIL_CFG_MISS;
+        return ANC_EXT_FAIL_AEQ_MEM_CFG_MISS;
     }
 #endif
     if (aeq_hdl->state != ADAPTIVE_EQ_STATE_CLOSE) {
@@ -351,7 +351,7 @@ static int audio_adaptive_eq_permit(enum audio_adaptive_fre_sel fre_sel)
     }
     if (audio_adaptive_eq_node_check()) {
         aeq_log("ERR: adaptive eq node is missing!\n");
-        return ANC_EXT_OPEN_FAIL_CFG_MISS;
+        return ANC_EXT_FAIL_AEQ_NODE_MISS;
     }
     return 0;
 }
@@ -372,6 +372,7 @@ int audio_adaptive_eq_open(enum audio_adaptive_fre_sel fre_sel, void (*result_cb
     int ret = audio_adaptive_eq_permit(fre_sel);
     if (ret) {
         aeq_debug_log("adaptive_eq_permit, open fail %d\n", ret);
+        audio_anc_debug_err_send_data(ANC_DEBUG_APP_ADAPTIVE_EQ, &ret, sizeof(int));
         return ret;
     }
 
@@ -410,6 +411,10 @@ int audio_adaptive_eq_open(enum audio_adaptive_fre_sel fre_sel, void (*result_cb
 //(实时)自适应EQ打开
 int audio_real_time_adaptive_eq_open(enum audio_adaptive_fre_sel fre_sel, void (*result_cb)(int result))
 {
+    //工具AEQ关闭，不允许启动AEQ
+    if (!anc_ext_adaptive_eq_tool_en_get()) {
+        return 0;
+    }
     aeq_hdl->real_time_eq_en = 1;
     int ret = audio_adaptive_eq_open(fre_sel, result_cb);
     //打开失败且非重入场景则清0对应标志
@@ -998,7 +1003,7 @@ static int audio_adaptive_eq_dot_run(void)
     aeq_debug_log("                    dot db = %d/100 \n", (int)(dot_db * 100.0f));
     aeq_debug_log("========================================= \n");
 
-    audio_anc_debug_app_send_data(ANC_DEBUG_APP_CMD_AEQ, 0x0, (u8 *)&dot_db, 4);
+    audio_anc_debug_app_send_data(ANC_DEBUG_APP_ADAPTIVE_EQ, 0x0, (u8 *)&dot_db, 4);
 
     if (dot_db > aeq_hdl->thr.dot_thr2) {
         aeq_debug_log(" dot: tight ");

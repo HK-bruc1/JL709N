@@ -24,9 +24,6 @@
 /*串口写卡导出MIC的数据，需要先打开宏AUDIO_DATA_EXPORT_VIA_UART*/
 #define ICSD_ADT_MIC_DATA_EXPORT_EN  0
 
-/*支持和其他功能共用ADC,需要在audio_config_def.h定义TCFG_AUDIO_ADC_ENABLE_ALL_DIGITAL_CH*/
-#define ICSD_ADT_SHARE_ADC_ENABLE    0
-
 enum {
     AUDIO_ADT_CLOSE = 0,    //关闭关闭
     AUDIO_ADT_OPEN,     //打开状态
@@ -34,7 +31,7 @@ enum {
 };
 
 enum {
-    ANC_WIND_NOISE_LVL0 = 1,
+    ANC_WIND_NOISE_LVL0 = 0,
     ANC_WIND_NOISE_LVL1,
     ANC_WIND_NOISE_LVL2,
     ANC_WIND_NOISE_LVL3,

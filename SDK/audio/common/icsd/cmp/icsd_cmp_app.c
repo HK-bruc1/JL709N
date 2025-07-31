@@ -13,7 +13,7 @@
 
 #include "audio_anc.h"
 
-#if ANC_EAR_ADAPTIVE_CMP_EN
+#if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
 
 #include "icsd_cmp.h"
 #include "icsd_cmp_app.h"
@@ -281,6 +281,9 @@ int audio_anc_ear_adaptive_cmp_open(u8 data_from)
 {
     if (cmp_hdl) {
         return -1;
+    }
+    if (!anc_ext_adaptive_cmp_tool_en_get()) {
+        return 0;
     }
     cmp_hdl = anc_malloc("ICSD_CMP", sizeof(struct icsd_cmp_hdl));
     enum audio_adaptive_fre_sel fre_sel = AUDIO_ADAPTIVE_FRE_SEL_ANC;

@@ -307,8 +307,14 @@ u8 audio_anc_ffmic_gain_get(void);
 /*获取anc模式，fb_mic的增益*/
 u8 audio_anc_fbmic_gain_get(void);
 
-/*获取anc模式，指定mic的增益, mic_sel:目标MIC通道*/
+/*获取anc模式，指定mic的增益档位, mic_sel:目标MIC通道n*/
 u8 audio_anc_mic_gain_get(u8 mic_sel);
+
+/*获取anc mic是否使能, mic_sel:目标MIC通道n*/
+u8 audio_anc_mic_en_get(u8 mic_sel);
+
+/*获取anc模式，指定mic的增益值(dB), mic_ch:目标MIC通道BIT(n), is_talk_mic:是否查询talk_mic*/
+s8 audio_anc_mic_gain_get_dB(u8 mic_ch, u8 is_talk_mic);
 
 /*ANC模式切换(切换到指定模式)，并配置是否播放提示音*/
 int anc_mode_switch(u8 mode, u8 tone_play);

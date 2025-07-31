@@ -22,6 +22,10 @@ const u8 wdt_debug_dlen = 5;//调试帧数:ramsize = (36 * howl_debug_dlen) byte
 const u8 wdt_debug_thr  = 1; //调试触发阈值:wind_lvl >= wdt_debug_thr 触发调试log
 const u8 wdt_debug_type = 0; //0:参数调试  1:原始数据调试
 
+//====================离线调试:打印值放大了100倍=====================
+const u8 wdt_offline_debug = 0;//1:触发调试 2:误触调试
+const float icsd_wdt_sen = 0.8;
+
 int (*win_printf)(const char *format, ...) = _win_printf;
 
 void wind_config_init(__wind_config *_wind_config)
@@ -41,7 +45,11 @@ void wind_config_init(__wind_config *_wind_config)
         wind_config->wind_lvl_scale = cfg->wind_lvl_scale;
         wind_config->icsd_wind_num_thr2 = cfg->icsd_wind_num_thr2;
         wind_config->icsd_wind_num_thr1 = cfg->icsd_wind_num_thr1;
-        wind_config->pwr_mode = 1;
+        if (ICSD_WIND_MIC_TYPE == ICSD_WIND_LFF_RFF) {
+            wind_config->pwr_mode = 0;
+        } else {
+            wind_config->pwr_mode = 1;
+        }
 #if 0
         printf("cfg->msc_lp_thr:%d\n", (int)(100 * cfg->msc_lp_thr));
         printf("cfg->msc_mp_thr:%d\n", (int)(100 * cfg->msc_mp_thr));
@@ -66,7 +74,11 @@ void wind_config_init(__wind_config *_wind_config)
         wind_config->wind_lvl_scale = 2;
         wind_config->icsd_wind_num_thr2 = 3;
         wind_config->icsd_wind_num_thr1 = 1;
-        wind_config->pwr_mode = 1;
+        if (ICSD_WIND_MIC_TYPE == ICSD_WIND_LFF_RFF) {
+            wind_config->pwr_mode = 0;
+        } else {
+            wind_config->pwr_mode = 1;
+        }
     }
 
 }

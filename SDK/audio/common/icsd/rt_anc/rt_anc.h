@@ -7,7 +7,7 @@
 #include "icsd_anc_v2_config.h"
 #include "math.h"
 #include "asm/math_fast_function.h"
-#include "../tool/anc_ext_tool.h"
+#include "../tool/anc_ext_tool_cfg.h"
 
 #if 0
 #define _rt_printf printf               //打开智能免摘库打印信息

@@ -153,4 +153,7 @@ extern const u8 icsd_wdt_debug;
 extern const u8 wdt_debug_dlen;//ramsize = (80 * wdt_debug_dlen) byte
 extern const u8 wdt_debug_thr;
 extern const u8 wdt_debug_type;
+extern const u8 wdt_offline_debug;
+extern const float icsd_wdt_sen;
+
 #endif

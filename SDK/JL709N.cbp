@@ -1258,6 +1258,7 @@
 <Unit filename="audio/common/icsd/rt_anc/rt_anc_config.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/tool/anc_ext_tool.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/tool/anc_ext_tool.h" />
+<Unit filename="audio/common/icsd/tool/anc_ext_tool_cfg.h" />
 <Unit filename="audio/common/icsd/tool/anc_ext_tool_file.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/vdt/icsd_vdt_app.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/vdt/icsd_vdt_config.c"><Option compilerVer="CC"/></Unit>

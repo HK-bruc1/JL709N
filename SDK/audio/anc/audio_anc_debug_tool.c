@@ -55,7 +55,6 @@ enum {
     CMD_DEFAULT = 0x0,	//默认命令标识
 };
 
-
 //数据包头信息
 struct anc_debug_tool_packt_t {
     u8 mark0;
@@ -69,6 +68,7 @@ struct anc_debug_tool_packt_t {
 
 struct anc_debug_tool_t {
     u8 state;
+    u8 log_en;
     volatile u8 send_busy;
     volatile u8 send_id;
     OS_MUTEX mutex;
@@ -157,6 +157,13 @@ void audio_anc_debug_tool_close(void)
     }
 }
 
+void audio_anc_debug_spp_log_en(u8 en)
+{
+    if (debug_hdl) {
+        debug_hdl->log_en = en;
+    }
+}
+
 int audio_anc_debug_send_data_packet(u8 cmd, u8 *buf, int len)
 {
     os_mutex_pend(&debug_hdl->mutex, 0);
@@ -205,6 +212,15 @@ __exit:
 int audio_anc_debug_send_data(u8 *buf, int len)
 {
     if (debug_hdl) {
+        if (!debug_hdl->log_en) {
+            //log 关闭时，打印类信息不允许上传
+            switch (buf[0]) {
+            case ANC_DEBUG_CMD_ICSD:
+            case ANC_DEBUG_CMD_APP:
+            case ANC_DEBUG_CMD_PASS:
+                return 0;
+            }
+        }
         if (len <= ANC_DEBUG_SEND_MAX_SIZE) {
             //单包模式
             return audio_anc_debug_send_data_packet(ANC_DEBUG_CMD_SINGLE_PACKET, buf, len);
@@ -349,6 +365,9 @@ int audio_anc_debug_user_cmd_process(u8 *data, int len)
  */
 void audio_anc_debug_app_send_data(u8 cmd, u8 cmd_2nd, u8 *buf, int len)
 {
+    if (!(anc_ext_debug_tool_function_get() & ANC_EXT_FUNC_SPP_EN_APP)) {
+        return;
+    }
     u8 *send_buf = anc_malloc("ANC_DEBUG", len + 3);
     send_buf[0] = ANC_DEBUG_CMD_APP;
     send_buf[1] = cmd;
@@ -356,6 +375,8 @@ void audio_anc_debug_app_send_data(u8 cmd, u8 cmd_2nd, u8 *buf, int len)
     if (len) {
         memcpy(send_buf + 3, buf, len);
     }
+    /* g_printf("%s", __func__); */
+    /* put_buf(send_buf, len + 2); */
     audio_anc_debug_send_data(send_buf, len + 3);
     anc_free(send_buf);
 }
@@ -373,6 +394,42 @@ void audio_anc_debug_pass_send_data(u8 cmd, u8 *buf, int len)
     if (len) {
         memcpy(send_buf + 2, buf, len);
     }
+    /* g_printf("%s", __func__); */
+    /* put_buf(send_buf, len + 2); */
+    audio_anc_debug_send_data(send_buf, len + 2);
+    anc_free(send_buf);
+}
+
+/*
+   小机状态主动上报
+ */
+void audio_anc_debug_report_send_data(u8 cmd, u8 *buf, int len)
+{
+    u8 *send_buf = anc_malloc("ANC_DEBUG", len + 2);
+    send_buf[0] = ANC_DEBUG_ACTIVE_REPORT;
+    send_buf[1] = cmd;
+    if (len) {
+        memcpy(send_buf + 2, buf, len);
+    }
+    /* g_printf("%s", __func__); */
+    /* put_buf(send_buf, len + 2); */
+    audio_anc_debug_send_data(send_buf, len + 2);
+    anc_free(send_buf);
+}
+
+/*
+   错误状态上报
+ */
+void audio_anc_debug_err_send_data(u8 cmd, void *buf, int len)
+{
+    u8 *send_buf = anc_malloc("ANC_DEBUG", len + 2);
+    send_buf[0] = ANC_DEBUG_CMD_ERR;
+    send_buf[1] = cmd;
+    if (len) {
+        memcpy(send_buf + 2, buf, len);
+    }
+    /* g_printf("%s", __func__); */
+    /* put_buf(send_buf, len + 2); */
     audio_anc_debug_send_data(send_buf, len + 2);
     anc_free(send_buf);
 }

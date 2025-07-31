@@ -128,14 +128,14 @@ static void audio_cvp_wind_lvl_process(u8 wind_lvl)
     if (hdl == NULL) {
         return;
     }
-    u8 anc_wind_noise_lvl = 0;
+    int anc_wind_noise_lvl = 0;
     if (anc_mode_get() == ANC_ON) {
         /*划分风噪等级*/
         anc_wind_noise_lvl = get_icsd_anc_wind_noise_lvl(&wind_lvl_det_anc, wind_lvl);
 
         /*做淡入淡出时间处理，返回0表示不做处理维持原来的增益不变*/
         anc_wind_noise_lvl = audio_anc_wind_noise_process_fade(&wind_info_anc, anc_wind_noise_lvl);
-        if (anc_wind_noise_lvl == 0) {
+        if (anc_wind_noise_lvl == -1) {
             return;
         }
 

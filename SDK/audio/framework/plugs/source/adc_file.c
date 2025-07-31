@@ -177,7 +177,7 @@ void audio_adc_file_global_cfg_init(void)
         if (!adc_hdl.hw_buf) {
             u8 adc_num = adc_hdl.max_adc_num;
 #if defined(TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN) && TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
-            adc_num = adc_hdl.max_adc_num > get_icsd_adt_mic_num() ? adc_hdl.max_adc_num : get_icsd_adt_mic_num();
+            adc_num = AUDIO_ADC_MAX_NUM; //按照最大通道数申请
 #endif /*TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN*/
             esco_adc_file_g.fixed_buf = malloc(ESCO_ADC_BUF_NUM * 256 * ((adc_hdl.bit_width == ADC_BIT_WIDTH_16) ? 2 : 4) * adc_num);
         }

@@ -16,7 +16,7 @@
 #include "tone_player.h"
 #include "adv_adaptive_noise_reduction.h"
 #include "audio_anc.h"
-#include "asm/audio_src.h"
+#include "audio_src.h"
 #include "clock_manager/clock_manager.h"
 #include "icsd_afq.h"
 #include "icsd_afq_app.h"

@@ -479,7 +479,7 @@ void audio_anc_power_adaptive_resume(void)
 
 #if ANC_DUT_MIC_CMP_GAIN_ENABLE
 
-static struct anc_mic_gain_cmp_cfg *anc_dut_mic_cmp;
+static struct anc_mic_gain_cmp_cfg *anc_dut_mic_cmp = NULL;
 
 enum {
     CMD_MIC_CMP_GAIN_EN = 0X5F,		//FF/FB 增益补偿使能
@@ -487,6 +487,8 @@ enum {
     CMD_MIC_CMP_GAIN_GET = 0X61,	//FF/FB 增益补偿读取
     CMD_MIC_CMP_GAIN_CLEAN = 0X62,	//FF/FB 增益补偿清0
     CMD_MIC_CMP_GAIN_SAVE = 0X63,	//FF/FB 增益补偿保存
+    CMD_MIC_CMP_GAIN_ALL_GET = 0X64, //FF/FB 增益补偿结构体获取
+    CMD_MIC_CMP_GAIN_ALL_SET = 0X65, //FF/FB 增益补偿结构体设置
 };
 
 //ANC MIC补偿值初始化
@@ -581,9 +583,27 @@ int audio_anc_mic_gain_cmp_cmd_process(u8 cmd, u8 *buf, int len)
             return 1;
         }
         break;
+    case CMD_MIC_CMP_GAIN_ALL_SET:
+        anc_plug_log("CMD_MIC_CMP_GAIN_ALL_SET\n");
+        if (len != sizeof(struct anc_mic_gain_cmp_cfg)) {
+            return 1;
+        }
+        memcpy(anc_dut_mic_cmp, buf, len);
+        break;
+
     }
     return 0;
 }
+
+u8 *audio_anc_mic_gain_cmp_cfg_get(int *len)
+{
+    if (anc_dut_mic_cmp) {
+        *len = sizeof(struct anc_mic_gain_cmp_cfg);
+        return (u8 *)anc_dut_mic_cmp;
+    }
+    return NULL;
+}
+
 
 #endif
 

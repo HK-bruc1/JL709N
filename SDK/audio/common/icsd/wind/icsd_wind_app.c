@@ -12,6 +12,8 @@
 #include "sniff.h"
 #include "anc_ext_tool.h"
 #include "audio_anc_common.h"
+#include "audio_anc_debug_tool.h"
+#include "icsd_common_v2_app.h"
 
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
 #include "rt_anc_app.h"
@@ -23,13 +25,14 @@
 #define wind_log(...)
 #endif
 
-#define ICSD_WIND_LVL_PRINTF            1   //风噪阈值打印使能
+static void audio_anc_wind_det_spp_send_data(u8 cmd, u8 *buf, int len);
 
 /*打开风噪检测*/
 int audio_icsd_wind_detect_open()
 {
     wind_log("%s", __func__);
     u8 adt_mode = ADT_WIND_NOISE_DET_MODE;
+    anc_ext_algorithm_state_update(ANC_EXT_ALGO_WIND_DET, ANC_EXT_ALGO_STA_OPEN, 0);
     return audio_icsd_adt_sync_open(adt_mode);
 }
 
@@ -38,6 +41,7 @@ int audio_icsd_wind_detect_close()
 {
     wind_log("%s", __func__);
     u8 adt_mode = ADT_WIND_NOISE_DET_MODE;
+    anc_ext_algorithm_state_update(ANC_EXT_ALGO_WIND_DET, ANC_EXT_ALGO_STA_CLOSE, 0);
     return audio_icsd_adt_sync_close(adt_mode, 0);
 }
 
@@ -132,7 +136,7 @@ void audio_anc_wind_noise_fade_gain_set(int fade_gain, int fade_time)
 
 static int audio_anc_wind_noise_process_trans(u8 wind_lvl)
 {
-    u8 anc_wind_noise_lvl = 0;
+    int anc_wind_noise_lvl = 0;
 #if ICSD_WIND_LVL_PRINTF
     printf("wind_lvl: local %d, tws_result %d\n", get_audio_icsd_local_wind_lvl(), wind_lvl);
 #endif
@@ -156,7 +160,7 @@ static int audio_anc_wind_noise_process_trans(u8 wind_lvl)
 
         /*做淡入淡出时间处理，返回0表示不做处理维持原来的增益不变*/
         anc_wind_noise_lvl = audio_anc_wind_noise_process_fade(&wind_info_anc, anc_wind_noise_lvl);
-        if (anc_wind_noise_lvl == 0) {
+        if (anc_wind_noise_lvl == -1) {
             return -1;
         }
     } else {
@@ -218,7 +222,7 @@ static int audio_anc_wind_noise_process_trans(u8 wind_lvl)
 /*anc风噪检测的处理*/
 static int audio_anc_wind_noise_process_anc(u8 wind_lvl)
 {
-    u8 anc_wind_noise_lvl = 0;
+    int anc_wind_noise_lvl = 0;
 
 #if TCFG_AUDIO_ANC_EXT_TOOL_ENABLE
     struct __anc_ext_wind_trigger_cfg *trigger_cfg = anc_ext_ear_adaptive_cfg_get()->wind_trigger_cfg;
@@ -246,7 +250,7 @@ static int audio_anc_wind_noise_process_anc(u8 wind_lvl)
                wind_info_anc.last_lvl, wind_info_anc.cnt, wind_info_anc.last_lvl_diff);
 #endif
         anc_wind_noise_lvl = audio_anc_wind_noise_process_fade(&wind_info_anc, anc_wind_noise_lvl);
-        if (anc_wind_noise_lvl == 0) {
+        if (anc_wind_noise_lvl == -1) {
             return -1;
         }
     } else {
@@ -305,6 +309,15 @@ static int audio_anc_wind_noise_process_anc(u8 wind_lvl)
     }
 
     wind_log("WIND_DET_STATE:RUN, lvl %d, gain %d\n", anc_wind_noise_lvl, anc_fade_gain);
+
+#if TCFG_AUDIO_ANC_EXT_TOOL_ENABLE
+    if (anc_ext_debug_tool_function_get() & ANC_EXT_FUNC_SPP_EN_APP) {
+        u8 send_buf[3];
+        send_buf[0] = anc_wind_noise_lvl;
+        memcpy(send_buf + 1, (u8 *)&anc_fade_gain, sizeof(u16));
+        audio_anc_debug_app_send_data(ANC_DEBUG_APP_WIND_DET, 0, send_buf, sizeof(send_buf));
+    }
+#endif
 
     u8 data[5] = {0};
     data[0] = SYNC_ICSD_ADT_SET_ANC_FADE_GAIN;

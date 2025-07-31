@@ -130,7 +130,10 @@ int audio_rtanc_in_ear_demo(u8 tone_en, ANC_mode_t exit_mode)
     //选择数据来源AFQ
     int fre_sel = AUDIO_ADAPTIVE_FRE_SEL_AFQ;
 
+#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
     audio_icsd_adt_scene_set(ADT_SCENE_AFQ, 1);
+#endif
+
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
     if (audio_anc_real_time_adaptive_state_get()) {
         printf("rtanc in ear: close RTANC\n");

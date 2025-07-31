@@ -114,6 +114,8 @@ struct __anc_ext_tool_hdl {
     enum ANC_EXT_UART_SEL  uart_sel;				//工具协议选择
     u8 tool_online;									//工具在线连接标志
     u8 tool_ear_adaptive_en;						//工具启动耳道自适应标志
+    u8 adaptive_cmp_en;								//工具自适应CMP使能
+    u8 adaptive_eq_en;								//工具自适应EQ使能
     u32 DEBUG_TOOL_FUNCTION;						//工具调试模式:算法SPP打印使能
     struct list_head alloc_list;
     struct anc_ext_ear_adaptive_param ear_adaptive;	//耳道自适应工具参数
@@ -412,7 +414,7 @@ static int anc_cfg_analysis_ear_adaptive(u8 *file_data, int file_len, u8 alloc_f
 static u8 *anc_ext_tool_data_alloc(u32 id, u8 *data, int len);
 static struct anc_ext_alloc_bulk_t *anc_ext_tool_data_alloc_query(u32 id);
 static int anc_ext_algorithm_en_set(u8 func, u8 enable);
-static int anc_ext_algorithm_state_report(void);
+static int anc_ext_algorithm_state_report(u8 active);
 static void anc_ext_algorithm_state_init(void);
 
 static struct __anc_ext_tool_hdl *tool_hdl = NULL;
@@ -544,13 +546,65 @@ void anc_ext_tool_cmd_deal(u8 *data, u16 len, enum ANC_EXT_UART_SEL uart_sel)
 {
     int ret = TRUE;
     int err = ERR_NO;
-    int func_ret;
     u8 cmd = data[0];
+#if TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN
+    int func_ret;
+#endif
     tool_hdl->uart_sel = uart_sel;
     switch (cmd) {
+    //---------------公共指令start -----------------
     case CMD_GET_VERSION:
         anc_ext_log("CMD_GET_VERSION\n");
         break;
+    case CMD_DEBUG_TOOL:
+        anc_ext_log("CMD_DEBUG_TOOL, mode %d\n", data[1]);
+        audio_anc_debug_spp_log_en(data[1]);
+        break;
+    case CMD_ADAPTIVE_TYPE_GET:
+        anc_ext_log("CMD_ADAPTIVE_TYPE_GET\n");
+#if TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN
+        u8 type = (ICSD_EP_TYPE_V2 == ICSD_HEADSET) ? ANC_ADAPTIVE_TYPE_HEADSET : ANC_ADAPTIVE_TYPE_TWS;
+#else
+        u8 type = ANC_ADAPTIVE_TYPE_TWS;
+#endif
+        anc_ext_tool_send_buf(cmd, &type, 1);
+        break;
+    case CMD_ADAPTIVE_MODE_GET:
+        anc_ext_log("CMD_ADAPTIVE_MODE_GET\n");
+        u8 mode = ANC_TRAIN_MODE_TONE_BYPASS_PNC;
+        anc_ext_tool_send_buf(cmd, &mode, 1);
+        break;
+    case CMD_FUNCTION_ENABLEBIT_GET:
+        anc_ext_log("CMD_FUNCTION_ENABLEBIT_GET\n");
+        tool_hdl->tool_online = 1;
+        u16 en = 0;
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+        en |= ANC_EXT_FUNC_EN_RTANC;
+        en |= ANC_EXT_FUNC_EN_DYNAMIC;
+#endif
+#if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
+        en |= ANC_EXT_FUNC_EN_ADAPTIVE_CMP;
+#endif
+#if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
+        en |= ANC_EXT_FUNC_EN_ADAPTIVE_EQ;
+#endif
+#if TCFG_AUDIO_ANC_WIND_NOISE_DET_ENABLE
+        en |= ANC_EXT_FUNC_EN_WIND_DET;
+#endif
+#if TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN
+        en |= ANC_EXT_FUNC_EN_ADAPTIVE;
+        audio_anc_param_map_init();
+#endif
+#if TCFG_AUDIO_ANC_MULT_ORDER_ENABLE
+        if (!audio_anc_develop_get()) { //用于ANC滤波映射，初始化空间，若开发者模式，则在开发者那边先初始化完毕
+            anc_mult_scene_set(audio_anc_mult_scene_get());
+        }
+#endif
+        anc_ext_tool_send_buf(cmd, (u8 *)&en, 2);
+        break;
+        //---------------公共指令end -----------------
+
+#if TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN
     case CMD_TIME_DOMAIN_SHOW_CH_SET:
         anc_ext_log("CMD_TIME_DOMAIN_SHOW_CH_SET, %d\n", data[1]);
         tool_hdl->ear_adaptive.time_domain_show_en = data[1];
@@ -592,52 +646,6 @@ void anc_ext_tool_cmd_deal(u8 *data, u16 len, enum ANC_EXT_UART_SEL uart_sel)
             tool_hdl->tool_ear_adaptive_en = 1;
             return;	//等耳道自适应训练结束才回复
         }
-        break;
-    case CMD_DEBUG_TOOL:
-        anc_ext_log("CMD_DEBUG_TOOL, mode %d\n", data[1]);
-        if (data[1]) {
-            audio_anc_debug_tool_open();
-        } else {
-            audio_anc_debug_tool_close();
-        }
-        break;
-    case CMD_ADAPTIVE_TYPE_GET:
-        anc_ext_log("CMD_ADAPTIVE_TYPE_GET\n");
-        u8 type = (ICSD_EP_TYPE_V2 == ICSD_HEADSET) ? ANC_ADAPTIVE_TYPE_HEADSET : ANC_ADAPTIVE_TYPE_TWS;
-        anc_ext_tool_send_buf(cmd, &type, 1);
-        break;
-    case CMD_ADAPTIVE_MODE_GET:
-        anc_ext_log("CMD_ADAPTIVE_MODE_GET\n");
-        u8 mode = ANC_TRAIN_MODE_TONE_BYPASS_PNC;
-        anc_ext_tool_send_buf(cmd, &mode, 1);
-        break;
-    case CMD_FUNCTION_ENABLEBIT_GET:
-        anc_ext_log("CMD_FUNCTION_ENABLEBIT_GET\n");
-        tool_hdl->tool_online = 1;
-        u16 en = 0;
-#if TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN
-        en |= ANC_EXT_FUNC_EN_ADAPTIVE;
-#endif
-#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
-        en |= ANC_EXT_FUNC_EN_RTANC;
-        en |= ANC_EXT_FUNC_EN_DYNAMIC;
-#endif
-#if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
-        en |= ANC_EXT_FUNC_EN_ADAPTIVE_CMP;
-#endif
-#if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
-        en |= ANC_EXT_FUNC_EN_ADAPTIVE_EQ;
-#endif
-#if TCFG_AUDIO_ANC_WIND_NOISE_DET_ENABLE
-        en |= ANC_EXT_FUNC_EN_WIND_DET;
-#endif
-        audio_anc_param_map_init();
-#if TCFG_AUDIO_ANC_MULT_ORDER_ENABLE
-        if (!audio_anc_develop_get()) { //用于ANC滤波映射，初始化空间，若开发者模式，则在开发者那边先初始化完毕
-            anc_mult_scene_set(audio_anc_mult_scene_get());
-        }
-#endif
-        anc_ext_tool_send_buf(cmd, (u8 *)&en, 2);
         break;
     case CMD_EAR_ADAPTIVE_DUT_SAVE:
         anc_ext_log("CMD_EAR_ADAPTIVE_DUT_SAVE\n");
@@ -694,6 +702,7 @@ void anc_ext_tool_cmd_deal(u8 *data, u16 len, enum ANC_EXT_UART_SEL uart_sel)
         ret = FALSE;
         err = ERR_EAR_FAIL;
         break;
+#endif
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
     case CMD_RTANC_ADAPTIVE_OPEN:
         anc_ext_log("CMD_RTANC_ADAPTIVE_OPEN\n");
@@ -767,14 +776,19 @@ void anc_ext_tool_cmd_deal(u8 *data, u16 len, enum ANC_EXT_UART_SEL uart_sel)
     case CMD_FUNCTION_SPP_DEBUG_SET:
         memcpy(&tool_hdl->DEBUG_TOOL_FUNCTION, data + 1, 4);
         anc_ext_log("CMD_FUNCTION_SPP_DEBUG_SET, 0x%x\n", tool_hdl->DEBUG_TOOL_FUNCTION);
+        //修改SPP打印之后需要复位算法
+        if (icsd_adt_is_running()) {
+            audio_icsd_adt_reset(0);
+        }
         break;
     case CMD_FUNCTION_ALGO_EN_SET:
         anc_ext_log("CMD_FUNCTION_ALGO_EN_SET 0x%x, en 0x%x\n", data[1], data[2]);
         anc_ext_algorithm_en_set(data[1], data[2]);
+        break;
     case CMD_FUNCTION_ALGO_STATE_GET:
         anc_ext_log("CMD_FUNCTION_ALGO_STATE_GET\n");
         //内部回复命令
-        anc_ext_algorithm_state_report();
+        anc_ext_algorithm_state_report(0);
         return;
     default:
         ret = FALSE;
@@ -1472,6 +1486,7 @@ static int anc_cfg_analysis_ear_adaptive(u8 *file_data, int file_len, u8 alloc_f
     return 1;
 }
 
+#if TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN
 //ANC_EXT 耳道自适应参数检查
 u8 anc_ext_ear_adaptive_param_check(void)
 {
@@ -1479,29 +1494,31 @@ u8 anc_ext_ear_adaptive_param_check(void)
     for (u32 i = (u32)(&cfg->base_cfg); i <= (u32)(&cfg->ff_target_param); i += 4) {
         if ((*(u32 *)i) == 0) {
             anc_ext_log("ERR:ANC_EXT cfg no enough!, offset=%d\n", i);
-            return 1;
+            return ANC_EXT_FAIL_EAR_BASE_CFG_MISS;
         }
     }
     if (cfg->ff_target_param->cmp_curve_num && \
         (!cfg->ff_target_sv || !cfg->ff_target_cmp)) {
         anc_ext_log("ERR:ANC_EXT target cfg no enough!, sv %p, cmp %p\n", \
                     cfg->ff_target_sv, cfg->ff_target_cmp);
-        return 1;
+        return ANC_EXT_FAIL_EAR_TARGET_CFG_MISS;
     }
     if (cfg->ff_ear_mem_param) {
         if (cfg->ff_ear_mem_param->ear_recorder && (!cfg->ff_ear_mem_pz || !cfg->ff_ear_mem_sz)) {
             anc_ext_log("ERR:ANC_EXT ear_recoder cfg no enough! pz %p, sz %p\n", \
                         cfg->ff_ear_mem_pz, cfg->ff_ear_mem_sz);
-            return 1;
+            return ANC_EXT_FAIL_EAR_MEM_CFG_MISS;
         }
     } else {
         anc_ext_log("ERR:ANC_EXT ear_recoder cfg no enough! param %p\n", cfg->ff_ear_mem_param);
-        return 1;
+        return ANC_EXT_FAIL_EAR_MEM_CFG_MISS;
     }
 #if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
-    if (!cfg->cmp_gains) {
-        anc_ext_log("ERR:ANC_EXT adaptive cmp cfg no enough! %p\n", cfg->cmp_gains);
-        return 1;
+    if (anc_ext_adaptive_cmp_tool_en_get()) {
+        if (!cfg->cmp_gains) {
+            anc_ext_log("ERR:ANC_EXT adaptive cmp cfg no enough! %p\n", cfg->cmp_gains);
+            return ANC_EXT_FAIL_CMP_CFG_MISS;
+        }
     }
 #endif
 
@@ -1509,29 +1526,31 @@ u8 anc_ext_ear_adaptive_param_check(void)
         for (u32 i = (u32)(&cfg->rff_iir_high_gains); i <= (u32)(&cfg->rff_target_param); i += 4) {
             if ((*(u32 *)i) == 0) {
                 anc_ext_log("ERR:ANC_EXT R cfg no enough!, offset=%d\n", i);
-                return 1;
+                return ANC_EXT_FAIL_EAR_BASE_CFG_MISS;
             }
         }
         if (cfg->rff_target_param->cmp_curve_num && \
             (!cfg->rff_target_sv || !cfg->rff_target_cmp)) {
             anc_ext_log("ERR:ANC_EXT R target cfg no enough!, sv %p, cmp %p\n", \
                         cfg->rff_target_sv, cfg->rff_target_cmp);
-            return 1;
+            return ANC_EXT_FAIL_EAR_TARGET_CFG_MISS;
         }
         if (cfg->rff_ear_mem_param) {
             if (cfg->rff_ear_mem_param->ear_recorder && (!cfg->rff_ear_mem_pz || !cfg->rff_ear_mem_sz)) {
                 anc_ext_log("ERR:ANC_EXT R ear_recoder cfg no enough! pz %p, sz %p\n", \
                             cfg->rff_ear_mem_pz, cfg->rff_ear_mem_sz);
-                return 1;
+                return ANC_EXT_FAIL_EAR_MEM_CFG_MISS;
             }
         } else {
             anc_ext_log("ERR:ANC_EXT R ear_recoder cfg no enough! param %p\n", cfg->rff_ear_mem_param);
-            return 1;
+            return ANC_EXT_FAIL_EAR_MEM_CFG_MISS;
         }
 #if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
-        if (!cfg->rcmp_gains) {
-            anc_ext_log("ERR:ANC_EXT adaptive cmp cfg no enough! %p\n", cfg->rcmp_gains);
-            return 1;
+        if (anc_ext_adaptive_cmp_tool_en_get()) {
+            if (!cfg->rcmp_gains) {
+                anc_ext_log("ERR:ANC_EXT adaptive cmp cfg no enough! %p\n", cfg->rcmp_gains);
+                return ANC_EXT_FAIL_CMP_CFG_MISS;
+            }
         }
 #endif
     }
@@ -1545,25 +1564,49 @@ u8 anc_ext_rtanc_param_check(void)
     if ((!anc_ext_rtanc_adaptive_cfg_get()) || anc_ext_ear_adaptive_param_check()) {
         anc_ext_log("ERR:ANC_EXT RTANC cfg no enough! rt %p, ear_adaptive = %d\n", anc_ext_rtanc_adaptive_cfg_get(), \
                     anc_ext_ear_adaptive_param_check());
-        return 1;
+        return ANC_EXT_FAIL_RTANC_CFG_MISS;
     }
     if (!anc_ext_dynamic_cfg_get()) {
         anc_ext_log("ERR:ANC_EXT DYNAMIC cfg no enough! param %p\n", anc_ext_dynamic_cfg_get());
-        return 1;
+        return ANC_EXT_FAIL_DYNAMIC_CFG_MISS;
     }
     if (!cfg->ff_ear_mem_pz_coeff || !cfg->ff_ear_mem_sz_coeff) {
         anc_ext_log("ERR:ANC_EXT ear_recoder cfg no enough! pz_coeff %p, sz_coeff %p\n", \
                     cfg->ff_ear_mem_pz_coeff, cfg->ff_ear_mem_sz_coeff);
-        return 1;
+        return ANC_EXT_FAIL_SPZ_COEFF_CFG_MISS;
     }
-#if ANC_EAR_ADAPTIVE_CMP_EN
-    if (!cfg->cmp_mem_iir) {
-        anc_ext_log("ERR:ANC_EXT ear_recoder cfg no enough! cmp_mem_iir %p\n", cfg->cmp_mem_iir);
-        return 1;
+#if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
+    if (anc_ext_adaptive_cmp_tool_en_get()) {
+        if (!cfg->cmp_mem_iir) {
+            anc_ext_log("ERR:ANC_EXT ear_recoder cfg no enough! cmp_mem_iir %p\n", cfg->cmp_mem_iir);
+            return ANC_EXT_FAIL_CMP_MEM_CFG_MISS;
+        }
     }
 #endif
     return 0;
 }
+
+u8 anc_ext_ear_adaptive_result_from(void)
+{
+    if (tool_hdl) {
+        if (tool_hdl->ear_adaptive.base_cfg) {
+            return tool_hdl->ear_adaptive.base_cfg->adaptive_mode;
+        }
+    }
+    return EAR_ADAPTIVE_FAIL_RESULT_FROM_ADAPTIVE;
+}
+
+s8 anc_ext_ear_adaptive_sz_calr_sign_get(void)
+{
+    if (tool_hdl) {
+        if (tool_hdl->ear_adaptive.base_cfg) {
+            return tool_hdl->ear_adaptive.base_cfg->calr_sign[0];
+        }
+    }
+    return 0;
+}
+
+#endif
 
 void anc_ext_ear_adaptive_dut_mode_set(u8 dut_mode)
 {
@@ -1628,39 +1671,54 @@ enum ANC_EAR_ADPTIVE_MODE anc_ext_ear_adaptive_train_mode_get(void)
     return EAR_ADAPTIVE_MODE_NORAML;
 }
 
-u8 anc_ext_ear_adaptive_result_from(void)
-{
-    if (tool_hdl) {
-        if (tool_hdl->ear_adaptive.base_cfg) {
-            return tool_hdl->ear_adaptive.base_cfg->adaptive_mode;
-        }
-    }
-    return EAR_ADAPTIVE_FAIL_RESULT_FROM_ADAPTIVE;
-}
-
-s8 anc_ext_ear_adaptive_sz_calr_sign_get(void)
-{
-    if (tool_hdl) {
-        if (tool_hdl->ear_adaptive.base_cfg) {
-            return tool_hdl->ear_adaptive.base_cfg->calr_sign[0];
-        }
-    }
-    return 0;
-}
-
 int anc_ext_debug_tool_function_get(void)
 {
-    int func_debug = 0;
     if (tool_hdl) {
-        if (tool_hdl->DEBUG_TOOL_FUNCTION & ANC_EXT_FUNC_EN_RTANC) {
-            func_debug |= TFUNCTION_RTANC;
-        }
-        if (tool_hdl->DEBUG_TOOL_FUNCTION & ANC_EXT_FUNC_EN_WIND_DET) {
-            func_debug |= TFUNCTION_WDT;
-        }
-        return func_debug;
+        return tool_hdl->DEBUG_TOOL_FUNCTION;
     }
     return 0;
+}
+
+int anc_ext_adaptive_cmp_tool_en_set(u8 en)
+{
+    if (tool_hdl) {
+        tool_hdl->adaptive_cmp_en = en;
+        if (en) {
+            anc_ext_algorithm_state_update(ANC_EXT_ALGO_ADAPTIVE_CMP, ANC_EXT_ALGO_STA_OPEN, 0);
+        } else {
+            anc_ext_algorithm_state_update(ANC_EXT_ALGO_ADAPTIVE_CMP, ANC_EXT_ALGO_STA_CLOSE, 0);
+        }
+    }
+    return 0;
+}
+
+int anc_ext_adaptive_cmp_tool_en_get(void)
+{
+    if (tool_hdl) {
+        return tool_hdl->adaptive_cmp_en;
+    }
+    return 1;
+}
+
+int anc_ext_adaptive_eq_tool_en_set(u8 en)
+{
+    if (tool_hdl) {
+        tool_hdl->adaptive_eq_en = en;
+        if (en) {
+            anc_ext_algorithm_state_update(ANC_EXT_ALGO_ADAPTIVE_EQ, ANC_EXT_ALGO_STA_OPEN, 0);
+        } else {
+            anc_ext_algorithm_state_update(ANC_EXT_ALGO_ADAPTIVE_EQ, ANC_EXT_ALGO_STA_CLOSE, 0);
+        }
+    }
+    return 0;
+}
+
+int anc_ext_adaptive_eq_tool_en_get(void)
+{
+    if (tool_hdl) {
+        return tool_hdl->adaptive_eq_en;
+    }
+    return 1;
 }
 
 static int anc_ext_algorithm_en_set(u8 func, u8 enable)
@@ -1668,10 +1726,26 @@ static int anc_ext_algorithm_en_set(u8 func, u8 enable)
     switch (func) {
 #if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
     case ANC_EXT_ALGO_ADAPTIVE_CMP:
+        anc_ext_adaptive_cmp_tool_en_set(enable);
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+        if (audio_anc_real_time_adaptive_state_get()) {
+            audio_icsd_adt_reset(0);
+        }
+#endif
         break;
 #endif
 #if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
     case ANC_EXT_ALGO_ADAPTIVE_EQ:
+        anc_ext_adaptive_eq_tool_en_set(enable);
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+        audio_anc_real_time_adaptive_suspend("AEQ_EN");
+        if (enable) {
+            audio_real_time_adaptive_eq_open(AUDIO_ADAPTIVE_FRE_SEL_ANC, NULL);
+        } else {
+            audio_real_time_adaptive_eq_close();
+        }
+        audio_anc_real_time_adaptive_resume("AEQ_EN");
+#endif
         break;
 #endif
 #if TCFG_AUDIO_ANC_WIND_NOISE_DET_ENABLE
@@ -1681,6 +1755,11 @@ static int anc_ext_algorithm_en_set(u8 func, u8 enable)
 #endif
 #if TCFG_AUDIO_ANC_HOWLING_DET_ENABLE
     case ANC_EXT_ALGO_SOFT_HOWL_DET:
+        if (enable) {
+            audio_anc_howling_detect_open();
+        } else {
+            audio_anc_howling_detect_close();
+        }
         break;
 #endif
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
@@ -1703,20 +1782,30 @@ static void anc_ext_algorithm_state_init(void)
     if (!tool_hdl) {
         return;
     }
-    tool_hdl->report_state_len = ANC_EXT_ALGO_EXIT << 1;
+    tool_hdl->report_state_len = (ANC_EXT_ALGO_EXIT - 1) << 1;
     u8 *buf = anc_malloc("ANC_EXT", tool_hdl->report_state_len);
-    for (int i = 0; i < ANC_EXT_ALGO_EXIT; i++) {
-        buf[i << 1] = i;
+    for (int i = 1; i < ANC_EXT_ALGO_EXIT; i++) {
+        buf[(i - 1) << 1] = i;
     }
     tool_hdl->report_state_buf = buf;
 }
 
-static int anc_ext_algorithm_state_report(void)
+/*
+   ANC算法状态数据上报
+	param: active  0 被动应答；1 主动发送
+*/
+static int anc_ext_algorithm_state_report(u8 active)
 {
     if (!tool_hdl) {
         return 0;
     }
-    anc_ext_tool_send_buf(CMD_FUNCTION_ALGO_STATE_GET, tool_hdl->report_state_buf, tool_hdl->report_state_len);
+    //anc_ext_log("%s\n", __func__);
+    //put_buf(tool_hdl->report_state_buf, tool_hdl->report_state_len);
+    if (active)  {
+        audio_anc_debug_report_send_data(CMD_FUNCTION_ALGO_STATE_GET, tool_hdl->report_state_buf, tool_hdl->report_state_len);
+    } else {
+        anc_ext_tool_send_buf(CMD_FUNCTION_ALGO_STATE_GET, tool_hdl->report_state_buf, tool_hdl->report_state_len);
+    }
     return 0;
 }
 
@@ -1741,7 +1830,7 @@ int anc_ext_algorithm_state_update(enum ANC_EXT_ALGO func, u8 state, u8 info)
     }
 
     //数据上报
-    anc_ext_algorithm_state_report();
+    anc_ext_algorithm_state_report(1);
     return 0;
 }
 

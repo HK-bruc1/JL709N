@@ -67,15 +67,26 @@ int audio_anc_app_adt_mode_init(u8 enable)
     u16 adt_mode = 0;
 #if TCFG_AUDIO_ANC_WIND_NOISE_DET_ENABLE
     adt_mode |= ADT_WIND_NOISE_DET_MODE;
+    anc_ext_algorithm_state_update(ANC_EXT_ALGO_WIND_DET, ANC_EXT_ALGO_STA_OPEN, 0);
 #endif
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
     adt_mode |= ADT_REAL_TIME_ADAPTIVE_ANC_MODE;
+    anc_ext_algorithm_state_update(ANC_EXT_ALGO_RTANC, ANC_EXT_ALGO_STA_OPEN, 0);
 #endif
 #if TCFG_AUDIO_ANC_ENV_ADAPTIVE_GAIN_ENABLE
     adt_mode |= ADT_ENV_NOISE_DET_MODE;
 #endif
 #if TCFG_AUDIO_ANC_HOWLING_DET_ENABLE
     adt_mode |= ADT_HOWLING_DET_MODE;
+    anc_ext_algorithm_state_update(ANC_EXT_ALGO_SOFT_HOWL_DET, ANC_EXT_ALGO_STA_OPEN, 0);
+#endif
+#if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
+    anc_ext_adaptive_cmp_tool_en_set(1);
+    anc_ext_algorithm_state_update(ANC_EXT_ALGO_ADAPTIVE_CMP, ANC_EXT_ALGO_STA_OPEN, 0);
+#endif
+#if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
+    anc_ext_adaptive_eq_tool_en_set(1);
+    anc_ext_algorithm_state_update(ANC_EXT_ALGO_ADAPTIVE_EQ, ANC_EXT_ALGO_STA_OPEN, 0);
 #endif
     printf("audio_anc_app_adt_mode_init 0x%x, en %d\n", adt_mode, enable);
     icsd_adt_app_mode_set(adt_mode, enable);
