@@ -18,7 +18,7 @@
 #include "tone_player.h"
 #include "adv_adaptive_noise_reduction.h"
 #include "audio_anc.h"
-#include "asm/audio_src.h"
+#include "audio_src.h"
 #include "clock_manager/clock_manager.h"
 #include "anc_ext_tool.h"
 #include "audio_anc_debug_tool.h"

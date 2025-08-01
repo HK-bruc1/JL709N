@@ -419,9 +419,7 @@ int get_eff_default_param(int arg)
         /*
          *默认系数使用eq文件内的哪个配置表
          * */
-        char tar_cfg_index = 0;
-        get_cur_eq_num(&tar_cfg_index);//获取当前配置项序号
-        get_eq_parm->cfg_index = tar_cfg_index;
+        get_eq_parm->cfg_index = 0;
 
         if (audio_icsd_adaptive_eq_read()) {
             get_eq_parm->default_tab = *(audio_icsd_adaptive_eq_read());

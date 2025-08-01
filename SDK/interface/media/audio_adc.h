@@ -191,6 +191,7 @@ int audio_adc_mic_set_buffs(struct adc_mic_ch *mic, s16 *bufs, u16 buf_size, u8 
 int audio_adc_mic_start(struct adc_mic_ch *mic);
 
 int audio_adc_mic_close(struct adc_mic_ch *mic);
+int audio_adc_mic_ch_close(struct adc_mic_ch *mic, u8 adc_ch);
 
 int audio_adc_linein_set_sample_rate(struct adc_linein_ch *linein, int sample_rate);
 int audio_adc_linein_set_buffs(struct adc_linein_ch *linein, s16 *bufs, u16 buf_size, u8 buf_num);

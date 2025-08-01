@@ -46,6 +46,12 @@ enum {
     ANC_MIC_TYPE_RFB,
 };
 
+//ANC滤波器更新类型
+enum {
+    ANC_COEFF_TYPE_FF = BIT(0),		//FF滤波器
+    ANC_COEFF_TYPE_FB = BIT(1),		//FB滤波器
+};
+
 typedef enum {
     //OLD
     ANC_L_FF_IIR  = 0x0,		//左FF滤波器ID
@@ -177,6 +183,12 @@ enum ANC_IIR_TYPE {
     ANC_FB_TYPE	= BIT(1),	//FB
     ANC_CMP_TYPE = BIT(2),	//CMP
     ANC_TRANS_TYPE = BIT(3),	//TRANS
+};
+
+enum ANC_DCC_TRIM_MODE {
+    ANC_DCC_TRIM_CLOSE = 0,	//关闭trim, 使用普通模式
+    ANC_DCC_TRIM_START,		//triming
+    ANC_DCC_TRIM_USE,		//已有trim值
 };
 
 /*ANC模式使能位*/
@@ -481,6 +493,15 @@ struct anc_mic_gain_cmp_cfg {
     float rfb_gain;		//ANCR FBmic 补偿增益(产测使用), range 0.0316(-30dB) - 31.622(+30dB); default 1.0(0dB)
 };
 
+//DCC TRIM相关数据结构
+struct anc_dcc_trim_cfg {
+    u8 mode;
+    int lff_dcc;
+    int lfb_dcc;
+    int rff_dcc;
+    int rfb_dcc;
+};
+
 //ANC param主要结构
 typedef struct {
     u8 start;                       //ANC状态
@@ -532,6 +553,10 @@ typedef struct {
     u8 fb_use_alogm;				//FB当前使用的算法模式
     u8 sz_use_alogm;				//SZ当前使用的算法模式
 
+    // fade_time = (1/fs) * (slow+1）* [16384 / (2^fast)]
+    u8 filter_fade_fast;		    //滤波器切换快步进, def 0
+    u8 filter_fade_slow;			//滤波器切换慢步进, def 3
+
     u8 howling_detect_toggle;		//ANC 啸叫检测使能控制，用于在线切换
     u8 howling_detect_ch;			//ANC 啸叫检测通道配置
 
@@ -578,6 +603,7 @@ typedef struct {
     anc_adt_param_t *adt;
     struct anc_sz_fft_t sz_fft;
     struct anc_mic_gain_cmp_cfg mic_cmp;
+    struct anc_dcc_trim_cfg dcc_trim;
 
     void (*train_callback)(u8, u8);
     void (*pow_callback)(anc_ack_msg_t *msg_t, u8 setp);
@@ -723,7 +749,15 @@ u8 anc_fade_ctr_ch_check(u8 ch);
 
 u8 anc_api_get_fade_en(void);
 
+//更新所有滤波器
 void anc_coeff_online_update(audio_anc_t *param, u8 hd_reset_en);
+
+//更新FF滤波器
+void anc_coeff_ff_online_update(audio_anc_t *param);
+
+//更新FB滤波器
+void anc_coeff_fb_online_update(audio_anc_t *param);
+
 
 int anc_coeff_size_count(audio_anc_t *param);
 
@@ -942,5 +976,10 @@ void audio_anc_dma_add_output_handler(const char *name, void (*output)(void));
 
 /* 删除ANC DMA输出回调函数 */
 void audio_anc_dma_del_output_handler(const char *name);
+
+void audio_anc_biquad2ab_double(anc_fr_t *iir, double *out_coeff, u8 order, int alogm);
+
+/*读取ANC dc值*/
+int audio_anc_dc_vld_read(u8 mic_type);
 
 #endif/*_ANC_H_*/

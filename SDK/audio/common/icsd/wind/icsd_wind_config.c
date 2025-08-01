@@ -16,8 +16,15 @@
 //====================风噪检测配置=====================
 const u8 ICSD_WIND_PHONE_TYPE  = SDK_WIND_PHONE_TYPE;
 const u8 ICSD_WIND_MIC_TYPE    = SDK_WIND_MIC_TYPE;
-const u8 ICSD_WIND_ALG_BT_INF  = 1;
-const u8 ICSD_WIND_DATA_BT_INF = 0;
+const u8 wdt_log_en     = 1; //调试离线log使能
+const u8 icsd_wdt_debug = 0; //调试使能
+const u8 wdt_debug_dlen = 5;//调试帧数:ramsize = (36 * howl_debug_dlen) byte
+const u8 wdt_debug_thr  = 1; //调试触发阈值:wind_lvl >= wdt_debug_thr 触发调试log
+const u8 wdt_debug_type = 0; //0:参数调试  1:原始数据调试
+
+//====================离线调试:打印值放大了100倍=====================
+const u8 wdt_offline_debug = 0;//1:触发调试 2:误触调试
+const float icsd_wdt_sen = 0.8;
 
 int (*win_printf)(const char *format, ...) = _win_printf;
 
@@ -32,11 +39,17 @@ void wind_config_init(__wind_config *_wind_config)
         wind_config->msc_mp_thr    = cfg->msc_mp_thr;
         wind_config->corr_thr      = cfg->corr_thr;//tws 不需要
         wind_config->cpt_1p_thr  = cfg->cpt_1p_thr;
+        wind_config->tlk_pwr_thr   = 28;//现在工具没传这个值
         wind_config->ref_pwr_thr   = cfg->ref_pwr_thr;
         wind_config->wind_iir_alpha = cfg->wind_iir_alpha;
         wind_config->wind_lvl_scale = cfg->wind_lvl_scale;
         wind_config->icsd_wind_num_thr2 = cfg->icsd_wind_num_thr2;
         wind_config->icsd_wind_num_thr1 = cfg->icsd_wind_num_thr1;
+        if (ICSD_WIND_MIC_TYPE == ICSD_WIND_LFF_RFF) {
+            wind_config->pwr_mode = 0;
+        } else {
+            wind_config->pwr_mode = 1;
+        }
 #if 0
         printf("cfg->msc_lp_thr:%d\n", (int)(100 * cfg->msc_lp_thr));
         printf("cfg->msc_mp_thr:%d\n", (int)(100 * cfg->msc_mp_thr));
@@ -56,10 +69,16 @@ void wind_config_init(__wind_config *_wind_config)
         wind_config->corr_thr      = 0.4;//tws 不需要
         wind_config->cpt_1p_thr  = 20;
         wind_config->ref_pwr_thr   = 30;
+        wind_config->tlk_pwr_thr   = 28;//现在工具没传这个值
         wind_config->wind_iir_alpha = 16;
         wind_config->wind_lvl_scale = 2;
         wind_config->icsd_wind_num_thr2 = 3;
         wind_config->icsd_wind_num_thr1 = 1;
+        if (ICSD_WIND_MIC_TYPE == ICSD_WIND_LFF_RFF) {
+            wind_config->pwr_mode = 0;
+        } else {
+            wind_config->pwr_mode = 1;
+        }
     }
 
 }
@@ -94,6 +113,8 @@ const struct wind_function WIND_FUNC_t = {
     .icsd_adt_tws_ssync = icsd_adt_tws_ssync,
     .icsd_wind_run_part2_cmd = icsd_wind_run_part2_cmd,
     .icsd_adt_wind_part1_rx = icsd_adt_wind_part1_rx,
+    .anc_debug_malloc = anc_debug_malloc,
+    .anc_debug_free = anc_debug_free,
 };
 
 struct wind_function *WIND_FUNC = (struct wind_function *)(&WIND_FUNC_t);

@@ -380,6 +380,10 @@ c_SRC_FILES += \
 	  audio/anc/audio_anc_debug_tool.c \
 	  audio/anc/audio_anc_mult_scene.c \
 	  audio/anc/audio_anc_common.c \
+	  audio/anc/anc_memory.c \
+	  audio/anc/audio_anc_develop.c \
+	  audio/anc/audio_anc_hw_src.c \
+	  audio/anc/audio_anc_manager.c \
 
 #endif
 #endif

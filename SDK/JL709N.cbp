@@ -239,6 +239,9 @@
 <Add directory="audio/common/icsd/vdt" />
 <Add directory="audio/common/icsd/wat" />
 <Add directory="audio/common/icsd/ein" />
+<Add directory="audio/common/icsd/adjdcc" />
+<Add directory="audio/common/icsd/env_noise_det" />
+<Add directory="audio/common/icsd/howl" />
 <Add directory="audio/common/power" />
 <Add directory="audio/anc" />
 <Add directory="audio/cpu/br52/audio_dai" />
@@ -1151,14 +1154,18 @@
 <Unit filename="audio/CVP/audio_cvp_online.h" />
 <Unit filename="audio/CVP/audio_cvp_ref_task.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/CVP/audio_cvp_sync.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="audio/anc/anc_memory.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/anc/audio_anc_common.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/anc/audio_anc_common.h" />
 <Unit filename="audio/anc/audio_anc_common_plug.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/anc/audio_anc_common_plug.h" />
 <Unit filename="audio/anc/audio_anc_debug_tool.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/anc/audio_anc_debug_tool.h" />
+<Unit filename="audio/anc/audio_anc_develop.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/anc/audio_anc_fade_ctr.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/anc/audio_anc_fade_ctr.h" />
+<Unit filename="audio/anc/audio_anc_hw_src.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="audio/anc/audio_anc_manager.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/anc/audio_anc_mult_scene.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/anc/audio_anc_mult_scene.h" />
 <Unit filename="audio/common/amplitude_statistic.c"><Option compilerVer="CC"/></Unit>
@@ -1251,6 +1258,7 @@
 <Unit filename="audio/common/icsd/rt_anc/rt_anc_config.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/tool/anc_ext_tool.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/tool/anc_ext_tool.h" />
+<Unit filename="audio/common/icsd/tool/anc_ext_tool_cfg.h" />
 <Unit filename="audio/common/icsd/tool/anc_ext_tool_file.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/vdt/icsd_vdt_app.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/icsd/vdt/icsd_vdt_config.c"><Option compilerVer="CC"/></Unit>

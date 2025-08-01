@@ -33,16 +33,15 @@ const int config_bt_audio_enable = 0;
 #endif
 
 const int config_audio_dac_ng_debug = 0;
+const int config_audio_dac_enable = TCFG_DAC_NODE_ENABLE;
 
 /* 16bit数据流中也存在32bit位宽数据的处理 */
 const int config_ch_adapter_32bit_enable = 1;
 const int config_mixer_32bit_enable = 1;
 const int config_jlstream_fade_32bit_enable = 1;
-const int config_audio_eq_xfade_enable = 1;
 const int config_peak_rms_32bit_enable = 1;
 const int config_audio_vocal_track_synthesis_32bit_enable = 1;
 
-const int config_audio_dac_enable = TCFG_DAC_NODE_ENABLE;//DAC使能配置
 #if (TCFG_AUDIO_DAC_CONNECT_MODE == DAC_OUTPUT_MONO_L)
 const int config_audio_dac_channel_left_enable = 1;
 const int config_audio_dac_channel_right_enable = 0;
@@ -217,6 +216,8 @@ const int virtual_bass_pro_soft_crossover = 0;//控制虚拟低音pro 中的分�
 const int virtual_bass_pro_soft_eq = 1;       //控制虚拟低音pro 中的EQ是用软件运行或者硬件运行 1软件 0硬件 默认1
 
 
+const int config_audio_eq_xfade_enable = 1;
+const float config_audio_eq_xfade_time = 0;//0.4f;//0：一帧fade完成 非0：连续多帧fade，过度更加平滑，fade过程算力会相应增加(fade时间 范围(0~1)单位:秒)
 
 
 const int limiter_run_mode = EFx_PRECISION_PRO
@@ -456,6 +457,17 @@ const int spatial_imp_run_mode = EFx_BW_16t16 | EFx_BW_32t32;
 #endif
 const int spatial_imp_fft_mode = 2;     //1软件fft(浮点输入输出) 2硬件fft(定点输入输出)
 const int spatial_imp_run_points = 128; //运算点数
+
+/*
+ * 若使能陀螺仪跟踪模式：azi_group 需要配置为-1，使能所有方向角/俯仰角信息表。此时 ele_group 配置无效。
+ * 仅使能固定模式时，azi_group、ele_group 可根据调试情况配置，固定方位角/俯仰角，节省代码量。
+ * 注：当 azi_group 设定为-1之外的值时，可视化参数界面"Bias Angle","Azimuth Angle","Elevation Angle"固化，配置无效。
+ */
+const int spatial_imp_active_azi_group = -1; //方位角控制。范围：-1~359。
+const int spatial_imp_active_ele_group = 0;  //俯仰角控制。范围：0~359。
+
+/* 双耳压强差使能控制，关闭可节省代码量（关闭后可视化界面参数"ildenable"调试无效）。范围：0关，1开。*/
+const int spatial_imp_active_ild_group = 0;
 
 /*
  *******************************************************************

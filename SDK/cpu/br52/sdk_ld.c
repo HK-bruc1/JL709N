@@ -503,14 +503,6 @@ ASSERT((dlog_str_tab_seg_end - dlog_str_tab_seg_begin) <= (STR_TAB_SIZE * 0xFFFF
 ASSERT((dlog_str_tab_seg_begin - ADDR(.dlog_data)) <= 0x100, "err: .dlog.rodata.head out of range, only less than 0x100 !!!");
 /* ASSERT((dlog_str_tab_segAll_end - dlog_str_tab_segAll_begin) == 0, "err: have variable in sec .dlog.rodata.str_tab* !!!"); */
 /* ASSERT((dlog_str_segAll_end - dlog_str_segAll_begin) == 0, "err: have variable in sec .dlog.rodata.string* !!!"); */
-// 定义异常信息和dlog打印数据在保存dlog数据区域的起始地址
-#if TCFG_CONFIG_DEBUG_RECORD_ENABLE
-dlog_exception_data_start_addr = 0x0FFF;   // 这个地址是相对于保存dlog数据起始地址的偏移
-dlog_log_data_start_addr = 0x1000;         // 这个地址是相对于保存dlog数据起始地址的偏移
-#else
-dlog_exception_data_start_addr = 0;
-dlog_log_data_start_addr = 0;
-#endif
 
 //============================================================//
 //=== report section info begin:

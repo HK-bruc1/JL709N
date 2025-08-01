@@ -281,6 +281,10 @@ objs += \
 	  $(ROOT)/audio/anc/audio_anc_debug_tool.o \
 	  $(ROOT)/audio/anc/audio_anc_mult_scene.o \
 	  $(ROOT)/audio/anc/audio_anc_common.o \
+	  $(ROOT)/audio/anc/anc_memory.o \
+	  $(ROOT)/audio/anc/audio_anc_develop.o \
+	  $(ROOT)/audio/anc/audio_anc_hw_src.o \
+	  $(ROOT)/audio/anc/audio_anc_manager.o \
 
 #endif
 

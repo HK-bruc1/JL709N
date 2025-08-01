@@ -138,6 +138,9 @@
 -Iaudio/common/icsd/vdt
 -Iaudio/common/icsd/wat
 -Iaudio/common/icsd/ein
+-Iaudio/common/icsd/adjdcc
+-Iaudio/common/icsd/env_noise_det
+-Iaudio/common/icsd/howl
 -Iaudio/common/power
 -Iaudio/anc
 -Iaudio/cpu/br52/audio_dai

@@ -778,20 +778,6 @@ void charge_enter_lowpower(enum LOW_POWER_LEVEL lp_mode)
         CHG_VILOOP2_EN(0);
         L5V_LOAD_EN(get_ldo5v_pulldown_en());
         L5V_RES_DET_S_SEL(get_ldo5v_pulldown_res());
-    } else {
-        if (!IS_CHARGE_EN()) {
-            PMU_NVDC_EN(0);
-        }
-    }
-}
-
-//系统退出低功耗时会调用
-void charge_exit_lowpower(enum LOW_POWER_LEVEL lp_mode)
-{
-    if (lp_mode != LOW_POWER_MODE_SOFF) {
-        if (!IS_CHARGE_EN()) {
-            PMU_NVDC_EN(1);
-        }
     }
 }
 

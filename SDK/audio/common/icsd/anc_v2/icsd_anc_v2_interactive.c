@@ -31,6 +31,7 @@
 #endif/*TCFG_USER_TWS_ENABLE*/
 #include "anc_ext_tool.h"
 #include "adc_file.h"
+#include "audio_anc_debug_tool.h"
 
 #if ANC_MULT_ORDER_ENABLE
 #include "audio_anc_mult_scene.h"
@@ -54,6 +55,10 @@
 
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
 #include "rt_anc_app.h"
+#endif
+
+#if AUDIO_ANC_DATA_EXPORT_VIA_UART
+#include "audio_anc_develop.h"
 #endif
 
 #if 1
@@ -233,6 +238,9 @@ void anc_ear_adaptive_develop_set(u8 mode)
         return;															//自适应模式不更新参数
     }
     if (mode) { //0 -> 1
+#if TCFG_AUDIO_ANC_MULT_ORDER_ENABLE
+        anc_mult_scene_set(audio_anc_mult_scene_get());
+#endif
         audio_anc_param_map(1, 1);										//映射ANC参数
         audio_anc_adaptive_poweron_catch_data(&hdl->adaptive_iir);	//打包自适应数据,等待工具读取
     } else {    //1 -> 0
@@ -270,27 +278,35 @@ static void audio_anc_dac_check_slience_cb(void *buf, int len)
 /* 耳道自适应启动限制 */
 int audio_anc_mode_ear_adaptive_permit(void)
 {
-    if (anc_ext_ear_adaptive_param_check()) { //没有自适应参数
-        return ANC_EXT_OPEN_FAIL_CFG_MISS;
+    int ret;
+#if AUDIO_ANC_DATA_EXPORT_VIA_UART
+    if (audio_anc_develop_is_running()) {
+        printf("EAR_ANC_STATE:ERR ANC_DEV OPEN NOW\n");
+        return -1;
+    }
+#endif
+    ret = anc_ext_ear_adaptive_param_check();
+    if (ret) { //没有自适应参数
+        return ret;
     }
     if (hdl->adaptive_state != EAR_ADAPTIVE_STATE_END) { //重入保护
         return ANC_EXT_OPEN_FAIL_REENTRY;
     }
     if (adc_file_is_runing()) { //通话不支持
         /* if (esco_player_runing()) { //通话不支持 */
-        return ANC_EXT_OPEN_FAIL_FUNC_CONFLICT;
+        return ANC_EXT_OPEN_FAIL_CONFLICT_PHONE;
     }
     if (anc_mode_switch_lock_get()) { //其他切模式过程不支持
-        return ANC_EXT_OPEN_FAIL_FUNC_CONFLICT;
+        return ANC_EXT_OPEN_FAIL_SWITCH_LOCK;
     }
 #if TCFG_AUDIO_FREQUENCY_GET_ENABLE
     if (audio_icsd_afq_is_running()) {	//AFQ 运行过程中不支持
-        return ANC_EXT_OPEN_FAIL_FUNC_CONFLICT;
+        return ANC_EXT_OPEN_FAIL_AFQ_RUNNING;
     }
 #endif
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
     if (audio_anc_real_time_adaptive_state_get()) {	//RTANC运行过程不支持
-        return ANC_EXT_OPEN_FAIL_FUNC_CONFLICT;
+        return ANC_EXT_OPEN_FAIL_CONFLICT_RTANC;
     }
 #endif
     return 0;
@@ -352,6 +368,7 @@ void audio_anc_mode_ear_adaptive_sync_cb(void *_data, u16 len, bool rx)
 #if (RCSP_ADV_EN && RCSP_ADV_ANC_VOICE && RCSP_ADV_ADAPTIVE_NOISE_REDUCTION)
         set_adaptive_noise_reduction_reset_callback(0);		//	无法进入自适应，返回失败结果
 #endif
+        audio_anc_debug_err_send_data(ANC_DEBUG_APP_EAR_ADAPTIVE, &ret, sizeof(int));
         return;
     }
 
@@ -529,21 +546,27 @@ void anc_user_train_cb(u8 mode, u8 forced_exit)
         if (hdl->ear_adaptive_data_from == ANC_ADAPTIVE_DATA_FROM_VM) {		//释放掉原来VM使用的资源
             if (hdl->param->adaptive->lff_coeff) {
                 free(hdl->param->adaptive->lff_coeff);
+                hdl->param->adaptive->lff_coeff = NULL;
             };
             if (hdl->param->adaptive->lfb_coeff) {
                 free(hdl->param->adaptive->lfb_coeff);
+                hdl->param->adaptive->lfb_coeff = NULL;
             };
             if (hdl->param->adaptive->lcmp_coeff) {
                 free(hdl->param->adaptive->lcmp_coeff);
+                hdl->param->adaptive->lcmp_coeff = NULL;
             };
             if (hdl->param->adaptive->rff_coeff) {
                 free(hdl->param->adaptive->rff_coeff);
+                hdl->param->adaptive->rff_coeff = NULL;
             };
             if (hdl->param->adaptive->rfb_coeff) {
                 free(hdl->param->adaptive->rfb_coeff);
+                hdl->param->adaptive->rfb_coeff = NULL;
             };
             if (hdl->param->adaptive->rcmp_coeff) {
                 free(hdl->param->adaptive->rcmp_coeff);
+                hdl->param->adaptive->rcmp_coeff = NULL;
             };
         }
 
@@ -720,7 +743,7 @@ static int audio_anc_coeff_adaptive_set_base(u32 mode, u8 tone_play, u8 ignore_b
 
 static void audio_anc_adaptive_data_format(anc_adaptive_iir_t *iir)
 {
-    anc_iir_t iir_lib;	//	库与外部指针分离
+    anc_iir_t iir_lib = {0};	//	库与外部指针分离
     u8 result = hdl->adaptive_iir.result;
     if (hdl->ear_adaptive_data_from == ANC_ADAPTIVE_DATA_EMPTY) {
         hdl->ear_adaptive_data_from = ANC_ADAPTIVE_DATA_FROM_VM;
@@ -856,6 +879,41 @@ void audio_anc_adaptive_data_packet(struct icsd_anc_v2_tool_data *TOOL_DATA)
     float *rcmp_output = audio_anc_ear_adaptive_cmp_output_get(ANC_EAR_ADAPTIVE_CMP_CH_R);
     u8 *lcmp_type = audio_anc_ear_adaptive_cmp_type_get(ANC_EAR_ADAPTIVE_CMP_CH_L);
     u8 *rcmp_type = audio_anc_ear_adaptive_cmp_type_get(ANC_EAR_ADAPTIVE_CMP_CH_R);
+#endif
+
+#if 0
+
+    printf("========ANC_L_ADAP_TARGET========\n");
+    //put_buf((u8 *)TOOL_DATA->data_out3, len * 8);
+    for (int i = 0; i < 120; i++) {
+        printf("target %d\n", (int)(TOOL_DATA->data_out3[i] * 1e6));
+    }
+    printf("========ANC_L_ADAP_SZPZ========\n");
+    for (int i = 0; i < len * 2; i++) {
+        printf("sz %d\n", (int)(TOOL_DATA->data_out1[i] * 1e6));
+    }
+    printf("========ANC_L_ADAP_PZ ========\n");
+    for (int i = 0; i < len * 2; i++) {
+        printf("pz %d\n", (int)(TOOL_DATA->data_out2[i] * 1e6));
+    }
+    if (TOOL_DATA->data_out5) {
+        printf("========ANC_L_ADAP_FF FGQ========\n");
+        for (int i = 0; i < 31; i++) {
+            printf("fgq %d\n", (int)(TOOL_DATA->data_out5[i] * 1e4));
+        }
+    }
+    if (TOOL_DATA->data_out4) {
+        printf("========ANC_L_ADAP_FB FGQ========\n");
+        for (int i = 0; i < 31; i++) {
+            printf("fgq %d\n", (int)(TOOL_DATA->data_out4[i] * 1e4));
+        }
+    }
+    if (lcmp_output) {
+        printf("========ANC_L_ADAP_CMP FGQ========\n");
+        for (int i = 0; i < 31; i++) {
+            printf("fgq %d\n", (int)(lcmp_output[i] * 1e4));
+        }
+    }
 #endif
 
     if (anc_ext_ear_adaptive_train_mode_get()) {
@@ -1363,7 +1421,7 @@ static void anc_ear_adaptive_icsd_anc_init(void)
 void anc_ear_adaptive_sz_output(__afq_output *output)
 {
     if (audio_afq_common_app_is_active()) {
-        audio_afq_common_output_post_msg(output);
+        audio_afq_common_output_post_msg(output, AUDIO_AFQ_PRIORITY_NORMAL);
     }
 #if ANC_EAR_ADAPTIVE_CMP_EN
     audio_anc_ear_adaptive_cmp_run(output);

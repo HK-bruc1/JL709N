@@ -25,19 +25,10 @@ static wind_lvl_det_t wind_lvl_det_anc = {
 };
 
 static wind_info_t wind_info_anc = {
-    .time = 1000, //ms
-    .fade_timer = 0,
-    .wind_cnt = 0,
-    .wind_eng = 0,
     .last_lvl = 0,
-    .preset_lvl = 0,
-    .fade_in_cnt = 0,
-    .fade_out_cnt = 0,
-    .lvl_unchange_cnt = 0,
-    .wind_process_flag = 0,
-    .fade_in_time = 4, //s
-    .fade_out_time = 10, //s
-    .ratio_thr = 0.8f,
+    .det_times = 10, //150ms*10 = 1.5s
+    .cnt = 0,
+    .last_lvl_diff = 0,
 };
 
 static struct anc_fade_handle anc_wind_gain_fade = {
@@ -62,16 +53,8 @@ void audio_cvp_icsd_wind_fade_param_reset(void)
 {
     wind_lvl_det_anc.last_lvl = 0;
     wind_lvl_det_anc.cur_lvl = 0;
-
-    if (wind_info_anc.fade_timer) {
-        sys_s_hi_timer_del(wind_info_anc.fade_timer);
-        wind_info_anc.fade_timer = 0;
-    }
-    wind_info_anc.fade_in_cnt = 0;
-    wind_info_anc.fade_out_cnt = 0;
-    wind_info_anc.lvl_unchange_cnt = 0;
-    wind_info_anc.wind_process_flag = 0;
     wind_info_anc.last_lvl = 0;
+    wind_info_anc.cnt = 0;
 
     if (anc_wind_gain_fade.timer_id) {
         sys_s_hi_timer_del(anc_wind_gain_fade.timer_id);
@@ -85,7 +68,7 @@ int audio_cvp_icsd_wind_det_open()
     if (cvp_icsd_wind_hdl) {
         return 0;
     }
-    cvp_icsd_wind_hdl = zalloc(sizeof(struct cvp_icsd_wind_handle));
+    cvp_icsd_wind_hdl = anc_malloc("ICSD_WIND",  sizeof(struct cvp_icsd_wind_handle));
     ASSERT(cvp_icsd_wind_hdl);
     cvp_icsd_wind_hdl->cvp_wind_lvl_det_state = 1;
     return 0;
@@ -99,10 +82,10 @@ int audio_cvp_icsd_wind_det_close()
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
         //恢复RT_ANC 相关标志/状态
         if (cvp_icsd_wind_hdl->adt_wind_suspend_rtanc) {
-            audio_anc_real_time_adaptive_resume();
+            audio_anc_real_time_adaptive_resume("CVP_WIND_DET");
         }
 #endif
-        free(cvp_icsd_wind_hdl);
+        anc_free(cvp_icsd_wind_hdl);
         cvp_icsd_wind_hdl = NULL;
     }
     return 0;
@@ -145,14 +128,14 @@ static void audio_cvp_wind_lvl_process(u8 wind_lvl)
     if (hdl == NULL) {
         return;
     }
-    u8 anc_wind_noise_lvl = 0;
+    int anc_wind_noise_lvl = 0;
     if (anc_mode_get() == ANC_ON) {
         /*划分风噪等级*/
         anc_wind_noise_lvl = get_icsd_anc_wind_noise_lvl(&wind_lvl_det_anc, wind_lvl);
 
         /*做淡入淡出时间处理，返回0表示不做处理维持原来的增益不变*/
         anc_wind_noise_lvl = audio_anc_wind_noise_process_fade(&wind_info_anc, anc_wind_noise_lvl);
-        if (anc_wind_noise_lvl == 0) {
+        if (anc_wind_noise_lvl == -1) {
             return;
         }
 
@@ -192,13 +175,13 @@ static void audio_cvp_wind_lvl_process(u8 wind_lvl)
     //触发风噪检测之后需要挂起RTANC
     if (audio_anc_real_time_adaptive_state_get()) {
         if (anc_fade_gain != 16384) {
-            if (hdl->adt_wind_suspend_rtanc) {
+            if (!hdl->adt_wind_suspend_rtanc) {
                 hdl->adt_wind_suspend_rtanc = 1;
-                audio_anc_real_time_adaptive_suspend();
+                audio_anc_real_time_adaptive_suspend("CVP_WIND_DET");
             }
         } else if (hdl->adt_wind_suspend_rtanc) {
             hdl->adt_wind_suspend_rtanc = 0;
-            audio_anc_real_time_adaptive_resume();
+            audio_anc_real_time_adaptive_resume("CVP_WIND_DET");
         }
     }
 #endif

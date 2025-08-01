@@ -19,6 +19,9 @@
 
 unsigned long jiffies_usec(void);
 
+//TOOL_FUNCTION
+#define TFUNCTION_WDT				BIT(0) //风噪检测
+#define TFUNCTION_RTANC				BIT(1) //实时自适应ANC
 
 enum {
     DEBUG_FUNCTION_ICSD = 0,
@@ -28,12 +31,14 @@ enum {
 enum {
     WIND_DATA = 0,
     WIND_ALG,
+    RTANC_ALG,
 };
 
 
 enum {
     norm_rtanc = 0,	//正常模式
     tidy_rtanc,		//轻量模式，节省RAM
+    mini_rtanc,
 };
 
 enum {
@@ -167,6 +172,31 @@ struct aeq_default_seg_tab {
     struct aeq_seg_info *seg;
 };
 
+typedef struct {
+    u8      nums;           // 耳道参数
+    u8      mem_len;        // MEMLEN
+    u8      l_idx0;         // default:1
+    u8      l_idx1;         // default:7
+    u8      h_idx0;         // default:7
+    u8      h_idx1;         // default:15
+    u8      msc_idx0;       // default:2
+    u8      msc_idx1;       // default:7
+    u8      *mem_list;      // down sample list
+    u8      sel_idx;        // sz_sel_idx
+    float   msc_thr0[3];
+    float   msc_thr1[3];
+    float   msc_thr2[3];
+    float   *msc;
+    float   *sz_in;
+    float   *sz_table_cmp;  // 耳道参数
+    float   *sz_table;      // 耳道参数
+    float   *ff_filter;     // 耳道参数
+    float   *ff_gfq;        // total_gain+gfq
+    float   sz_out[120];
+    float   buf_db[25];     // mem_len/2
+    float   buf[50];        // mem_len
+} __sz_sel_mem;
+
 
 #define ADT_DMA_BUF_LEN     	512
 #define ADT_FFT_LENS   			256
@@ -174,8 +204,8 @@ struct aeq_default_seg_tab {
 #define TARLEN2   				(120)// + 318)
 #define TARLEN2_L				0 //40
 #define DRPPNT2  				0 //10
-#define MEMLEN                  50
-#define MSELEN                  (44*2)
+#define MEMLEN                  (25*2)
+#define MSELEN                  (25*2)
 
 #define FS 375000
 
@@ -243,7 +273,7 @@ void icsd_cal_wz_float(float *ab, float gain, int tap, float *freq, float fs, fl
 void icsd_fgq2hz_v2(float total_gain, float *fgq, u8 *type, u8 order, float *freq, float *hz, int len, float fs);
 void icsd_gfq2hz_v2(float total_gain, float *gfq, u8 *type, u8 order, float *freq, float *hz, int len, float fs);
 
-void icsd_biquad2ab_out_2(float gain, float f, float q, u8 type, float fs, double *a0, double *a1, double *a2, double *b0, double *b1, double *b2);
+u8 icsd_biquad2ab_out_2(float gain, float f, float q, u8 type, float fs, double *a0, double *a1, double *a2, double *b0, double *b1, double *b2);
 void icsd_biquad2ab_double_v2(float gain, float f, float q, double *a0, double *a1, double *a2, double *b0, double *b1, double *b2, u8 type, float fs);
 void icsd_biquad2ab_out_v2(float gain, float f, float fs, float q, double *a0, double *a1, double *a2, double *b0, double *b1, double *b2, u8 type);
 void icsd_biquad2ab_double_pn(float gain, float f, float q, double *a0, double *a1, double *a2,
@@ -335,6 +365,7 @@ void icsd_de_free();
 void icsd_sde_malloc();
 void icsd_sde_free();
 
+void sz_select_from_memory(__sz_sel_mem *hdl);
 
 void icsd_common_ancdma_4ch_cic8(int *r_ptr, s16 *__wptr_dma1_h, s16 *__wptr_dma1_l, s16 *__wptr_dma2_h, s16 *__wptr_dma2_l, u16 inpoints);
 #endif
