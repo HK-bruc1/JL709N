@@ -1005,6 +1005,7 @@ int audio_acoustic_detector_open()
     icsd_task_create();
     icsd_acoustic_detector_open();
 
+    //算法需要的MIC和当前样机配置的MIC不匹配: 需要检测MIC配置，或可能此方案不支持部分算法
     ASSERT(audio_get_mic_num(mic_ch) == audio_get_mic_num(hdl->libfmt.mic_type), "adt need %d mic num, but now only open %d mic num, please check your anc mic and esco mic cfg !!!", audio_get_mic_num(hdl->libfmt.mic_type), audio_get_mic_num(mic_ch));
     audio_mic_param_t mic_param = {
         .mic_ch_sel        = mic_ch,

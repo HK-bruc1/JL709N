@@ -72,6 +72,9 @@ struct eq_default_seg_tab *audio_icsd_adaptive_eq_read(void);
 */
 int audio_adaptive_eq_eff_set(enum ADAPTIVE_EFF_MODE mode);
 
+//删除AEQ 自适应系数记忆链表，需等下次自适应输出才有自适应参数
+int audio_adaptive_eq_cur_list_del(void);
+
 int audio_adaptive_eq_vol_update(s16 volume);
 
 int audio_adaptive_eq_process(void);

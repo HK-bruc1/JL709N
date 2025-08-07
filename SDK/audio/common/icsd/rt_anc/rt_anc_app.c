@@ -129,6 +129,10 @@ struct audio_rt_anc_hdl {
     float *debug_param;
     float *pz_cmp;
     float *sz_cmp;
+#if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
+    u8 *cmp_tool_data;							//CMP工具数据缓存
+    int cmp_tool_data_len;
+#endif
     struct rtanc_param *rtanc_p;
     struct icsd_rtanc_tool_data *rtanc_tool;	//工具临时数据
     struct rt_anc_fade_gain_ctr fade_ctr;
@@ -156,6 +160,7 @@ static void audio_anc_real_time_adaptive_data_packet(struct icsd_rtanc_tool_data
 static void audio_rtanc_sz_pz_cmp_process(void);
 static void audio_rtanc_suspend_list_query(u8 init_flag);
 static void audio_rtanc_spp_send_data(u8 cmd, u8 *buf, int len);
+static void audio_rtanc_cmp_tool_data_catch(u8 *data, int len);
 
 static struct audio_rt_anc_hdl	*hdl = NULL;
 
@@ -901,6 +906,14 @@ void audio_adt_rtanc_output_handle(void *rt_param_l, void *rt_param_r)
 
 #if AUDIO_RT_ANC_EXPORT_TOOL_DATA_DEBUG
     audio_anc_real_time_adaptive_data_packet(hdl->rtanc_tool);
+
+#if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
+    //当RTANC没有输出CMP时，使用上一次的CMP结果输出给工具
+    if (!(((__rt_anc_param *)rt_param_l)->cmp_eq_updat & AUDIO_ADAPTIVE_CMP_UPDATE_FLAG)) {
+        audio_rtanc_cmp_tool_data_catch(hdl->cmp_tool_data, hdl->cmp_tool_data_len);
+    }
+#endif
+
 #endif
 
     if (((__rt_anc_param *)rt_param_l)->cmp_eq_updat) {
@@ -1165,6 +1178,11 @@ int audio_anc_real_time_adaptive_close(void)
 
     anc_ext_algorithm_state_update(ANC_EXT_ALGO_RTANC, ANC_EXT_ALGO_STA_CLOSE, 0);
 
+#if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
+    //app层关闭RTANC，清掉CMP工具上报参数
+    audio_rtanc_cmp_data_clear();
+#endif
+
 #if AUDIO_RT_ANC_KEEP_LAST_PARAM == 1
     if (!(audio_anc_production_mode_get() || get_app_anctool_spp_connected_flag())) {
         return ret;
@@ -1281,12 +1299,48 @@ static void audio_anc_real_time_adaptive_data_packet(struct icsd_rtanc_tool_data
 
 }
 
+#if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
+//将CMP 工具数据拼接到RTANC
+static void audio_rtanc_cmp_tool_data_catch(u8 *data, int len)
+{
+    if (!data) {
+        return;
+    }
+#if TCFG_USER_TWS_ENABLE
+    if (bt_tws_get_local_channel() == 'R') {
+        rtanc_log("cmp export send tool_data, ch:R\n");
+#if ANC_CONFIG_LFB_EN
+        rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)data, len, ANC_R_CMP_IIR, 0);  //R_cmp
+#endif
+    } else
+#endif/*TCFG_USER_TWS_ENABLE*/
+    {
+        rtanc_debug_log("cmp export send tool_data, ch:L\n");
+
+        /* put_buf((u8 *)cmp_dat, cmp_dat_len);  //R_cmp */
+#if ANC_CONFIG_LFB_EN
+        rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)data, len, ANC_L_CMP_IIR, 0);  //R_cmp
+#endif
+    }
+}
+
+void audio_rtanc_cmp_data_clear(void)
+{
+    if (hdl) {
+        if (hdl->cmp_tool_data) {
+            anc_free(hdl->cmp_tool_data);
+            hdl->cmp_tool_data = NULL;
+            hdl->cmp_tool_data_len = 0;
+        }
+    }
+}
+
+//格式化CMP工具数据
 void audio_rtanc_cmp_data_packet(void)
 {
     if (!hdl->rtanc_tool) {
         return;
     }
-#if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
     int cmp_yorder = ANC_ADAPTIVE_CMP_ORDER;
     int cmp_dat_len =  sizeof(anc_fr_t) * cmp_yorder + 4;
 #if ANC_CONFIG_LFB_EN
@@ -1303,24 +1357,16 @@ void audio_rtanc_cmp_data_packet(void)
     audio_anc_fr_format(rcmp_dat, rcmp_output, cmp_yorder, rcmp_type);
 #endif
 
+    if (hdl->cmp_tool_data) {
+        free(hdl->cmp_tool_data);
+    }
+    hdl->cmp_tool_data = anc_malloc("ICSD_CMP", cmp_dat_len);
+    hdl->cmp_tool_data_len = cmp_dat_len;
+    memcpy(hdl->cmp_tool_data, cmp_dat, cmp_dat_len);
+
     rtanc_debug_log("cmp_data_packet yorder = %d\n", cmp_yorder);
 
-#if TCFG_USER_TWS_ENABLE
-    if (bt_tws_get_local_channel() == 'R') {
-        rtanc_log("cmp export send tool_data, ch:R\n");
-#if ANC_CONFIG_LFB_EN
-        rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)cmp_dat, cmp_dat_len, ANC_R_CMP_IIR, 0);  //R_cmp
-#endif
-    } else
-#endif/*TCFG_USER_TWS_ENABLE*/
-    {
-        rtanc_debug_log("cmp export send tool_data, ch:L\n");
-
-        /* put_buf((u8 *)cmp_dat, cmp_dat_len);  //R_cmp */
-#if ANC_CONFIG_LFB_EN
-        rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)cmp_dat, cmp_dat_len, ANC_L_CMP_IIR, 0);  //R_cmp
-#endif
-    }
+    audio_rtanc_cmp_tool_data_catch(cmp_dat, cmp_dat_len);
 
 #if ANC_CONFIG_LFB_EN
     anc_free(cmp_dat);
@@ -1330,8 +1376,8 @@ void audio_rtanc_cmp_data_packet(void)
     anc_free(rcmp_dat);
 #endif
 
-#endif/*TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN*/
 }
+#endif/*TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN*/
 
 #endif
 
@@ -1692,6 +1738,12 @@ int audio_rtanc_sz_sel_state_get(void)
 
 int audio_rtanc_coeff_set(void)
 {
+
+#if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
+    //工具连接时，切ANC默认清掉CMP工具上报参数
+    audio_rtanc_cmp_data_clear();
+#endif
+
 #if AUDIO_RT_ANC_KEEP_LAST_PARAM
     if ((audio_anc_production_mode_get() || get_app_anctool_spp_connected_flag()) && \
         (AUDIO_RT_ANC_KEEP_LAST_PARAM == 1)) {

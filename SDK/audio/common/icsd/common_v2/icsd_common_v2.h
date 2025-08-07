@@ -7,6 +7,35 @@
 #include "timer.h"
 #include "asm/math_fast_function.h"
 
+//============算法库轻量信息打印使能=========
+#define ICSD_ADT_LOG_EN				0//ADT公共部分
+#define ICSD_HOWL_LOG_EN 		    0//啸叫检测
+#define ICSD_RTANC_LOG_EN			1//实时自适应
+
+//============算法库打印使能=================
+#define ADT_PRINTF_EN			 	0 //ADT资源
+#define VDT_PRINTF_EN			 	0 //智能免摘
+#define WAT_PRINTF_EN			 	0 //广域点击
+#define CMP_PRINTF_EN			 	0 //自适应CMP
+#define AEQ_PRINTF_EN			 	0 //自适应EQ
+#define AFQ_PRINTF_EN			 	0 //AFQ
+#define AVC_PRINTF_EN			 	0 //AVC
+#define DOT_PRINTF_EN			 	0 //松紧度检测
+#define EIN_PRINTF_EN			 	0 //
+#define HOWL_PRINTF_EN			 	0 //啸叫检测
+#define RTANC_RTPRINTF_EN		 	0 //实时自适应ANC RT
+#define RTANC_HZPRINTF_EN		 	0 //实时自适应ANC HZ
+#define ADJDCC_PRINTF_EN			0 //自适应DCC
+
+//===========风噪调试使能====================
+#define WDT_PRINTF_EN			 	0 //算法打印
+#define ICSD_WDT_LOG_EN             0 //离线log打印
+#define WDT_LFF_TLK_DEBUG_EN		0 //LFF_TLK模式离线调试打印
+#define WDT_LFF_LFB_DEBUG_EN		0 //LFF_LFB模式离线调试打印
+#define WDT_LFF_RFF_DEBUG_EN		0 //LFF_RFF模式离线调试打印
+
+
+
 #define ICSD_WIND_HEADSET           1
 #define ICSD_WIND_TWS		        2
 
@@ -15,6 +44,7 @@
 #define ICSD_WIND_LFF_LFB           3
 #define ICSD_WIND_LFF_LFB_TALK      4
 #define ICSD_WIND_RFF_TALK      	5
+#define ICSD_WIND_LFF_LFB_RFF       6
 
 
 unsigned long jiffies_usec(void);
@@ -92,6 +122,7 @@ enum {
     WAT_GET_MAX_RANGE,
     WAT_SEND_MAX_RANGE,
     ADT_WIND_DATA_SYNC,
+    ADT_WIND_LVL_SYNC,
     LIB_DEMO_TWS,
     LIB_WIND_TWS,
     ADT_TWS_TONE_PLAY,

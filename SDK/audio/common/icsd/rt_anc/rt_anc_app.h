@@ -108,6 +108,8 @@ int audio_rtanc_var_cache_set(u8 flag);
 
 int audio_rtanc_sz_sel_callback(void);
 
+void audio_rtanc_cmp_data_clear(void);
+
 #endif
 
 

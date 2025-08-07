@@ -51,6 +51,7 @@ int icsd_adt_avc_set_infmt(int _ram_addr, u8 type);
 void icsd_adt_avc_run(__adt_avc_run_parm *_run_parm, __adt_avc_output *_output);
 void icsd_adt_avc_config_update_run(void *_config);
 void icsd_adt_tidy_avc_alg_run();
+void icsd_adt_adc_avc_run();
 //==========RTANC========================
 typedef struct {
     u8  dma_ch;
@@ -132,16 +133,6 @@ int  icsd_adt_wat_set_infmt(int _ram_addr);
 void icsd_adt_alg_wat_run(__adt_wat_run_parm *_run_parm, __adt_wat_output *_output);
 void icsd_adt_alg_wat_ram_clean();
 //==========WIND========================
-#if ICSD_WIND_LIB
-#else//没有风噪库时使用该配置
-#define ICSD_WIND_HEADSET           1
-#define ICSD_WIND_TWS		        2
-#define ICSD_WIND_LFF_TALK          1
-#define ICSD_WIND_LFF_RFF           2
-#define ICSD_WIND_LFF_LFB           3
-#define ICSD_WIND_LFF_LFB_TALK      4
-#define ICSD_WIND_RFF_TALK      	5
-#endif
 
 typedef struct {
     u8  f2wind;
@@ -165,6 +156,12 @@ typedef struct {
     s16 *data_3_ptr;
     u8 anc_mode;
     u8 wind_ft;
+    u8 wdt_type;
+    s8 lff_gain;        //dB值
+    s8 lfb_gain;
+    s8 rff_gain;
+    s8 rfb_gain;
+    s8 talk_gain;
     __win_part1_out *part1_out;
     __win_part1_out_rx *part1_out_rx;
 } __adt_win_run_parm;
@@ -188,6 +185,7 @@ void icsd_adt_wind_slave_rx_data(void *_data);
 u8   icsd_adt_wind_data_sync_en();
 void icsd_wind_run_part2_cmd();
 void icsd_wind_data_sync_master_cmd();
+void icsd_wind_lvl_sync_master_cmd();
 void *icsd_adt_wind_part1_rx();
 u8 	 icsd_adt_win_get_tlkmic_en();
 void *icsd_adt_wind_reuse_ram();

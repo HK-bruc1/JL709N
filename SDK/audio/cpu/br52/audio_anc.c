@@ -2283,6 +2283,10 @@ int anc_coeff_write(int *coeff, u16 len)
     anc_coeff_t *db_coeff = (anc_coeff_t *)coeff;
     anc_coeff_t *tmp_coeff = NULL;
 
+#if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN && TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+    audio_rtanc_cmp_data_clear();
+#endif
+
     user_anc_log("anc_coeff_write:0x%x, len:%d", (u32)coeff, len);
     int ret = anc_coeff_check(db_coeff, len);
     if (ret) {
@@ -2457,6 +2461,9 @@ int anc_cfg_online_deal(u8 cmd, anc_gain_t *cfg)
             audio_common_dac_cic_update();		//更新DAC CIC配置
             audio_common_dac_drc_update();		//更新DAC DRC配置
 #if ANC_MULT_ORDER_ENABLE
+#if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN && TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+            audio_rtanc_cmp_data_clear();
+#endif
             anc_mult_scene_set(anc_hdl->scene_id);	//覆盖增益以及增益符号
 #endif/*ANC_MULT_ORDER_ENABLE*/
             audio_anc_reset(&anc_hdl->param, 0);//ANC初始化，不可异步，因为后面会更新ANCIF区域内容

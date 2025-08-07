@@ -9,7 +9,7 @@
 #include "icsd_common.h"
 #include "icsd_common_v2.h"
 
-#if 0
+#if VDT_PRINTF_EN
 #define _vdt_printf printf
 #else
 #define _vdt_printf icsd_printf_off

@@ -22,7 +22,7 @@
 #include "clock_manager/clock_manager.h"
 
 void anc_core_ff_adjdcc_par_set(u8 dc_par);
-const u8 rtanc_log_en = 1;
+const u8 rtanc_log_en = ICSD_RTANC_LOG_EN;
 
 int (*hz_printf)(const char *format, ...) = _hz_printf;
 int (*rt_printf)(const char *format, ...) = _rt_printf;

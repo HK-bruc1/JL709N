@@ -777,9 +777,11 @@ void anc_ext_tool_cmd_deal(u8 *data, u16 len, enum ANC_EXT_UART_SEL uart_sel)
         memcpy(&tool_hdl->DEBUG_TOOL_FUNCTION, data + 1, 4);
         anc_ext_log("CMD_FUNCTION_SPP_DEBUG_SET, 0x%x\n", tool_hdl->DEBUG_TOOL_FUNCTION);
         //修改SPP打印之后需要复位算法
+#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
         if (icsd_adt_is_running()) {
             audio_icsd_adt_reset(0);
         }
+#endif
         break;
     case CMD_FUNCTION_ALGO_EN_SET:
         anc_ext_log("CMD_FUNCTION_ALGO_EN_SET 0x%x, en 0x%x\n", data[1], data[2]);

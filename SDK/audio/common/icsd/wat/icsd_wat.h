@@ -9,7 +9,7 @@
 #include "icsd_common.h"
 #include "icsd_common_v2.h"
 
-#if 0
+#if WAT_PRINTF_EN
 #define _wat_printf printf
 #else
 #define _wat_printf icsd_printf_off

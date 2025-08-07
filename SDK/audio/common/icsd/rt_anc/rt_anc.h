@@ -9,7 +9,7 @@
 #include "asm/math_fast_function.h"
 #include "../tool/anc_ext_tool_cfg.h"
 
-#if 0
+#if RTANC_RTPRINTF_EN
 #define _rt_printf printf               //打开智能免摘库打印信息
 #else
 extern int rt_printf_off(const char *format, ...);
@@ -17,7 +17,7 @@ extern int rt_printf_off(const char *format, ...);
 #endif
 extern int (*rt_printf)(const char *format, ...);
 
-#if 0
+#if RTANC_HZPRINTF_EN
 #define _hz_printf printf               //打开智能免摘库打印信息
 #else
 extern int rt_printf_off(const char *format, ...);

@@ -11,7 +11,8 @@
 
 extern const u8 adt_log_en;
 #define sd_adt_log(format, ...)  if(adt_log_en){{if(config_ulog_enable){printf(format, ##__VA_ARGS__);}if(config_dlog_enable){dlog_printf((-1 & ~BIT(31)), format, ##__VA_ARGS__);}}}
-#if 0
+
+#if ADT_PRINTF_EN
 #define _adt_printf printf                  //打开智能免摘库打印信息
 #else
 #define _adt_printf icsd_printf_off
@@ -52,7 +53,6 @@ extern const u16 ADT_DEBUG_INF;
 #define ADT_TLKMIC_L				BIT(4)
 #define ADT_TLKMIC_R				BIT(5)
 
-#define ICSD_WDT_SYNC_CNT_THR		20
 
 struct adt_function {
     //sys
@@ -310,5 +310,6 @@ extern const u8 tidy_avc_run_interval;
 extern const u8 icsd_ancdma_dac_debug;
 extern u16 adt_debug_ramsize;
 extern const u8 ADT_MIC_VERSION;
+extern const u8 ICSD_AVC_DATAPATH;
 
 #endif

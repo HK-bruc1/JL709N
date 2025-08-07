@@ -12,7 +12,7 @@
 extern const u8 howl_log_en;
 #define sd_howl_log(format, ...)  if(howl_log_en){{if(config_ulog_enable){printf(format, ##__VA_ARGS__);}if(config_dlog_enable){dlog_printf((-1 & ~BIT(31)), format, ##__VA_ARGS__);}}}
 
-#if 0
+#if HOWL_PRINTF_EN
 #define _howl_printf printf
 #else
 #define _howl_printf icsd_printf_off
