@@ -57,13 +57,6 @@ Notes:以下为芯片规格定义，不可修改，仅供引用
 /************************************
              dac性能模式
 ************************************/
-// TCFG_DAC_PERFORMANCE_MODE
-#define	DAC_MODE_HIGH_PERFORMANCE          (0)
-#define	DAC_MODE_LOW_POWER		           (1)
-
-/************************************
-             dac性能模式
-************************************/
 // TCFG_DAC_POWER_MODE
 #define	DAC_MODE_STANDARD_POWER	           (0)
 #define	DAC_MODE_LARGE_POWER               (1)
