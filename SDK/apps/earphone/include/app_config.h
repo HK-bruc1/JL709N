@@ -127,6 +127,10 @@
 #endif
 #endif
 
+#if (TCFG_THIRD_PARTY_PROTOCOLS_SEL & GFPS_EN) && (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_UNICAST_SINK_EN)
+#error "谷歌快连和unicast不支持同时配置，这两个功能开机不能同时初始化；如果想要同时配置，可以自行添加流程让上位机实现两个功能的二选一后开机重启初始化"
+#endif
+
 #ifndef TCFG_JL_UNICAST_BOUND_PAIR_EN
 #define TCFG_JL_UNICAST_BOUND_PAIR_EN 0				// 可通过JL小板实现耳机和Dongle的绑定配对
 #endif

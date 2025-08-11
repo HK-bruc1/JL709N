@@ -1109,6 +1109,7 @@ void anc_init(void)
     anc_hdl->param.cfg_online_deal_cb = anc_cfg_online_deal;
     anc_hdl->param.mode = ANC_OFF;
     anc_hdl->new_mode = anc_hdl->param.mode;
+    anc_hdl->last_mode = ANC_OFF;
     anc_hdl->param.production_mode = 0;
     anc_hdl->param.developer_mode = ANC_DEVELOPER_MODE_EN;
     anc_hdl->param.anc_fade_en = ANC_FADE_EN;/*ANC淡入淡出，默认开*/
@@ -1628,7 +1629,7 @@ static void anc_fade_in_timer_add(audio_anc_t *param)
             if (param->fade_time_lvl > 1) {
                 anc_hdl->fade_in_timer = usr_timer_add((void *)0, anc_fade_in_timer, dly, 1);
             }
-        } else if (param->mode == ANC_TRANSPARENCY) {
+        } else if ((param->mode == ANC_TRANSPARENCY) || (param->mode == ANC_BYPASS)) {
             audio_anc_fade_ctr_set(ANC_FADE_MODE_SWITCH, AUDIO_ANC_FDAE_CH_ALL, param->anc_fade_gain);
         }
     }

@@ -1167,6 +1167,11 @@ static int call_tws_msg_handler(int *msg)
                     tws_phone_call_send_cmd(CMD_PHONE_INCOME, phone_addr, 1, 1);
                 } else if (!memcmp(outband_ring_bt_addr_get(), phone_addr, 6)) { //后台来电
                     printf("tws_monitor_start_send_ring_cmd");
+                    if (ring_player_runing()) {
+                        y_printf("stop ring, both sides restart ring");
+                        tone_player_stop();
+                        ring_player_stop();
+                    }
                     tws_phone_call_send_cmd(CMD_PHONE_OUTBAND_RING, phone_addr, 0, 1);
                 }
             }
