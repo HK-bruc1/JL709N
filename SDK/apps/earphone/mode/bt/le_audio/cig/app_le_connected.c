@@ -1384,12 +1384,17 @@ void le_audio_media_control_cmd(u8 *data, u8 len)
     u16 con_handle = get_conn_handle();
 
     if (con_handle) {
-        log_info("Send media control... handle:0x%x\n", con_handle);
+        log_info("Send media control... handle:0x%x, 0x%x\n", con_handle, data[0]);
 #if TCFG_BT_VOL_SYNC_ENABLE
         switch (data[0]) {
         case CIG_EVENT_OPID_VOLUME_UP:
+            log_info("sync vol to master up\n");
+            //cis标准只设计了连接1拖1，所以可以用不带地址的接口发
+            bt_cmd_prepare(USER_CTRL_CMD_SYNC_VOL_INC, 0, NULL);
+            le_audio_send_priv_cmd(con_handle, VENDOR_PRIV_ACL_MUSIC_VOLUME, &(app_var.opid_play_vol_sync), sizeof(app_var.opid_play_vol_sync));
         case CIG_EVENT_OPID_VOLUME_DOWN:
-            log_info("sync vol to master");
+            log_info("sync vol to master down\n");
+            bt_cmd_prepare(USER_CTRL_CMD_SYNC_VOL_DEC, 0, NULL);
             le_audio_send_priv_cmd(con_handle, VENDOR_PRIV_ACL_MUSIC_VOLUME, &(app_var.opid_play_vol_sync), sizeof(app_var.opid_play_vol_sync));
             break;
         default:
