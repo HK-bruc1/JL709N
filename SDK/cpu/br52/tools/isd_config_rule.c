@@ -160,12 +160,15 @@ ICHARGE_CURRENT_MIN = TCFG_CHARGE_CUR_MIN;
 ICHARGE_CURRENT_MAX = TCFG_CHARGE_CUR_MAX;
 #endif
 
+#if (TCFG_CHARGE_CUR_MAX && TCFG_CHARGE_CUR_MIN)
+ICHARGE_CURRENT = TCFG_CHARGE_MA;
+#endif
 #endif
 
 [BURNER_OPTIONS]
 #if ((defined(TCFG_CHARGE_CUR_MIN)) && (defined(TCFG_CHARGE_CUR_MAX)) && TCFG_CHARGE_ENABLE)
 #if (TCFG_CHARGE_CUR_MAX && TCFG_CHARGE_CUR_MIN)
-BURN_VOL_LEVEL = 5.4v;   //配置芯片vpower供电电压
+BURN_VOL_LEVEL = 5.0v;   //配置芯片vpower供电电压
 #endif
 #endif
 // #####匹配的芯片版本,请勿随意改动######
@@ -185,7 +188,7 @@ UTBD = CONFIG_UBOOT_DEBUG_BAUD_RATE; //uboot串口波特率
 #endif
 
 //外部FLASH 硬件连接配置
-#ifdef CONFIG_EXTERN_FLASH_SIZE
+#ifdef TCFG_NORFLASH_DEV_ENABLE
 EX_FLASH = PC03_1A_PC08;	//CS_pin / spi (0/1/2) /port(A/B) / power_io
 EX_FLASH_IO = 2_PC01_PC02_PC04_PC05_PC00;	//data_width / CLK_pin / DO_pin / DI_pin / D2_pin / D3_pin   当data_width为4的时候，D2_pin和D3_pin才有效
 #endif
@@ -259,6 +262,12 @@ CONFIG_CUSTOM_CFG3_TYPE = CONFIG_CUSTOM_CFG3_VALUE;
 
 #ifndef CONFIG_VM_ADDR
 #define CONFIG_VM_ADDR		0
+#endif
+
+#if TCFG_VM_SIZE
+#define __VM_SIZE(size)     size##K
+#define _VM_SIZE(size)      __VM_SIZE(size)
+#define CONFIG_VM_LEAST_SIZE	_VM_SIZE(TCFG_VM_SIZE)
 #endif
 
 #ifndef CONFIG_VM_LEAST_SIZE
@@ -496,5 +505,16 @@ ANCIF1_OPT = CONFIG_ANCIF1_OPT;
 [BURNER_CONFIG]
 SIZE = CONFIG_BURNER_INFO_SIZE;
 
+#if TCFG_DUAL_BANK_ENABLE
+#if TCFG_UPDATE_COMPRESS
+[COMPRESS_BACKUP]
+AREA_SIZE = 0;
+BLOCK_SIZE = 65536;
+#elif TCFG_UPDATE_UPDIFF
+[COMPRESS_BACKUP]
+AREA_SIZE = 256K;
+DIFF_UPGRADE = YES;
+#endif
+#endif
 
 

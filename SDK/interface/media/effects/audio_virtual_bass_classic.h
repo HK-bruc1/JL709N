@@ -1,7 +1,6 @@
 #ifndef _AUDIO_virtual_bass_classic_API_H_
 #define _AUDIO_virtual_bass_classic_API_H_
 #include "system/includes.h"
-#include "media/audio_stream.h"
 #include "effects/virtual_bass_classic_api.h"
 
 typedef struct _VirtualBassClassicUpateParam {

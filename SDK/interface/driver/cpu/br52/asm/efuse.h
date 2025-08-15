@@ -49,6 +49,7 @@ u8 efuse_get_btvbg_xoscldo_level();
 u8 efuse_get_btvbg_sysldo11d_level();
 u8 efuse_get_btvbg_sysldo11a_level();
 u32 efuse_get_vbat_3700();
+u32 efuse_get_extern_voltage_trim();
 
 void efuse_init();
 

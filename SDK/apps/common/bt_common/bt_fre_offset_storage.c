@@ -228,6 +228,8 @@ int bt_fre_offset_storage_init(void)
 
     return 0;
 }
+
+//late_initcall(bt_fre_offset_storage_init);
 #ifdef CONFIG_CPU_BR52
 late_initcall(bt_fre_offset_storage_init);
 #endif

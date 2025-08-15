@@ -3,7 +3,6 @@
 #define _AUDIO_VOICE_CHANGER_API_H_
 
 #include "effects/voiceChanger_api.h"
-#include "media/audio_stream.h"
 
 enum {
     V_CHANGER_ORINGIN_TYPE,

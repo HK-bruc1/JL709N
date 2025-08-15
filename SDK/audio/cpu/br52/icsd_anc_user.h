@@ -5,7 +5,7 @@
 
 #include "esco_player.h"
 #include "adc_file.h"
-#include "asm/audio_adc.h"
+#include "audio_adc.h"
 #include "audio_anc_fade_ctr.h"
 
 typedef struct {

@@ -2,7 +2,6 @@
 #define _PCM_DELAY_H_
 
 #include "effects/Effect_delay_api.h"
-#include "media/audio_stream.h"
 
 struct pcm_delay_update_parm {
     int link;

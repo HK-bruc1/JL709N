@@ -48,6 +48,10 @@
 #if TCFG_AUDIO_ANC_ENABLE
 #include "audio_anc.h"
 #endif
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+#include "le_audio_player.h"
+#include "app_le_auracast.h"
+#endif
 
 #if (TCFG_USER_TWS_ENABLE)
 
@@ -89,8 +93,6 @@ enum {
     CMD_PHONE_OUTBAND_RING,
     CMD_PHONE_OUTBAND_RING_STOP,
 };
-
-static u8 g_play_addr[6];
 
 void tone_ring_player_stop()
 {
@@ -358,7 +360,6 @@ int bt_phone_hangup(u8 *bt_addr)
      * 判断如果另一个手机还在来电并且不支持inband ring，那就恢复一个嘟嘟声提示音
      */
     if (tws_api_get_role() == TWS_ROLE_MASTER) {
-        u8 temp_btaddr[6];
         u8 *addr = btstack_get_other_dev_addr(bt_addr);
         if (addr && bt_get_call_status_for_addr(bt_addr) != BT_CALL_OUTGOING) {
             //有另一个连接存在
@@ -484,6 +485,10 @@ int bt_phone_esco_play(u8 *bt_addr)
         printf("CMD_OPEN_ESCO_PLAYER error\n");
         return 1;
     }
+    int ret = 0;
+#if (LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX)
+    ret = le_audio_unicast_play_stop_by_esco();
+#endif
     esco_smart_voice_detect_handler();
 #if TCFG_AUDIO_SOMATOSENSORY_ENABLE && SOMATOSENSORY_CALL_EVENT
     somatosensory_open();
@@ -493,7 +498,10 @@ int bt_phone_esco_play(u8 *bt_addr)
         clock_alloc("aes_esco_play", 128 * 1000000L);
     }
 #endif
-    a2dp_player_close(bt_addr);
+    if (a2dp_player_get_btaddr(temp_btaddr)) {
+        a2dp_player_close(temp_btaddr);
+        a2dp_media_close(temp_btaddr);
+    }
     bt_stop_a2dp_slience_detect(bt_addr);
     a2dp_media_close(bt_addr);
 #if 0   //debug
@@ -532,6 +540,11 @@ int bt_phone_esco_play(u8 *bt_addr)
 #endif
     tws_page_scan_deal_by_esco(1);
     pbg_user_mic_fixed_deal(1);
+#if (LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX)
+    if (ret) {
+        le_audio_unicast_play_resume_by_esco();
+    }
+#endif
     return 0;
 
 }
@@ -540,6 +553,10 @@ int bt_phone_esco_stop(u8 *bt_addr)
 {
 
     if (!esco_player_is_playing(bt_addr)) {
+        if (ed_ctl.timer && memcmp(ed_ctl.esco_addr, bt_addr, 6) == 0) {
+            sys_timer_del(ed_ctl.timer);
+            ed_ctl.timer = 0;
+        }
         puts("esco_player_is_close\n");
         return 0;
     }
@@ -720,8 +737,9 @@ REGISTER_LP_TARGET(phone_incom_lp_target) = {
 static void bt_tws_phone_num_callback(int priv, enum stream_event event)
 {
     if (event == STREAM_EVENT_STOP) {
-        if (tws_api_get_role() == TWS_ROLE_MASTER &&
-            g_bt_hdl.phone_ring_flag && g_bt_hdl.inband_ringtone == 0) {
+        printf("bt_tws_phone_num_callback:%d\n", bt_get_call_status());
+        if ((bt_get_call_status() != BT_CALL_HANGUP) && (tws_api_get_role() == TWS_ROLE_MASTER) &&
+            g_bt_hdl.phone_ring_flag && (g_bt_hdl.inband_ringtone == 0)) {
 #if TCFG_USER_TWS_ENABLE
             tws_play_ring_file_alone(get_tone_files()->phone_in, SYNC_TONE_PHONE_RING_TIME);
 #endif
@@ -909,6 +927,11 @@ static int bt_phone_status_event_handler(int *msg)
         printf("BT_STATUS_SCO_STATUS_CHANGE len:%d, type:%d\n",
                (bt->value >> 16), (bt->value & 0x0000ffff));
         if (bt->value != 0xff) {
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+            if (le_audio_player_is_playing()) {
+                le_auracast_stop(1);
+            }
+#endif
             u8 call_vol = 15;
             //为了解决两个手机都在通话，在手机上轮流切声卡的音量问题
             call_vol = bt_get_call_vol_for_addr(bt->args);
@@ -971,6 +994,12 @@ static int bt_phone_status_event_handler(int *msg)
 
             /* bt_phone_esco_stop(bt->args); */ //主机这里不直接停止，通过收到下面的命令在停止，避免主从停止不同步
             tws_phone_call_send_cmd(CMD_CLOSE_ESCO_PLAYER, bt->args, 0, 1);
+
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+            if (!le_audio_player_is_playing()) {
+                le_auracast_audio_recover();
+            }
+#endif
 
 #if SECONDE_PHONE_IN_RING_COEXIST
             u8 device_a_call = bt_get_call_status_for_addr(bt->args);
@@ -1129,7 +1158,6 @@ static int call_tws_msg_handler(int *msg)
         memcpy(phone_addr, &(evt->args[3]), 6);
         put_buf(phone_addr, 6);
 
-        memset(g_play_addr, 0xff, 6);
         if (tws_api_get_role() == TWS_ROLE_MASTER) {
 #if SECONDE_PHONE_IN_RING_COEXIST
             if (bt_get_call_status_for_addr(phone_addr) == BT_CALL_INCOMING) {
@@ -1139,6 +1167,11 @@ static int call_tws_msg_handler(int *msg)
                     tws_phone_call_send_cmd(CMD_PHONE_INCOME, phone_addr, 1, 1);
                 } else if (!memcmp(outband_ring_bt_addr_get(), phone_addr, 6)) { //后台来电
                     printf("tws_monitor_start_send_ring_cmd");
+                    if (ring_player_runing()) {
+                        y_printf("stop ring, both sides restart ring");
+                        tone_player_stop();
+                        ring_player_stop();
+                    }
                     tws_phone_call_send_cmd(CMD_PHONE_OUTBAND_RING, phone_addr, 0, 1);
                 }
             }

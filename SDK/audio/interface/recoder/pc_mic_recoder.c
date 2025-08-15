@@ -9,7 +9,7 @@
 #include "media/includes.h"
 #include "jlstream.h"
 #include "uac_stream.h"
-#include "asm/dac.h"
+#include "audio_dac.h"
 #include "audio_config_def.h"
 #include "app_main.h"
 #include "volume_node.h"

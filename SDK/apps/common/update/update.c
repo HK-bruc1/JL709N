@@ -6,7 +6,7 @@
 #endif
 #include "update.h"
 #include "update_loader_download.h"
-#include "asm/crc16.h"
+#include "crc.h"
 #include "asm/wdt.h"
 #include "os/os_api.h"
 #include "os/os_cpu.h"
@@ -25,6 +25,7 @@
 #include "bt_common.h"
 #include "boot.h"
 #include "asm/sfc_norflash_api.h"
+#include "db_updata_api.h"
 
 #if TCFG_MIC_EFFECT_ENABLE
 #include "mic_effect.h"
@@ -85,7 +86,7 @@ extern void sys_auto_sniff_controle(u8 enable, u8 *addr);
 extern void app_audio_set_wt_volume(s16 volume);
 extern u8 get_max_sys_vol(void);
 extern u8 get_bt_trim_info_for_update(u8 *res);
-
+extern const int support_vm_data_keep;
 
 extern const int support_norflash_update_en;
 const u8 loader_file_path[] = "mnt/norflash/C/"LOADER_NAME"";
@@ -95,11 +96,21 @@ const char updata_file_name[] = "/*.UFW";
 static u32 g_updata_flag = 0;
 static volatile u8 ota_status = 0;
 static succ_report_t succ_report;
+static bool g_write_vm_flag = true;
+
+int syscfg_write_update_check(u16 item_id, void *buf, u16 len)
+{
+    return g_write_vm_flag;
+}
 
 bool vm_need_recover(void)
 {
-    printf(">>>[test]:g_updata_flag = 0x%x\n", g_updata_flag);
-    return ((g_updata_flag & 0xffff) == UPDATA_SUCC) ? true : false;
+    if (support_vm_data_keep) {
+        return true;
+    }
+    return false;
+    /* printf(">>>[test]:g_updata_flag = 0x%x\n", g_updata_flag); */
+    /* return ((g_updata_flag & 0xffff) == UPDATA_SUCC) ? true : false; */
 }
 
 
@@ -127,7 +138,10 @@ void update_result_set(u16 result)
 {
     if (CONFIG_UPDATE_ENABLE) {
         UPDATA_PARM *p = UPDATA_FLAG_ADDR;
-
+        if (p->parm_type == UPDIFF_FLASH_UPDATA || p->parm_type == COMBAK_FLASH_UPDATA) {
+            log_info("update updiff/combak\n");
+            return;
+        }
         memset(p, 0x00, sizeof(UPDATA_PARM));
         p->parm_result = result;
         p->parm_crc = CRC16(((u8 *)p) + 2, sizeof(UPDATA_PARM) - 2);
@@ -203,6 +217,7 @@ __retry:
 
 extern void update_tone_event_clear();
 
+__INITCALL_BANK_CODE
 int update_result_deal()
 {
 #ifdef CONFIG_FPGA_ENABLE
@@ -211,6 +226,7 @@ int update_result_deal()
 
     u8 key_voice_cnt = 0;
     u16 result = 0;
+    u16 up_type = (g_updata_flag >> 16) & 0xffff;
     result = (g_updata_flag & 0xffff);
     log_info("<--------update_result_deal=0x%x %x--------->\n", result, g_updata_flag >> 16);
 #if CONFIG_DEBUG_ENABLE
@@ -235,7 +251,9 @@ int update_result_deal()
     }
 
     int voice_max_cnt = 5;
-
+#ifdef UPDATE_VOICE_REMIND
+    app_var.update_tone_end_flag = 0;
+#endif
     while (1) {
         wdt_clear();
 
@@ -250,6 +268,7 @@ int update_result_deal()
                 os_time_dly(5);
                 os_taskq_accept(8, msg);
             }
+            app_var.update_tone_end_flag = 1;
             tone_player_stop();
             puts(">>>>>>>>>>>\n");
             update_tone_event_clear();
@@ -262,6 +281,7 @@ int update_result_deal()
                 os_time_dly(2);
                 os_taskq_accept(8, msg);
             }
+            app_var.update_tone_end_flag = 1;
             tone_player_stop();
             update_tone_event_clear();
         }
@@ -272,6 +292,10 @@ int update_result_deal()
             //注:关机要慎重,要设置开机键
             //enter_sys_soft_poweroff();
         }
+    }
+
+    if (up_type == UPDIFF_FLASH_UPDATA || up_type == COMBAK_FLASH_UPDATA) {
+        db_update_break_last_update_param();
     }
 
     return 1;
@@ -300,7 +324,7 @@ static void update_before_jump_common_handle(UPDATA_TYPE up_type)
 {
 
 #if CPU_CORE_NUM > 1            //双核需要把CPU1关掉
-    printf("Before Suspend Current Cpu ID:%d Cpu In Irq?:%d\n", current_cpu_id(),  cpu_in_irq());
+    printf("Before Suspend Current Cpu ID:%d, Cpu In Irq?:%d, cpu_irq_disabled:%d\n", current_cpu_id(),  cpu_in_irq(), cpu_irq_disabled());
     if (current_cpu_id() == 1) {
         os_suspend_other_core();
     }
@@ -412,6 +436,9 @@ static void update_param_ram_set(u8 *buf, u16 len)
 void update_mode_api_v2(UPDATA_TYPE type, void (*priv_param_fill_hdl)(UPDATA_PARM *p), void (*priv_update_jump_handle)(int type))
 {
     u16 update_param_len = UPDATA_PARM_SIZE;//sizeof(UPDATA_PARM) + UPDATE_PRIV_PARAM_LEN;
+    if (update_param_len > (u32)(&UPDATA_SIZE)) {
+        update_param_len = (u32)(&UPDATA_SIZE);
+    }
 
     UPDATA_PARM *p = malloc(update_param_len);
 
@@ -573,7 +600,7 @@ static void update_init_common_handle(int type)
 #endif
 
 #if OTA_TWS_SAME_TIME_ENABLE
-        if ((BT_UPDATA != type) && (TESTBOX_UART_UPDATA != type)) { // 测试盒升级不支持同步升级
+        if ((BT_UPDATA != type) || (TESTBOX_UART_UPDATA != type)) { // 测试盒升级不支持同步升级
             // 关闭page_scan
             lmp_hci_write_scan_enable((0 << 1) | 0);
             // 退出sniff并关闭sniff
@@ -599,6 +626,9 @@ static void update_init_common_handle(int type)
     }
     // 解除保护
     norflash_set_write_protect_remove();
+    if (DUAL_BANK_UPDATA != type) {
+        g_write_vm_flag = false;
+    }
 }
 
 static void update_exit_common_handle(int type, void *priv)
@@ -613,6 +643,7 @@ static void update_exit_common_handle(int type, void *priv)
         }
         // 升级失败，添加写保护
         norflash_set_write_protect_en();
+        g_write_vm_flag = true;
     }
 
 #if TCFG_AUTO_SHUT_DOWN_TIME
@@ -669,7 +700,7 @@ static void update_common_state_cbk(update_mode_info_t *info, u32 state, void *p
     }
 }
 
-
+__INITCALL_BANK_CODE
 static int app_update_init(void)
 {
     update_module_init(update_common_state_cbk);

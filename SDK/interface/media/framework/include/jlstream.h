@@ -9,6 +9,7 @@
 #include "media/media_config.h"
 #include "system/task.h"
 #include "system/spinlock.h"
+#include "media_bank.h"
 #include "fs/resfile.h"
 
 #define FADE_GAIN_MAX	16384
@@ -88,6 +89,10 @@ struct jlstream;
 #define NODE_IOC_GET_MIXER_INFO     0x0002002f
 #define NODE_IOC_TWS_TX_SWITCH      0x00020030
 #define NODE_IOC_GET_ID3      		0x00020031
+#define NODE_IOC_GET_ENC_TIME       0x00020032		//获取编码时间
+#define NODE_IOC_GET_FMT_EX         0x00020033
+#define NODE_IOC_SET_FMT_EX         0x00020034
+#define NODE_IOC_SET_SYNC_NETWORK   0x00020035
 
 #define NODE_IOC_START              (0x00040000 | NODE_STA_RUN)
 #define NODE_IOC_PAUSE              (0x00040000 | NODE_STA_PAUSE)
@@ -126,8 +131,11 @@ enum stream_event {
 
     STREAM_EVENT_GET_SWITCH_CALLBACK,
     STREAM_EVENT_GET_MERGER_CALLBACK,
+    STREAM_EVENT_GET_SPATIAL_ADV_CALLBACK,
 
     STREAM_EVENT_GLOBAL_PAUSE,
+    STREAM_EVENT_GET_NOISEGATE_CALLBACK,
+    STREAM_EVENT_GET_OUTPUT_NODE_DELAY,
 };
 
 enum stream_scene : u8 {
@@ -137,6 +145,7 @@ enum stream_scene : u8 {
     STREAM_SCENE_AI_VOICE,
     STREAM_SCENE_LINEIN,        //linein 模式
     STREAM_SCENE_FM,            //FM 模式
+    STREAM_SCENE_TDM,            //TDM 模式
     STREAM_SCENE_MUSIC,         //本地音乐
     STREAM_SCENE_RECODER,       //录音
     STREAM_SCENE_SPDIF,
@@ -198,6 +207,7 @@ enum stream_node_state : u16 {
     NODE_STA_OUTPUT_TO_FAST         = 0x0800,   //解码输出太多主动挂起
     NODE_STA_OUTPUT_BLOCKED         = 0x1000,   //终端节点缓存满,数据写不进去
     NODE_STA_OUTPUT_SPLIT           = 0x2000,
+    NODE_STA_DECODER_FADEOUT        = 0X4000,  //用来判断是否是解码节点的淡出
 };
 
 enum stream_node_type : u8 {
@@ -226,15 +236,18 @@ enum pcm_24bit_data_type : u8 {
 struct stream_fmt {
     u8 Qval;
     u8 bit_wide;        //数据流中数据的位宽。
-    u8 dec_bit_wide;    //解码需要配置的位宽。
-    u8 pcm_24bit_type;      //用于判断3byte_24bit数据或4byte_24bit数据
     u8 channel_mode;
-    u8 chconfig_id;    	//声道Id, LDAC解码需要配置的参数,通过这个解析出声道类型。
-    u16 frame_dms;		//帧长时间，单位 deci-ms (ms/10)
-    u16 codec_version;  //数据编码类型的版本，同一种coding_type,可能存在不同的版本,LHDC 解码需要配置的参数。
-    u32 bit_rate;
+    u32 frame_dms : 12;		//帧长时间，单位 deci-ms (ms/10)
+    u32 bit_rate : 20;
     u32 sample_rate;
     u32 coding_type;
+};
+
+struct stream_fmt_ex {
+    u8 pcm_24bit_type;      //用于判断3byte_24bit数据或4byte_24bit数据
+    u8 chconfig_id;    	//声道Id, LDAC解码需要配置的参数,通过这个解析出声道类型。
+    u8 dec_bit_wide;    //解码需要配置的位宽。
+    u16 codec_version;  //数据编码类型的版本，同一种coding_type,可能存在不同的版本,LHDC 解码需要配置的参数。
 };
 
 struct stream_enc_fmt {
@@ -420,9 +433,16 @@ struct stream_node_adapter {
     void (*release)(struct stream_node *node);
 };
 
+struct node_locker {
+    struct list_head entry;
+    OS_SEM sem;
+    const void *task;
+    u8 ref;
+    u8 nest;
+};
+
 struct stream_node {
     u16 uuid;
-    u16 pipeline;
 
     u8 subid;
     enum stream_node_type type;
@@ -432,7 +452,7 @@ struct stream_node {
 
     struct stream_oport *oport;
 
-    OS_MUTEX mutex;
+    struct node_locker *locker;
 
     const struct stream_node_adapter *adapter;
     int private_data[0];
@@ -442,6 +462,7 @@ struct stream_node {
 struct stream_snode {
     struct stream_node node;
     struct jlstream *stream;
+    u16 pipeline;
     int private_data[0];
 };
 
@@ -489,6 +510,7 @@ struct jlstream {
     u8 thread_run;
     u8 thread_num;
     u8 thread_policy_step;
+    u8 continue_nego_flag;
     enum stream_state state;
     enum stream_state pp_state;
     enum stream_coexist coexist;
@@ -521,6 +543,12 @@ struct jlstream {
     void (*callback_func)(void *, int);
 };
 
+extern const struct stream_node_adapter stream_node_adapter_begin[];
+extern const struct stream_node_adapter stream_node_adapter_end[];
+
+#define for_each_stream_node_adapter(p) \
+        for (p = stream_node_adapter_begin; p < stream_node_adapter_end; p++)
+
 
 #define REGISTER_STREAM_NODE_ADAPTER(adapter) \
     const struct stream_node_adapter adapter sec(.stream_node_adapter)
@@ -532,6 +560,7 @@ struct jlstream {
 #define TIME_TO_PCM_SAMPLES(time, sample_rate) \
     (((u64)time * sample_rate / PCM_SAMPLE_ONE_SECOND) + (((u64)time * sample_rate) % PCM_SAMPLE_ONE_SECOND == 0 ? 0 : 1))
 
+int jlstream_init();
 
 void jlstream_lock();
 
@@ -735,5 +764,18 @@ void jlstream_return_frame(struct stream_iport *iport, struct stream_frame *fram
 int jlstream_get_cpu_usage();
 
 void stream_mem_unfree_dump();
+
+struct jlsream_crossfade {
+    struct jlstream_fade fade[2]; //0:fade_out  1:fade_in
+    u32 sample_rate;
+    u16 msec;
+    u8 channel;
+    u8 bit_width;
+    u8 enable;
+};
+
+void jlstream_frames_cross_fade_init(struct jlsream_crossfade *crossfade);
+u8 jlstream_frames_cross_fade_run(struct jlsream_crossfade *crossfade, void *fadein_addr, void *fadeout_addr, void *output_addr, int len);
+
 #endif
 

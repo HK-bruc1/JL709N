@@ -84,7 +84,7 @@ int tuya_sys_event_handler_specific(struct sys_event *event);
 #define EARPHONE_STATE_ROLE_SWITCH(a)
 
 
-#elif ((THIRD_PARTY_PROTOCOLS_SEL & (GFPS_EN | REALME_EN | TME_EN | DMA_EN | GMA_EN | MMA_EN | FMNA_EN | SWIFT_PAIR_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN | XIMALAYA_EN)) | LE_AUDIO_EN)
+#elif ((THIRD_PARTY_PROTOCOLS_SEL & (GFPS_EN | REALME_EN | TME_EN | DMA_EN | GMA_EN | MMA_EN | FMNA_EN | SWIFT_PAIR_EN | ONLINE_DEBUG_EN | CUSTOM_DEMO_EN | XIMALAYA_EN | AURACAST_APP_EN)) | LE_AUDIO_EN)
 #define EARPHONE_STATE_INIT()                   do { } while(0)
 #define EARPHONE_STATE_SET_PAGE_SCAN_ENABLE()   do { } while(0)
 #define EARPHONE_STATE_GET_CONNECT_MAC_ADDR()   do { } while(0)
@@ -176,6 +176,8 @@ typedef enum {
     CIG_EVENT_OPID_PAUSE        = 0x46,
     CIG_EVENT_OPID_NEXT         = 0x4B,
     CIG_EVENT_OPID_PREV         = 0x4C,
+    CIG_EVENT_OPID_REQ_REMOVE_CIS   = 0x4D,
+    CIG_EVENT_OPID_REQ_CREAT_CIS   = 0x4E,
 } CIG_EVENT_CMD_TYPE;
 // 检查是否已经开始退出蓝牙模式
 extern bool bt_mode_is_try_exit();

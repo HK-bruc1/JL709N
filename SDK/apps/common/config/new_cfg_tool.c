@@ -8,7 +8,7 @@
 #include "boot.h"
 #include "ioctl_cmds.h"
 #include "app_online_cfg.h"
-#include "asm/crc16.h"
+#include "crc.h"
 #include "asm/cpu.h"
 #include "app_config.h"
 #include "online_db_deal.h"
@@ -209,9 +209,15 @@ void all_assemble_package_send_to_pc(u8 id, u8 sq, u8 *buf, u32 len)
 void app_cfg_tool_event_handler(struct cfg_tool_event *cfg_tool_dev)
 {
     u8 *buf = NULL;
+#if TCFG_USER_TWS_ENABLE
+    spin_lock(&cfg_packet.lock);
+#endif
     buf = (u8 *)malloc(cfg_tool_dev->size);
     if (buf == NULL) {
         ASSERT(0, "buf malloc err!");
+#if TCFG_USER_TWS_ENABLE
+        spin_unlock(&cfg_packet.lock);
+#endif
         return;
     }
 
@@ -220,6 +226,9 @@ void app_cfg_tool_event_handler(struct cfg_tool_event *cfg_tool_dev)
     /* printf("cfg_tool_event_handler rx:\n"); */
     /* printf_buf(cfg_tool_dev->packet, cfg_tool_dev->size); */
     memcpy(buf, cfg_tool_dev->packet, cfg_tool_dev->size);
+#if TCFG_USER_TWS_ENABLE
+    spin_unlock(&cfg_packet.lock);
+#endif
 
     const struct tool_interface *p;
     list_for_each_tool_interface(p) {
@@ -257,7 +266,12 @@ u8 cfg_tool_combine_rx_data(u8 *buf, u32 rlen)
 
         if (rlen <= 255) {
             u8 rx_data_len = buf[5] + 6;
+#if (TCFG_COMM_TYPE == TCFG_USB_COMM)
+            if ((rx_data_len == rlen) && (rlen != 64)) {
+#else
+            // USB收到的数据是64长度会导致该判断不合理
             if (rx_data_len == rlen) {
+#endif
                 // 不支持旧协议数据
                 printf("cfg_tool rx data is not right!!!\n");
                 return -1;
@@ -407,16 +421,24 @@ static void online_cfg_tool_tws_sibling_data_deal(void *_data, u16 len, bool rx)
     if (rx) {
         cfg_packet.event = DEFAULT_ACTION;
         cfg_packet.size = len;
+        spin_lock(&cfg_packet.lock);
         if (local_packet != NULL) {
             local_packet_free();
         }
         local_packet = local_packet_malloc(cfg_packet.size);
         cfg_packet.packet = local_packet;
         memcpy(cfg_packet.packet, (u8 *)_data, cfg_packet.size);
+        spin_unlock(&cfg_packet.lock);
         if (OS_NO_ERR != os_taskq_post_type("app_core", MSG_FROM_CFGTOOL_TWS_SYNC, 0, NULL)) {
             local_packet_free();
         }
     }
+}
+
+static int cfg_tool_tws_init(void)
+{
+    spin_lock_init(&cfg_packet.lock);
+    return 0;
 }
 
 static int cfg_tool_tws_sync_rx_data(int *msg)
@@ -435,6 +457,8 @@ APP_MSG_HANDLER(tws_msg_entry) = {
     .from       = MSG_FROM_CFGTOOL_TWS_SYNC,
     .handler    = cfg_tool_tws_sync_rx_data,
 };
+
+early_initcall(cfg_tool_tws_init);
 #endif//#if TCFG_USER_TWS_ENABLE
 
 // 在线检测设备
@@ -635,7 +659,7 @@ static void cfg_tool_callback(u8 *packet, u32 size)
 
         __this->s_prepare_write_file.file_size = attr.fsize;
         __this->s_prepare_write_file.file_addr = sdfile_cpu_addr2flash_addr(attr.sclust);
-        __this->s_prepare_write_file.earse_unit = boot_info.vm.align * 256;
+        __this->s_prepare_write_file.earse_unit = get_boot_info()->vm.align * 256;
         send_len = sizeof(__this->s_prepare_write_file);
         buf = send_buf_malloc(send_len);
         memcpy(buf, &(__this->s_prepare_write_file), send_len);
@@ -712,7 +736,7 @@ static void cfg_tool_callback(u8 *packet, u32 size)
             goto _exit_;
         }
         memcpy(buf_temp, cfg_packet.packet + 16, __this->r_write_addr_range.size);
-        encode_data_by_user_key(boot_info.chip_id, buf_temp, __this->r_write_addr_range.size, __this->r_write_addr_range.addr - boot_info.sfc.sfc_base_addr, 0x20);
+        encode_data_by_user_key(get_boot_info()->chip_id, buf_temp, __this->r_write_addr_range.size, __this->r_write_addr_range.addr - get_boot_info()->sfc.sfc_base_addr, 0x20);
         flash_w_region_check_en(0);
         write_len = norflash_write(NULL, buf_temp, __this->r_write_addr_range.size, __this->r_write_addr_range.addr);
         flash_w_region_check_en(1);

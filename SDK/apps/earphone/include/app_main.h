@@ -6,6 +6,7 @@
 #include "poweroff.h"
 #include "app_config.h"
 #include "bt_background.h"
+#include "earphone.h"
 
 enum {
     SYS_POWERON_BY_KEY = 1,
@@ -50,6 +51,7 @@ typedef struct _APP_VAR {
     u8 have_mass_storage;
     u8 poweron_reason;
     u8 poweroff_reason;
+    u8 update_tone_end_flag;//升级完成后提示音播放结束标志位
     int auto_stop_page_scan_timer;     //用于1拖2时，有一台连接上后，超过三分钟自动关闭Page Scan
     u16 auto_off_time;
     u16 warning_tone_v;
@@ -129,6 +131,7 @@ void app_power_off(void *priv);
 void bt_bredr_enter_dut_mode(u8 mode, u8 inquiry_scan_en);
 void bt_bredr_exit_dut_mode();
 u8 get_charge_online_flag(void);
+u8 check_local_not_accept_sniff_by_remote();
 
 struct app_mode *app_mode_switch_handler(int *msg);
 

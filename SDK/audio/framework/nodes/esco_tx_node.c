@@ -9,6 +9,7 @@
 #include "media/audio_base.h"
 #include "sync/audio_syncts.h"
 #include "app_config.h"
+#include "audio_time.h"
 
 struct esco_tx_sync_node {
     u8 trigger;
@@ -23,9 +24,6 @@ struct esco_tx_hdl {
     u8 bt_addr[6];
     struct list_head sync_list;
 };
-
-extern void bt_edr_conn_system_clock_init(void *addr, u8 factor);
-extern u32 bt_edr_conn_master_to_local_time(void *addr, u32 usec);
 
 static void esco_tx_handle_frame(struct stream_iport *iport, struct stream_note *note)
 {
@@ -198,6 +196,12 @@ static void esco_tx_release(struct stream_node *node)
 
 }
 
+/*
+ * 1、没有定义仅显示电量，TCFG_BT_SUPPORT_HFP使能则有通话功能
+ * 2、定义仅显示电量，则TCFG_BT_HFP_ONLY_DISPLAY_BAT_ENABLE不使能且TCFG_BT_SUPPORT_HFP使能有通话功能
+ */
+#if ((!defined TCFG_BT_HFP_ONLY_DISPLAY_BAT_ENABLE) && TCFG_BT_SUPPORT_HFP) || \
+	((defined TCFG_BT_HFP_ONLY_DISPLAY_BAT_ENABLE) && (!TCFG_BT_HFP_ONLY_DISPLAY_BAT_ENABLE) && TCFG_BT_SUPPORT_HFP)
 
 REGISTER_STREAM_NODE_ADAPTER(esco_tx_adapter) = {
     .name       = "esco_tx",
@@ -207,4 +211,4 @@ REGISTER_STREAM_NODE_ADAPTER(esco_tx_adapter) = {
     .release    = esco_tx_release,
     .hdl_size   = sizeof(struct esco_tx_hdl),
 };
-
+#endif

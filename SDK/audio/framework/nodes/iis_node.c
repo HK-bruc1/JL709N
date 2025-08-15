@@ -9,7 +9,7 @@
 #include "sync/audio_syncts.h"
 #include "circular_buf.h"
 #include "audio_splicing.h"
-#include "audio_dai/audio_iis.h"
+#include "media/audio_iis.h"
 #include "app_config.h"
 #include "gpio.h"
 #include "audio_cvp.h"
@@ -26,6 +26,7 @@
 #define LOG_TAG     "[IIS]"
 #define LOG_ERROR_ENABLE
 #define LOG_INFO_ENABLE
+#define LOG_DEBUG_ENABLE
 #define LOG_DUMP_ENABLE
 #include "debug.h"
 #else
@@ -457,10 +458,26 @@ static int iis_ioc_negotiate(struct stream_iport *iport, int nego_state)
         }
     }
 
+#if IIS_CH_NUM == 1
+    if (in_fmt->channel_mode != AUDIO_CH_DIFF) {
+        in_fmt->channel_mode = AUDIO_CH_DIFF;
+        ret = NEGO_STA_CONTINUE;
+    }
+#endif
+
+#if IIS_CH_NUM == 2
     if (in_fmt->channel_mode != AUDIO_CH_LR) {
         in_fmt->channel_mode = AUDIO_CH_LR;
         ret = NEGO_STA_CONTINUE;
     }
+#endif
+
+#if IIS_CH_NUM == 4
+    if (in_fmt->channel_mode != AUDIO_CH_QUAD) {
+        in_fmt->channel_mode = AUDIO_CH_QUAD;
+        ret = NEGO_STA_CONTINUE;
+    }
+#endif
 
     hdl->module_idx = MODULE_IDX_SEL;
     u32 sample_rate = 0;
@@ -548,6 +565,10 @@ static void iis_ioc_start(struct iis_node_hdl *hdl)
                 hdl->attr.write_mode = WRITE_MODE_BLOCK;
                 log_error("iis node param read err, set default\n");
             }
+            int delay_time = jlstream_event_notify(STREAM_EVENT_GET_OUTPUT_NODE_DELAY, hdl->scene);
+            if (delay_time) {
+                hdl->attr.delay_time = delay_time;
+            }
             if (hdl->attr.dev_properties != SYNC_TO_MASTER_DEV) { //从设备不需要挂载前级的同步节点
                 hdl->syncts_mount_en = 1;
             } else {
@@ -556,11 +577,9 @@ static void iis_ioc_start(struct iis_node_hdl *hdl)
         }
 
         if (!iis_hdl[hdl->module_idx]) {
-            int dma_len = audio_iis_fix_dma_len(hdl->module_idx, TCFG_AUDIO_DAC_BUFFER_TIME_MS, AUDIO_IIS_IRQ_POINTS, hdl->bit_width, hdl->nch);
-
             struct alink_param params = {0};
             params.module_idx = hdl->module_idx;
-            params.dma_size   = dma_len;
+            params.dma_size   = audio_iis_fix_dma_len(hdl->module_idx, TCFG_AUDIO_DAC_BUFFER_TIME_MS, AUDIO_IIS_IRQ_POINTS, hdl->bit_width, hdl->nch, AUDIO_DAC_MAX_SAMPLE_RATE);
             params.sr         = hdl->sample_rate;
             params.bit_width  = hdl->bit_width;
             params.fixed_pns  = const_out_dev_pns_time_ms;

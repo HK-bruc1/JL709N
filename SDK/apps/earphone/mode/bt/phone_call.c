@@ -46,6 +46,10 @@
 #if TCFG_AUDIO_ANC_ENABLE
 #include "audio_anc.h"
 #endif
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+#include "le_audio_player.h"
+#include "app_le_auracast.h"
+#endif
 
 
 #if (TCFG_USER_TWS_ENABLE == 0)
@@ -66,7 +70,6 @@
 #define ESCO_DUMP_PACKET_CALL		60 /*0~0xFF*/
 #define SYNC_TONE_PHONE_RING_TIME   300
 
-static u8 g_play_addr[6];
 static u8 esco_dump_packet = ESCO_DUMP_PACKET_CALL;
 
 static void phone_income_num_check(void *priv);
@@ -318,12 +321,18 @@ int bt_phone_esco_play(u8 *bt_addr)
 #if TCFG_SMART_VOICE_ENABLE
     esco_smart_voice_detect_handler();
 #endif
+    int ret = 0;
+#if (LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX)
+    ret = le_audio_unicast_play_stop_by_esco();
+#endif
 
 #if TCFG_AUDIO_SOMATOSENSORY_ENABLE && SOMATOSENSORY_CALL_EVENT
     somatosensory_open();
 #endif
-
-    a2dp_player_close(bt_addr);
+    if (a2dp_player_get_btaddr(temp_btaddr)) {
+        a2dp_player_close(temp_btaddr);
+        a2dp_media_close(temp_btaddr);
+    }
     bt_stop_a2dp_slience_detect(bt_addr);
     a2dp_media_close(bt_addr);
 #if 0   //debug
@@ -361,12 +370,24 @@ int bt_phone_esco_play(u8 *bt_addr)
     phone_income_num_check(NULL);
 #endif
     pbg_user_mic_fixed_deal(1);
+#if (LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_CONFIG & LE_AUDIO_JL_DONGLE_UNICAST_WITCH_PHONE_CONN_PLAY_MIX)
+    if (ret) {
+        le_audio_unicast_play_resume_by_esco();
+    }
+#endif
     return 0;
 
 }
 
 int bt_phone_esco_stop(u8 *bt_addr)
 {
+    if (!esco_player_is_playing(bt_addr)) {
+        if (ed_ctl.timer && memcmp(ed_ctl.esco_addr, bt_addr, 6) == 0) {
+            sys_timer_del(ed_ctl.timer);
+            ed_ctl.timer = 0;
+        }
+        return 0;
+    }
 #if TCFG_KWS_VOICE_RECOGNITION_ENABLE
     /* 处理来电时挂断电话，先跑释放资源再收到handup命令的情况
      * 避免先开smart voice，再关闭"yes/no"，导致出错*/
@@ -573,6 +594,11 @@ static int bt_phone_status_event_handler(int *msg)
         printf("BT_STATUS_SCO_STATUS_CHANGE len:%d, type:%d\n",
                (bt->value >> 16), (bt->value & 0x0000ffff));
         if (bt->value != 0xff) {
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+            if (le_audio_player_is_playing()) {
+                le_auracast_stop(1);
+            }
+#endif
             u8 call_vol = 15;
             //为了解决两个手机都在通话，在手机上轮流切声卡的音量问题
             call_vol = bt_get_call_vol_for_addr(bt->args);
@@ -596,7 +622,11 @@ static int bt_phone_status_event_handler(int *msg)
 
             bt_phone_esco_stop(bt->args);
             bt_phone_esco_stop(bt->args);
-
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+            if (!le_audio_player_is_playing()) {
+                le_auracast_audio_recover();
+            }
+#endif
         }
         break;
     case BT_STATUS_CALL_VOL_CHANGE:

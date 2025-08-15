@@ -1,8 +1,8 @@
 #include "audio_pdm.h"
 #include "includes.h"
 #include "asm/includes.h"
-#include "asm/dac.h"
-#include "asm/audio_adc.h"
+#include "audio_dac.h"
+#include "audio_adc.h"
 #include "media/includes.h"
 #include "asm/audio_common.h"
 
@@ -87,25 +87,13 @@ static void plnk_set_shift_scale(u8 order, u8 m)
 }
 
 
-#if 0
-___interrupt
-static void plnk_isr(void)
+static void plnk_isr(void *priv, void *data, u32 len)
 {
-    u8 buf_flag;
-    u32 *buf = (u32 *)__this->buf;
-    u32 len = __this->dma_len / 4;
-    u32 *data_buf;
-    if (PLNK_PND_IS()) {
-        PLNK_PND_CLR();
-        buf_flag = PLNK_USING_BUF() ? 0 : 1;
-        data_buf = (u32 *)buf;
-        data_buf += buf_flag * len;
-        if (__this && __this->isr_cb) {
-            __this->isr_cb(__this->private_data, data_buf, __this->dma_len);
-        }
+    if (__this && __this->isr_cb) {
+        u32 data_len = len * __this->ch_num;
+        __this->isr_cb(__this->private_data, data, data_len);
     }
 }
-#endif
 
 static void plnk_info_dump()
 {
@@ -132,29 +120,17 @@ static void plnk_sr_set(u32 sr)
 static void plnk_sclk_io_init(u8 port)
 {
     gpio_set_mode(IO_PORT_SPILT(port), PORT_OUTPUT_HIGH);
-#ifndef CONFIG_CPU_BR52
-    gpio_set_fun_output_port(port, FO_PLNK_SCLK, 0, 1);
-#else
     gpio_set_function(IO_PORT_SPILT(port), PORT_FUNC_PLNK_SCLK);
-#endif
 }
 
 static void plnk_data_io_init(u8 ch_index, u8 port)
 {
     gpio_set_mode(IO_PORT_SPILT(port), PORT_INPUT_FLOATING);
-#ifndef CONFIG_CPU_BR52
-    if (ch_index) {
-        gpio_set_fun_input_port(port, PFI_PLNK_DAT1);
-    } else {
-        gpio_set_fun_input_port(port, PFI_PLNK_DAT0);
-    }
-#else
     if (ch_index) {
         gpio_set_function(IO_PORT_SPILT(port), PORT_FUNC_PLNK_DAT1);
     } else {
         gpio_set_function(IO_PORT_SPILT(port), PORT_FUNC_PLNK_DAT0);
     }
-#endif
 }
 
 void *plnk_init(void *hw_plink)
@@ -211,7 +187,7 @@ void *plnk_init(void *hw_plink)
     memset(__this->buf, 0x00, __this->dma_len  * 2 * __this->ch_num);
     audio_adc_mic_set_buffs(&pdm_hdl->mic_ch, __this->buf, __this->dma_len, 2);
     //step3:设置mic采样输出回调函数
-    pdm_hdl->adc_output.handler = (void(*)(void *, s16 *, int))__this->isr_cb;
+    pdm_hdl->adc_output.handler = (void(*)(void *, s16 *, int))plnk_isr;
     pdm_hdl->adc_output.priv = __this->private_data;
     audio_adc_add_output_handler(&adc_hdl, &pdm_hdl->adc_output);
     return __this;

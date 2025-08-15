@@ -15,6 +15,14 @@
 
 /*
  *******************************************************************
+ *						Audio DAC Config
+ *******************************************************************
+ */
+const int config_audio_dac_mute_timeout = 70;   //单位：ms
+const int config_audio_dac_pa_mode = TCFG_AUDIO_DAC_PA_MODE;
+
+/*
+ *******************************************************************
  *						Audio Codec Config
  *******************************************************************
  */
@@ -29,7 +37,7 @@ const int WTS_DEC_LIB_SUPPORT_24BIT_OUTPUT = 1;
 //***********************
 //*		MP3 Codec       *
 //***********************
-const int MP3_DEC_LIB_SUPPORT_24BIT_OUTPUT = 0;
+const int MP3_DEC_LIB_SUPPORT_24BIT_OUTPUT = 1;
 
 //***********************
 //*		Audio Params    *

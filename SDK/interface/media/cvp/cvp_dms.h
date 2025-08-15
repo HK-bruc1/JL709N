@@ -239,6 +239,9 @@ struct dms_attr {
     u8 aptfilt_only: 1;
     u8 reserved: 3;
 
+
+    u8 output_way;   /*输出方式配置0:dac  1:fm_tx */
+    u8 fm_tx_start;  /*fm发射同步标志*/
     u8 dst_delay;/*延时估计目标延时*/
     u8 EnableBit;
     u8 FB_EnableBit;
@@ -360,6 +363,20 @@ struct dms_attr {
     float eng_db_T;        //麦增益能量阈值，范围：0 ~ 255 dB，默认值：80，单位：dB
 };
 
+struct cvp_2mic_adapter {
+    int (*init)(struct dms_attr *attr);
+    int (*exit)(void);
+    int (*push_mic0_data)(void *dat, u16 len);
+    int (*push_mic1_data)(void *dat, u16 len);
+    int (*push_ref_data)(void *data0, void *data1, u16 len);
+    int (*pop_ref_data)(void);
+    int (*ioctl)(int cmd, int value, void *priv);
+};
+const struct cvp_2mic_adapter *cvp_2mic_beamforming_adapter();
+const struct cvp_2mic_adapter *cvp_2mic_flexible_adapter();
+const struct cvp_2mic_adapter *cvp_2mic_awn_adapter();
+const struct cvp_2mic_adapter *cvp_2mic_hybrid_adapter();
+
 s32 aec_dms_init(struct dms_attr *attr);
 s32 aec_dms_exit();
 s32 aec_dms_fill_in_data(void *dat, u16 len);
@@ -401,7 +418,14 @@ void aec_dms_awn_toggle(u8 toggle);
 int aec_dms_awn_cfg_update(DMS_AWN_CONFIG *cfg);
 int aec_dms_awn_reboot(u8 enablebit);
 u8 get_cvp_dms_awn_rebooting();
-
+void audio_cvp_dms_lock();              // dms
+void audio_cvp_dms_unlock();
+void audio_cvp_dms_hybrid_lock();		// dms + hybrid
+void audio_cvp_dms_hybrid_unlock();
+void audio_cvp_dms_flexible_lock();     // dms + flexible
+void audio_cvp_dms_flexible_unlock();
+void audio_cvp_dms_awn_lock();			// dms + awn
+void audio_cvp_dms_awn_unlock();
 /*获取风噪的检测结果，1：有风噪，0：无风噪*/
 int cvp_dms_get_wind_detect_state(void);
 

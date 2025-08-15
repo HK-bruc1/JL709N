@@ -20,11 +20,11 @@
 #include "timer.h"
 #include "clock_manager/clock_manager.h"
 
-#if (OTA_TWS_SAME_TIME_ENABLE && OTA_TWS_SAME_TIME_NEW)
+#if (OTA_TWS_SAME_TIME_ENABLE && OTA_TWS_SAME_TIME_NEW && !OTA_TWS_SAME_TIME_NEW_LESS)
 
 //#define LOG_TAG_CONST       EARPHONE
 #define LOG_TAG             "[UPDATE_TWS]"
-#define log_errorOR_ENABLE
+#define log_ERROR_ENABLE
 #define LOG_DEBUG_ENABLE
 #define LOG_INFO_ENABLE
 /* #define LOG_DUMP_ENABLE */
@@ -45,9 +45,6 @@ static void (*sync_update_crc_init_hdl)(void) = NULL;
 static u32(*sync_update_crc_calc_hdl)(u32 init_crc, const void *data, u32 len) = NULL;
 extern const int support_dual_bank_update_no_erase;
 extern const int support_dual_bank_update_breakpoint;
-
-extern void norflash_set_write_protect_en(void);
-extern void norflash_set_write_protect_remove(void);
 
 struct _bt_event {
     u8 event;
@@ -117,7 +114,7 @@ void tws_ota_timeout_del(void)
     }
 }
 
-
+extern void tws_sniff_controle_check_disable(void);
 int tws_ota_trans_to_sibling(u8 *data, u16 len)
 {
     if (!(tws_api_get_tws_state() & TWS_STA_SIBLING_CONNECTED)) {

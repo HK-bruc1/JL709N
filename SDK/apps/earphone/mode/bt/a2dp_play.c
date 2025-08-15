@@ -14,6 +14,10 @@
 #include "audio_manager.h"
 #include "clock_manager/clock_manager.h"
 #include "dac_node.h"
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+#include "le_audio_player.h"
+#include "app_le_auracast.h"
+#endif
 
 #if TCFG_BT_DUAL_CONN_ENABLE == 0
 
@@ -38,11 +42,6 @@ void tws_a2dp_player_close(u8 *bt_addr)
     a2dp_media_close(bt_addr);
 }
 
-void a2dp_energy_detect_handler(int *arg)
-{
-
-}
-
 static void tws_a2dp_play_in_task(u8 *data)
 {
     u8 btaddr[6];
@@ -53,6 +52,15 @@ static void tws_a2dp_play_in_task(u8 *data)
     case CMD_A2DP_PLAY:
         puts("app_msg_bt_a2dp_play\n");
         put_buf(bt_addr, 6);
+#if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
+        if (le_audio_player_is_playing()) {
+            if (tws_api_get_role() != TWS_ROLE_SLAVE) {
+                g_printf("a2dp_media_mute line:%d\n", __LINE__);
+                a2dp_media_mute(bt_addr);
+                break;
+            }
+        }
+#endif
 #if (TCFG_BT_A2DP_PLAYER_ENABLE == 0)
         break;
 #endif

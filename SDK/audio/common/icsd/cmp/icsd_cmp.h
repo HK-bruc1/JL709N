@@ -9,7 +9,7 @@
 #include "icsd_cmp_config.h"
 
 extern int (*cmp_printf)(const char *format, ...);
-#if 0
+#if CMP_PRINTF_EN
 #define _cmp_printf printf                  //打开自适应ANC参数调试信息
 #else
 #define _cmp_printf icsd_printf_off

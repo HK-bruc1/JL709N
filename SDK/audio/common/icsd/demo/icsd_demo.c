@@ -16,6 +16,9 @@
 #include "icsd_common_v2_app.h"
 #include "audio_anc_debug_tool.h"
 
+#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
+#include "icsd_adt_app.h"
+#endif
 #if TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN
 #include "icsd_anc_v2_interactive.h"
 #endif
@@ -30,6 +33,9 @@
 #endif
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
 #include "rt_anc_app.h"
+#endif
+#if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
+#include "icsd_cmp_app.h"
 #endif
 
 
@@ -107,6 +113,59 @@ __exit:	//处理启动异常的问题
 #if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
     audio_adaptive_eq_close();
 #endif
+    return ret;
+}
+
+/*
+*********************************************************************
+*                  audio_adaptive_eq_app_open
+* Description: 单次（自适应EQ）
+* Note(s)    : 播提示音 + 自适应EQ, 运行结束调用audio_adaptive_eq_end_result
+*********************************************************************
+*/
+int audio_rtanc_in_ear_demo(u8 tone_en, ANC_mode_t exit_mode)
+{
+    int ret = 0;
+
+    //选择数据来源AFQ
+    int fre_sel = AUDIO_ADAPTIVE_FRE_SEL_AFQ;
+
+#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
+    audio_icsd_adt_scene_set(ADT_SCENE_AFQ, 1);
+#endif
+
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+    if (audio_anc_real_time_adaptive_state_get()) {
+        printf("rtanc in ear: close RTANC\n");
+#if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
+        audio_real_time_adaptive_eq_close();
+#endif
+        audio_icsd_adt_close(ADT_SCENE_AFQ, 1, get_icsd_adt_mode(), 0);
+    }
+#endif
+
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+    //1. 注册 耳道自适应流程
+    audio_rtanc_sz_select_open();
+#endif
+
+#if TCFG_AUDIO_FREQUENCY_GET_ENABLE
+    //2.播放提示音-启动算法流程
+    ret = audio_icsd_afq_open_fix_exit_mode(tone_en, exit_mode);
+    if (ret) {
+        printf("afq open fail\n");
+        goto __exit;
+    }
+#endif
+    return 0;
+__exit:	//处理启动异常的问题
+
+    //重入场景不需要关闭对应模块
+    if (ret == ANC_EXT_OPEN_FAIL_REENTRY) {
+        printf("func open now\n");
+        return ret;
+    }
+    printf("fail process\n");
     return ret;
 }
 
@@ -281,7 +340,7 @@ __exit:	//处理启动异常的问题
 int audio_real_time_adaptive_app_open_demo(void)
 {
     int ret = 0;
-    printf("%s\n", __func__);
+    printf("audio_real_time_adaptive_app_open_demo\n");
 
     //选择数据来源ANC
     int fre_sel = AUDIO_ADAPTIVE_FRE_SEL_ANC;
@@ -298,7 +357,7 @@ int audio_real_time_adaptive_app_open_demo(void)
     //2.打开实时自适应ANC
     ret = audio_anc_real_time_adaptive_open();
     if (ret) {
-        printf("real time adaptive anc open fail\n");
+        printf("real time adaptive anc open fail, ret=%d\n", ret);
         goto __exit;
     }
 #endif
@@ -327,7 +386,7 @@ __exit:	//处理启动异常的问题
 */
 int audio_real_time_adaptive_app_close_demo(void)
 {
-    printf("%s\n", __func__);
+    printf("audio_real_time_adaptive_app_close_demo\n");
 #if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
     //1. 关闭实时自适应EQ
     audio_real_time_adaptive_eq_close();
@@ -340,6 +399,90 @@ int audio_real_time_adaptive_app_close_demo(void)
     return 0;
 }
 
+
+/*
+*********************************************************************
+                audio_anc_switch_adt_app_open
+* Description: 模式切换时，打开当前APP层的ADT算法
+* Note(s)    : NA
+*********************************************************************
+*/
+int audio_anc_switch_adt_app_open(void)
+{
+    int ret = 0;
+#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
+    u16 adt_mode = icsd_adt_app_mode_get();
+    printf("audio_anc_switch_adt_app_open 0x%x\n", adt_mode);
+#endif
+
+    //选择数据来源ANC
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+    //1. 注册 实时自适应EQ 流程
+    if (adt_mode & ADT_REAL_TIME_ADAPTIVE_ANC_MODE) {
+#if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
+        int fre_sel = AUDIO_ADAPTIVE_FRE_SEL_ANC;
+        ret = audio_real_time_adaptive_eq_open(fre_sel, audio_adaptive_eq_end_result);
+        if (ret) {
+            printf("adaptive eq open fail\n");
+            goto __exit;
+        }
+#endif
+        audio_rtanc_var_cache_set(0);
+    }
+#endif
+
+#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
+    //2.打开ADT算法
+    ret = audio_icsd_adt_no_sync_open(adt_mode);
+    if (ret) {
+        printf("anc_switch: adt app open fail, ret=%d\n", ret);
+        goto __exit;
+    }
+#endif
+
+    return 0;
+__exit:	//处理启动异常的问题
+
+    //重入场景不需要关闭对应模块
+    if (ret == ANC_EXT_OPEN_FAIL_REENTRY) {
+        printf("func open now\n");
+        return ret;
+    }
+    printf("fail process\n");
+#if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
+    audio_real_time_adaptive_eq_close();
+#endif
+    return ret;
+}
+
+/*
+*********************************************************************
+                audio_anc_switch_adt_app_close
+* Description: 模式切换时，关闭当前APP层的ADT算法
+* Note(s)    : NA
+*********************************************************************
+*/
+int audio_anc_switch_adt_app_close(void)
+{
+    printf("audio_anc_switch_adt_app_close\n");
+
+#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
+    u16 adt_mode = icsd_adt_app_mode_get();
+#endif
+
+#if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
+    //1. 关闭实时自适应EQ
+    if (adt_mode & ADT_REAL_TIME_ADAPTIVE_ANC_MODE) {
+        audio_real_time_adaptive_eq_close();
+    }
+#endif
+
+#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
+    //2.关闭ADT算法
+    audio_icsd_adt_close(0, 0, adt_mode, 0);
+#endif
+    return 0;
+}
 
 /*----------------------------------------------------------------*/
 /*                         Test demo Start                        */
@@ -371,12 +514,12 @@ void audio_anc_howl_det_toggle_demo()
     static u8 flag = 0;
     flag ^= 1;
     anc_howling_detect_toggle(flag);
-    if (flag) {
-        icsd_adt_tone_play(ICSD_ADT_TONE_NUM2);
-    } else {
-        icsd_adt_tone_play(ICSD_ADT_TONE_NUM2);
-        icsd_adt_tone_play(ICSD_ADT_TONE_NUM0);
-    }
+    /* if (flag) { */
+    /* icsd_adt_tone_play(ICSD_ADT_TONE_NUM2); */
+    /* } else { */
+    /* icsd_adt_tone_play(ICSD_ADT_TONE_NUM2); */
+    /* icsd_adt_tone_play(ICSD_ADT_TONE_NUM0); */
+    /* } */
 #endif
 }
 

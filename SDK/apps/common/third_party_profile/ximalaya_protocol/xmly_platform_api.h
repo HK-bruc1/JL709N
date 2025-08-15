@@ -3,6 +3,22 @@
 
 #include "system/includes.h"
 
+extern u8 xmly_pid[8];
+extern char xmly_pid_str[];
+extern u8 xmly_secret_key[16];
+extern char xmly_sn[20];
+extern char xmly_device_type[];
+extern char xmly_fireware_version[];
+extern char xmly_software_version[];
+extern char xmly_device_model[];
+extern char xmly_company[];
+
+extern u8 xmly_adv_pid[4];
+extern u8 xmly_adv_vid[4];
+extern u8 xmly_adv_cid[2];
+extern u8 xmly_adv_sv[2];
+extern u8 xmly_adv_xpv;
+
 #define XMLY_EVENT_BLE_CONNECTION       (0x00)
 #define XMLY_EVENT_BLE_DISCONNECTION    (0x01)
 #define XMLY_EVENT_AUTH_RESULT          (0x02)
@@ -24,6 +40,7 @@ extern int xmly_notify_xiaoya_touch(void);
 extern int xmly_notify_battery(void);
 extern int xmly_notify_error(char *json, u16 length);
 extern int xmly_ble_status_get(void);
+extern int xmly_ble_status_set(u8 status);
 extern int xmly_auth_flag_get(void);
 extern int xmly_tws_sync_size_get(void);
 extern int xmly_tws_sync_data_get(u8 *data);

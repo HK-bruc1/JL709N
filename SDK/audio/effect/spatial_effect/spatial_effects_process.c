@@ -31,13 +31,15 @@ static aud_effect_t *aud_effect = NULL;
 
 struct spatial_effect_global_param {
     enum SPATIAL_EFX_MODE spatial_audio_mode;
-    u8 spatial_audio_fade_finish;
+    volatile u8 spatial_audio_fade_finish;
+    volatile u8 frame_pack_disable;
     u32 breaker_timer;
     u32 switch_timer;
 };
 static struct spatial_effect_global_param g_param = {
     .spatial_audio_mode = SPATIAL_EFX_FIXED,//空间音效初始化状态
     .spatial_audio_fade_finish = SPATIAL_EFX_FIXED,//是否完成淡入淡出的标志
+    .frame_pack_disable = 0,//外部数据流是否需要拼帧标志位。关闭空间音效时使能
     .breaker_timer = 0,  //关闭音效后数据流插入断点定时器
     .switch_timer = 0,   //恢复断点后打开空间音效定时器
 };
@@ -93,6 +95,11 @@ static void data_fade_mix(u8 bit_width, s16 *fade_in_data, s16 *fade_out_data, s
             fade_in_step++;
         }
     }
+}
+
+int audio_spatial_effects_frame_pack_disable()
+{
+    return g_param.frame_pack_disable;
 }
 
 int audio_spatial_effects_data_handler(u8 out_channel, s16 *data, u16 len)
@@ -177,6 +184,7 @@ int audio_effect_process_start(void)
 {
     int err = 0;
     aud_effect_t *effect = NULL;
+    g_param.frame_pack_disable = 0;
     if (spatial_effect_node_is_running() == 0) {
         printf("spatial_effect_node_is_running : %d", spatial_effect_node_is_running());
         return 0;
@@ -208,6 +216,7 @@ int audio_effect_process_start(void)
 
 int audio_effect_process_stop(void)
 {
+    g_param.frame_pack_disable = 1;
     g_param.spatial_audio_fade_finish = 1;
     if (spatial_effect_node_is_running() == 0) {
         printf("spatial_effect_node_is_running : %d", spatial_effect_node_is_running());
@@ -285,6 +294,22 @@ void spatial_effect_eq_clk_set(u8 mode, u8 eq_index)
 
 /*需要切换参数的eq节点名字*/
 static char spatial_eq_name[][16] = {"MusicEq", "SpatialEq1", "SpatialEq2", "SpatialEq3"};
+
+#if 0 //v300默认流程不添加动态eq
+static char spatial_dy_eq_name[16] = "SpatialDyEq";
+int spatial_effect_dy_eq_bypass(u8 is_bypass)
+{
+    dynamic_eq_pro_param_tool_set cfg = {0};
+    int ret = jlstream_read_form_data(0, spatial_dy_eq_name, 0, &cfg);
+    if (!ret) {
+        printf("read parm err, %s, %s\n", __func__, spatial_dy_eq_name);
+        return -1;
+    }
+    cfg.is_bypass = is_bypass;
+    return jlstream_set_node_param(NODE_UUID_DYNAMIC_EQ_PRO, spatial_dy_eq_name, &cfg, sizeof(cfg));
+}
+#endif
+
 /*空间音频开关时候进行相关节点参数配置
  * 0 ：关闭
  * 1 ：固定模式
@@ -297,9 +322,20 @@ void spatial_effect_change_eq(u8 mode)
     /*切换eq效果*/
     for (int i = 0; i < ARRAY_SIZE(spatial_eq_name); i++) {
         printf("eq:%s", spatial_eq_name[i]);
-        eq_update_parm(0, spatial_eq_name[i], spatial_mode);
+        if (config_audio_eq_xfade_enable) {
+            eq_update_tab(0, spatial_eq_name[i], spatial_mode);
+        } else {
+            eq_update_parm(0, spatial_eq_name[i], spatial_mode);
+        }
         spatial_effect_eq_clk_set(spatial_mode, i);
     }
+#if 0 //v300默认流程不添加动态eq
+    if (CONFIG_SPATIAL_EFFECT_VERSION == SPATIAL_EFFECT_V3) {
+        /*v300版本流程中 dy_eq开关*/
+        u8 is_bypass = mode ? 0 : 1;
+        spatial_effect_dy_eq_bypass(is_bypass);
+    }
+#endif
 }
 
 static u32 effect_strcmp(const char *str1, const char *str2)
@@ -382,7 +418,10 @@ void audio_spatial_effects_mode_switch(enum SPATIAL_EFX_MODE mode)
     if (spatial_audio_change_effect(mode)) {
         return;
     }
-    if (!get_spatial_effect_node_bypass()) {
+    if (g_param.spatial_audio_mode && mode && (g_param.spatial_audio_mode != mode)) {
+        //固定->跟踪 或 跟踪->固定，不做crossfade
+        g_param.spatial_audio_fade_finish = 1;
+    } else if (!get_spatial_effect_node_bypass()) {
         /*设置开始淡入淡出的标志*/
         g_param.spatial_audio_fade_finish = 0;
     }

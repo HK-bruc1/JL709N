@@ -52,6 +52,9 @@ void board_power_init()
 
 #if (!CONFIG_CHARGE_ENABLE)
     power_set_mode(CONFIG_POWER_MODE);
+    //没开启充电时,关闭漏电寄存器(约2uA)
+    CHG_VILOOP_EN(0);
+    CHG_VILOOP2_EN(0);
 #endif
 
     key_wakeup_init();

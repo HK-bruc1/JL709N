@@ -261,6 +261,8 @@ typedef enum {
     USER_CTRL_IAP_SEND_DATA, //len <= 512
     //serial port profile disconnect command
     USER_CTRL_IAP_DISCONNECT,
+    USER_CTRL_IAP_CONN,
+    USER_CTRL_IAP_CONN_RFCOMM,
     USER_CTRL_IAP_CMD_END,
 
 ///pbg发送命令
@@ -327,6 +329,11 @@ typedef enum {
     USER_CTRL_PAN_SEND_DATA,
     USER_CTRL_PAN_CMD_END,
 
+    //OPP功能发送命令
+    USER_CTRL_OPP_CMD_BEGIN       = 0xF5,
+    USER_CTRL_OPP_CONNECTION,
+    USER_CTRL_OPP_DISCONNECTION,
+    USER_CTRL_OPP_CMD_END,
 
     //蓝牙其他操作
     //蓝牙关闭
@@ -362,6 +369,7 @@ typedef enum {
     USER_CTRL_TWS_AUDIO_SHARE_START_CONNECT,
     USER_CTRL_ATWS_AUDIO_SHARE_CMD_START					,
     USER_CTRL_ATWS_AUDIO_SHARE_CMD_SUSPEND					,
+    USER_CTRL_ADT_SYNC_CONNECT_FLAG,
 
     USER_CTRL_LAST
 } USER_CMD_TYPE;
@@ -867,4 +875,5 @@ bool is_have_dongle_dev_conn();
 extern u8 get_inband_ringtone_flag_for_addr(u8 *addr);
 u8 *get_other_dev_addr(u8 *addr);
 extern void make_rand_num(u8 *buf);
+extern u32 unactice_device_cmd_prepare(USER_CMD_TYPE cmd, u16 param_len, u8 *param);
 #endif

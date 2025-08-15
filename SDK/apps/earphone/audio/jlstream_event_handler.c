@@ -18,6 +18,7 @@
 #include "classic/tws_api.h"
 #include "esco_recoder.h"
 #include "clock.h"
+#include "dual_a2dp_play.h"
 
 #if TCFG_AUDIO_DUT_ENABLE
 #include "test_tools/audio_dut_control.h"
@@ -25,6 +26,14 @@
 
 #if TCFG_AUDIO_ANC_ENABLE
 #include "audio_anc.h"
+#endif
+
+#if RCSP_MODE && RCSP_ADV_TRANSLATOR
+#include "rcsp_translator.h"
+#endif
+
+#if TCFG_USER_TWS_ENABLE
+extern const int CONFIG_EXTWS_NACK_LIMIT_INT_CNT;
 #endif
 
 #define PIPELINE_UUID_TONE_NORMAL   0x7674
@@ -78,9 +87,6 @@ static const struct stream_coexist_policy coexist_policy_table_rewrite[] = {
     { 0, 0, 0, 0 }
 };
 
-extern void a2dp_energy_detect_handler(int *arg);
-
-
 int get_system_stream_bit_width(void *par)
 {
     return jlstream_read_bit_width(PIPELINE_UUID_TONE_NORMAL, par);
@@ -124,6 +130,15 @@ static int get_pipeline_uuid(const char *name)
         return PIPELINE_UUID_ESCO;
     }
 
+    if (!strcmp(name, "ai_rx_call")) {
+        clock_alloc("ai_rx", 48 * 1000000UL);
+        return PIPELINE_UUID_ESCO;
+    }
+    if (!strcmp(name, "ai_rx_media")) {
+        clock_alloc("ai_rx", 48 * 1000000UL);
+        return PIPELINE_UUID_A2DP;
+    }
+
     if (!strcmp(name, "a2dp")) {
         clock_alloc("a2dp", 48 * 1000000UL);
         audio_event_to_user(AUDIO_EVENT_A2DP_START);
@@ -151,6 +166,13 @@ static int get_pipeline_uuid(const char *name)
     if (!strcmp(name, "pc_mic")) {
         clock_alloc("pc_mic", 96 * 1000000UL);
         return PIPELINE_UUID_PC_AUDIO;
+    }
+#endif
+
+#if TCFG_APP_MUSIC_EN
+    if (!strcmp(name, "music")) {
+        clock_alloc("music", 64 * 1000000UL);
+        return PIPELINE_UUID_A2DP;
     }
 #endif
 
@@ -236,10 +258,16 @@ static int load_decoder_handler(struct stream_decoder_info *info)
         info->frame_time = 16;
 #endif
     }
-    if (info->scene == STREAM_SCENE_LEA_CALL) {
+    if (info->scene == STREAM_SCENE_LEA_CALL || info->scene == STREAM_SCENE_LE_AUDIO) {
         //printf("decoder scene:LEA CALL\n");
         info->frame_time = 10;
-        info->task_name = "a2dp_dec";
+        /* info->task_name = "a2dp_dec"; */
+    }
+    if (info->scene == STREAM_SCENE_MUSIC) {
+        info->task_name = "file_dec";
+    }
+    if (info->scene == STREAM_SCENE_AI_VOICE) {
+        info->frame_time = 10;
     }
     return 0;
 }
@@ -291,6 +319,54 @@ static int tws_switch_get_status()
     return 1;
 }
 
+#if RCSP_MODE && RCSP_ADV_TRANSLATOR
+static int esco_switch_get_status()
+{
+    int trans = 0; //获取翻译状态
+    struct translator_mode_info minfo;
+    JL_rcsp_translator_get_mode_info(&minfo);
+    if (minfo.mode == RCSP_TRANSLATOR_MODE_CALL_TRANSLATION) {
+        trans = 1;
+    }
+    if (trans) {
+        return 0;
+    } else {
+        return 1;
+    }
+
+}
+
+
+static int esco_trans_switch_get_status()
+{
+    return !esco_switch_get_status();
+
+}
+
+static int media_switch_get_status()
+{
+    int trans = 0;//获取翻译状态
+    struct translator_mode_info minfo;
+    JL_rcsp_translator_get_mode_info(&minfo);
+    if (minfo.mode == RCSP_TRANSLATOR_MODE_A2DP_TRANSLATION) {
+        trans = 1;
+    }
+    if (trans) {
+        return 0;
+    } else {
+        return 1;
+    }
+
+}
+
+
+static int media_trans_switch_get_status()
+{
+    return !media_switch_get_status();
+
+}
+#endif
+
 static int get_switch_node_callback(const char *arg)
 {
     if (!strcmp(arg, "TWS_Switch")) {
@@ -300,6 +376,27 @@ static int get_switch_node_callback(const char *arg)
 #if TCFG_AUDIO_SIDETONE_ENABLE
     if (!strcmp(arg, SIDETONE_SWITCH_NAME)) {
         return (int)get_audio_sidetone_state;
+    }
+#endif
+
+#if RCSP_MODE && RCSP_ADV_TRANSLATOR
+    if (!strcmp(arg, "ESCO_Switch")) {
+        return (int)esco_switch_get_status;
+    }
+    if (!strcmp(arg, "ESCO_Trans")) {
+        return (int)esco_trans_switch_get_status;
+    }
+    if (!strcmp(arg, "ESCO_MIC_Switch")) {
+        return (int)esco_switch_get_status;
+    }
+    if (!strcmp(arg, "ESCO_MIC_Trans")) {
+        return (int)esco_trans_switch_get_status;
+    }
+    if (!strcmp(arg, "Media_Switch")) {
+        return (int)media_switch_get_status;
+    }
+    if (!strcmp(arg, "Media_Trans")) {
+        return (int)media_trans_switch_get_status;
     }
 #endif
     return 0;
@@ -314,9 +411,39 @@ static int tws_get_output_channel()
     return channel;
 }
 
+static void get_noisegate_gain(u32 frame_time_ms, float gain)
+{
+    /* #define debug_dig(x)  __builtin_abs((int)((x - (int)x) * 1000)) */
+    /* printf("frame_time %d ms, gain %d.%03d\n", frame_time_ms, (int)gain, debug_dig(gain)); */
+}
+
+static int get_noisegate_node_callback(const char *arg)
+{
+    /* if (!strcmp(arg, "my_nsgate_name")) { */
+    /* 可根据node_name区分不同的noisegate状态 */
+    /* } */
+    return (int)get_noisegate_gain;
+}
+
 static int get_merge_node_callback(const char *arg)
 {
     return (int)tws_get_output_channel;
+}
+
+static int get_spatial_adv_node_callback(const char *arg)
+{
+    return (int)tws_get_output_channel;
+}
+
+static int get_output_node_delay(int arg)
+{
+#if TCFG_USER_TWS_ENABLE
+    if (arg == STREAM_SCENE_A2DP && CONFIG_EXTWS_NACK_LIMIT_INT_CNT < 63) {
+        /*A2DP模式下，DAC或输出设备在监听+转发的机制下最大延时约束为30ms，其他延时补偿到蓝牙缓冲预留转发时间*/
+        return 30/*ms*/;
+    }
+#endif
+    return 0;
 }
 
 int jlstream_event_notify(enum stream_event event, int arg)
@@ -347,9 +474,11 @@ int jlstream_event_notify(enum stream_event event, int arg)
     case STREAM_EVENT_GET_EFF_ONLINE_PARM:
         ret = get_eff_online_parm(arg);
         break;
+#if TCFG_BT_DUAL_CONN_ENABLE
     case STREAM_EVENT_A2DP_ENERGY:
         a2dp_energy_detect_handler((int *)arg);
         break;
+#endif
 #if TCFG_SWITCH_NODE_ENABLE
     case STREAM_EVENT_GET_SWITCH_CALLBACK:
         ret = get_switch_node_callback((const char *)arg);
@@ -367,12 +496,27 @@ int jlstream_event_notify(enum stream_event event, int arg)
         ret = get_merge_node_callback((const char *)arg);
         break;
 #endif
+#if TCFG_SPATIAL_ADV_NODE_ENABLE
+    case STREAM_EVENT_GET_SPATIAL_ADV_CALLBACK:
+        ret = get_spatial_adv_node_callback((const char *)arg);
+        break;
+#endif
     case STREAM_EVENT_GLOBAL_PAUSE:
 #if TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN && TCFG_AUDIO_ANC_ENABLE
         audio_anc_ear_adaptive_a2dp_suspend_cb();
 #endif
         break;
 
+#if TCFG_NOISEGATE_NODE_ENABLE
+    case STREAM_EVENT_GET_NOISEGATE_CALLBACK:
+        ret = get_noisegate_node_callback((const char *)arg);
+        break;
+#endif
+#if TCFG_USER_TWS_ENABLE
+    case STREAM_EVENT_GET_OUTPUT_NODE_DELAY:
+        ret = get_output_node_delay(arg);
+        break;
+#endif
     default:
         break;
     }
