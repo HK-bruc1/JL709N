@@ -18,12 +18,13 @@
 #define AFQ_SUSPENDED            BIT(1)
 #define AFQ_PART1_END            BIT(2)
 
-extern int (*afq_printf)(const char *format, ...);
-#if 1
+#if AFQ_PRINTF_EN
 #define _afq_printf printf                  //打开自适应ANC参数调试信息
 #else
 #define _afq_printf icsd_printf_off
 #endif
+extern int (*afq_printf)(const char *format, ...);
+
 
 struct icsd_afq_libfmt {
     int lib_alloc_size; //算法ram需求大小

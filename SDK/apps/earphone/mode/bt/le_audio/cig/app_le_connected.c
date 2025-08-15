@@ -1384,12 +1384,17 @@ void le_audio_media_control_cmd(u8 *data, u8 len)
     u16 con_handle = get_conn_handle();
 
     if (con_handle) {
-        log_info("Send media control... handle:0x%x\n", con_handle);
+        log_info("Send media control... handle:0x%x, 0x%x\n", con_handle, data[0]);
 #if TCFG_BT_VOL_SYNC_ENABLE
         switch (data[0]) {
         case CIG_EVENT_OPID_VOLUME_UP:
+            log_info("sync vol to master up\n");
+            //cis标准只设计了连接1拖1，所以可以用不带地址的接口发
+            bt_cmd_prepare(USER_CTRL_CMD_SYNC_VOL_INC, 0, NULL);
+            le_audio_send_priv_cmd(con_handle, VENDOR_PRIV_ACL_MUSIC_VOLUME, &(app_var.opid_play_vol_sync), sizeof(app_var.opid_play_vol_sync));
         case CIG_EVENT_OPID_VOLUME_DOWN:
-            log_info("sync vol to master");
+            log_info("sync vol to master down\n");
+            bt_cmd_prepare(USER_CTRL_CMD_SYNC_VOL_DEC, 0, NULL);
             le_audio_send_priv_cmd(con_handle, VENDOR_PRIV_ACL_MUSIC_VOLUME, &(app_var.opid_play_vol_sync), sizeof(app_var.opid_play_vol_sync));
             break;
         default:
@@ -1443,7 +1448,7 @@ static u16 ble_user_priv_cmd_handle(u16 handle, u8 *cmd, u8 len, u8 *rsp)
 
         break;
     case VENDOR_PRIV_LC3_INFO:
-        set_unicast_lc3_info(&cmd[1], len);
+        set_unicast_lc3_info(&cmd[1], len - 1);
         break;
     case VENDOR_PRIV_OPEN_MIC:
         app_send_message(APP_MSG_LE_AUDIO_CALL_OPEN, handle);
@@ -1501,11 +1506,9 @@ void le_audio_profile_exit()
     }
     le_audio_adv_api_enable(0);
     g_le_audio_hdl.le_audio_profile_ok = 0;
-    if (!is_cig_phone_conn()) { // 有连接先不卸载，等cis断开再卸载
-        app_connected_close_in_other_mode();
-    } else {
+    if (is_cig_phone_conn()) {
         local_irq_disable();
-        printf("le_hci_disconnect_all_connections\n");
+        y_printf("le_hci_disconnect_all_connections\n");
         le_hci_disconnect_all_connections();
         local_irq_enable();
     }
@@ -1838,6 +1841,7 @@ static void tws_sync_le_audio_config_func(u8 *data, int len)
         cpu_reset();//开关le_audio之后重新reset重启,初始化相关服务
         break;
     case LE_AUDIO_CONN_STATUES:
+        puts("LE_AUDIO_CONN_STATUES\n");
         g_le_audio_hdl.cig_phone_other_conn_status = data[1];
 #if TCFG_AUTO_SHUT_DOWN_TIME
         if (g_le_audio_hdl.cig_phone_other_conn_status & APP_CONNECTED_STATUS_CONNECT) {
@@ -1845,8 +1849,11 @@ static void tws_sync_le_audio_config_func(u8 *data, int len)
         }
 #endif
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN)))
-        clr_device_in_page_list();
-        bt_cmd_prepare(USER_CTRL_PAGE_CANCEL, 0, NULL);
+        if ((g_le_audio_hdl.cig_phone_other_conn_status & APP_CONNECTED_STATUS_CONNECT) || (g_le_audio_hdl.cig_phone_conn_status & APP_CONNECTED_STATUS_CONNECT)) {
+            puts("le_audio connect, close page\n");
+            clr_device_in_page_list();
+            bt_cmd_prepare(USER_CTRL_PAGE_CANCEL, 0, NULL);
+        }
         if (tws_api_get_role() == TWS_ROLE_MASTER) {
             tws_dual_conn_state_handler();
         }

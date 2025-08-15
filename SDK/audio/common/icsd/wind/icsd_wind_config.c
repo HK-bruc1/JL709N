@@ -12,21 +12,58 @@
 #include "icsd_adt.h"
 #include "anc_ext_tool.h"
 #include "audio_anc_common.h"
+#include "icsd_wind_app.h"
 
 //====================风噪检测配置=====================
 const u8 ICSD_WIND_PHONE_TYPE  = SDK_WIND_PHONE_TYPE;
 const u8 ICSD_WIND_MIC_TYPE    = SDK_WIND_MIC_TYPE;
-const u8 wdt_log_en     = 1; //调试离线log使能
+const u8 wdt_log_en     = ICSD_WDT_LOG_EN; //调试离线log使能
 const u8 icsd_wdt_debug = 0; //调试使能
 const u8 wdt_debug_dlen = 5;//调试帧数:ramsize = (36 * howl_debug_dlen) byte
 const u8 wdt_debug_thr  = 1; //调试触发阈值:wind_lvl >= wdt_debug_thr 触发调试log
 const u8 wdt_debug_type = 0; //0:参数调试  1:原始数据调试
 
 //====================离线调试:打印值放大了100倍=====================
-const u8 wdt_offline_debug = 0;//1:触发调试 2:误触调试
-const float icsd_wdt_sen = 0.8;
+const float icsd_wdt_sen = 0.8;//lff_tlk
+
+const u8 wdt_lff_tlk_debug = WDT_LFF_TLK_DEBUG_EN;//1:触发调试 2:误触调试
+const u8 wdt_lff_lfb_debug = WDT_LFF_LFB_DEBUG_EN;//
+const u8 wdt_lff_rff_debug = WDT_LFF_RFF_DEBUG_EN;//
+
+
 
 int (*win_printf)(const char *format, ...) = _win_printf;
+
+void wind_lff_lfb_config(__wind_lfflfb_config *wind_lfflfb_config)
+{
+    wind_lfflfb_config->wind_corr_select = 0;
+    wind_lfflfb_config->wind_fcorr_fpoint = 10;
+    wind_lfflfb_config->wind_fcorr_min_thr = 0.6;
+    wind_lfflfb_config->wind_ref2err_cnt = 13;
+    wind_lfflfb_config->wind_sat_thr = 80000;
+    wind_lfflfb_config->wind_lpf_alpha = 0.0625;
+    wind_lfflfb_config->wind_hpf_alpha = 0.001;
+    wind_lfflfb_config->wind_iir_alpha = 16;
+    wind_lfflfb_config->correrr_thr = 380;
+    wind_lfflfb_config->wind_max_min_diff_thr = 42;
+    wind_lfflfb_config->wind_timepwr_diff_thr0 = 10;
+    wind_lfflfb_config->wind_timepwr_diff_thr1 = 150;
+    wind_lfflfb_config->wind_ref2err_diff_thr = 30;
+    wind_lfflfb_config->wind_ref2err_diffmin_thr = 15;
+    wind_lfflfb_config->wind_margin_dB = -9;
+    wind_lfflfb_config->wind_pwr_ref_thr = 35;
+    wind_lfflfb_config->wind_pwr_err_thr = 50;
+    wind_lfflfb_config->wind_lowfreq_point = 10;
+    wind_lfflfb_config->wind_pwr_cnt_thr = 0;
+    wind_lfflfb_config->icsd_wind_num_thr2 = 3;
+    wind_lfflfb_config->wind_stable_cnt_thr = 1;
+    wind_lfflfb_config->wind_lvl_scale = 2;
+    wind_lfflfb_config->wind_num_thr = 4;
+    wind_lfflfb_config->wind_out_mode = 1;//1:滤波输出(滤波模式) 0:连续3包无风输出0(快速模式)
+    for (int i = 0; i < 25; i++) {
+        wind_lfflfb_config->wind_ref_cali_table[i] = 0;
+    }
+}
 
 void wind_config_init(__wind_config *_wind_config)
 {
@@ -45,7 +82,7 @@ void wind_config_init(__wind_config *_wind_config)
         wind_config->wind_lvl_scale = cfg->wind_lvl_scale;
         wind_config->icsd_wind_num_thr2 = cfg->icsd_wind_num_thr2;
         wind_config->icsd_wind_num_thr1 = cfg->icsd_wind_num_thr1;
-        if (ICSD_WIND_MIC_TYPE == ICSD_WIND_LFF_RFF) {
+        if ((ICSD_WIND_MIC_TYPE == ICSD_WIND_LFF_RFF) || (ICSD_WIND_MIC_TYPE == ICSD_WIND_LFF_LFB_RFF)) {
             wind_config->pwr_mode = 0;
         } else {
             wind_config->pwr_mode = 1;
@@ -74,7 +111,7 @@ void wind_config_init(__wind_config *_wind_config)
         wind_config->wind_lvl_scale = 2;
         wind_config->icsd_wind_num_thr2 = 3;
         wind_config->icsd_wind_num_thr1 = 1;
-        if (ICSD_WIND_MIC_TYPE == ICSD_WIND_LFF_RFF) {
+        if ((ICSD_WIND_MIC_TYPE == ICSD_WIND_LFF_RFF) || (ICSD_WIND_MIC_TYPE == ICSD_WIND_LFF_LFB_RFF)) {
             wind_config->pwr_mode = 0;
         } else {
             wind_config->pwr_mode = 1;
@@ -99,6 +136,7 @@ void icsd_wind_demo()
 
 
 const struct wind_function WIND_FUNC_t = {
+    .wind_lff_lfb_config = wind_lff_lfb_config,
     .wind_config_init = wind_config_init,
     .HanningWin_pwr_float = icsd_HanningWin_pwr_float,
     .HanningWin_pwr_s1 = icsd_HanningWin_pwr_s1,

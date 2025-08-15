@@ -4,6 +4,7 @@
 #include "typedef.h"
 #include "icsd_anc_user.h"
 #include "asm/anc.h"
+#include "icsd_wind_app.h"
 
 #define SPEAK_TO_CHAT_TASK_NAME     "speak_to_chat"
 
@@ -274,37 +275,14 @@ void audio_wat_area_tap_event_handle(u8 wat_result);
 void audio_wat_click_output_handle(u8 wat_result);
 
 /************************* 风噪检测相关接口 ***********************/
-/*打开风噪检测*/
-int audio_icsd_wind_detect_open();
-
-/*关闭风噪检测*/
-int audio_icsd_wind_detect_close();
-
-/*风噪检测开关*/
-void audio_icsd_wind_detect_en(u8 en);
 
 u8 get_audio_icsd_local_wind_lvl();
 
 /*获取风噪等级*/
 u8 get_audio_icsd_wind_lvl();
 
-/*风噪检测开关demo*/
-void audio_icsd_wind_detect_demo();
-
-/*风噪检测处理*/
-int audio_anc_wind_noise_process(u8 wind_lvl);
-
 /*风噪检测识别结果输出回调*/
 void audio_icsd_wind_detect_output_handle(u8 wind_lvl);
-
-/*重置风噪检测的初始参数*/
-void audio_anc_wind_noise_fade_param_reset(void);
-
-/*设置风噪检测设置增益，带淡入淡出功能*/
-void audio_anc_wind_noise_fade_gain_set(int fade_gain, int fade_time);
-
-/*风噪检测开关*/
-void audio_icsd_wind_detect_en(u8 en);
 
 
 int audio_cvp_icsd_wind_det_open();

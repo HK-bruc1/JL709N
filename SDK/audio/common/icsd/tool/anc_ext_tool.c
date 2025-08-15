@@ -777,9 +777,11 @@ void anc_ext_tool_cmd_deal(u8 *data, u16 len, enum ANC_EXT_UART_SEL uart_sel)
         memcpy(&tool_hdl->DEBUG_TOOL_FUNCTION, data + 1, 4);
         anc_ext_log("CMD_FUNCTION_SPP_DEBUG_SET, 0x%x\n", tool_hdl->DEBUG_TOOL_FUNCTION);
         //修改SPP打印之后需要复位算法
+#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
         if (icsd_adt_is_running()) {
             audio_icsd_adt_reset(0);
         }
+#endif
         break;
     case CMD_FUNCTION_ALGO_EN_SET:
         anc_ext_log("CMD_FUNCTION_ALGO_EN_SET 0x%x, en 0x%x\n", data[1], data[2]);
@@ -1487,7 +1489,11 @@ static int anc_cfg_analysis_ear_adaptive(u8 *file_data, int file_len, u8 alloc_f
 }
 
 #if TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN
-//ANC_EXT 耳道自适应参数检查
+/*
+   ANC_EXT 耳道自适应参数检查,如报错请检查
+   1、使用时: anc_ext.bin是否包含对应参数？
+   2、调试时：工具是否下发对应参数？
+*/
 u8 anc_ext_ear_adaptive_param_check(void)
 {
     struct anc_ext_ear_adaptive_param *cfg = &tool_hdl->ear_adaptive;
@@ -1557,7 +1563,11 @@ u8 anc_ext_ear_adaptive_param_check(void)
     return 0;
 }
 
-//RTANC 参数检查
+/*
+   ANC_EXT RTANC参数检查, 如报错请检查
+   1、使用时: anc_ext.bin是否包含对应参数？
+   2、调试时：工具是否下发对应参数？
+*/
 u8 anc_ext_rtanc_param_check(void)
 {
     struct anc_ext_ear_adaptive_param *cfg = &tool_hdl->ear_adaptive;

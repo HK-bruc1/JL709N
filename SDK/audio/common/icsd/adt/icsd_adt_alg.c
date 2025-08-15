@@ -48,6 +48,7 @@
 
 #if ICSD_WIND_LIB
 #include "icsd_wind.h"
+#include "icsd_wind_app.h"
 #endif
 
 #if ICSD_HOWL_LIB
@@ -601,6 +602,12 @@ void icsd_adt_alg_wind_run(__adt_win_run_parm *_run_parm, __adt_win_output *_out
     __icsd_win_output output;
     run_parm.data_1_ptr = _run_parm->data_1_ptr;
     run_parm.data_2_ptr = _run_parm->data_2_ptr;
+    run_parm.wdt_type = _run_parm->wdt_type;
+    run_parm.anc_mode = _run_parm->anc_mode;
+    run_parm.lff_gain = _run_parm->lff_gain;
+    run_parm.lfb_gain = _run_parm->lfb_gain;
+    run_parm.rff_gain = _run_parm->rff_gain;
+    run_parm.rfb_gain = _run_parm->rfb_gain;
     icsd_alg_wind_run(&run_parm, &output);
     _output->wind_lvl = output.wind_lvl;
     _output->wind_alg_bt_inf = output.wind_alg_bt_inf;
@@ -676,7 +683,7 @@ u8 icsd_adt_wind_data_sync_en()
 {
     u8 en = 0;
 #if ICSD_WIND_LIB
-    if ((ICSD_WIND_PHONE_TYPE == ICSD_WIND_TWS) && (ICSD_WIND_MIC_TYPE == ICSD_WIND_LFF_RFF)) {
+    if ((ICSD_WIND_PHONE_TYPE == ICSD_WIND_TWS) && ((ICSD_WIND_MIC_TYPE == ICSD_WIND_LFF_RFF) || (ICSD_WIND_MIC_TYPE == ICSD_WIND_LFF_LFB_RFF))) {
         en = 1;
     }
 #endif

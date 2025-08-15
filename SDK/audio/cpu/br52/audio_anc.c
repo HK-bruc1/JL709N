@@ -1109,6 +1109,7 @@ void anc_init(void)
     anc_hdl->param.cfg_online_deal_cb = anc_cfg_online_deal;
     anc_hdl->param.mode = ANC_OFF;
     anc_hdl->new_mode = anc_hdl->param.mode;
+    anc_hdl->last_mode = ANC_OFF;
     anc_hdl->param.production_mode = 0;
     anc_hdl->param.developer_mode = ANC_DEVELOPER_MODE_EN;
     anc_hdl->param.anc_fade_en = ANC_FADE_EN;/*ANC淡入淡出，默认开*/
@@ -1628,7 +1629,7 @@ static void anc_fade_in_timer_add(audio_anc_t *param)
             if (param->fade_time_lvl > 1) {
                 anc_hdl->fade_in_timer = usr_timer_add((void *)0, anc_fade_in_timer, dly, 1);
             }
-        } else if (param->mode == ANC_TRANSPARENCY) {
+        } else if ((param->mode == ANC_TRANSPARENCY) || (param->mode == ANC_BYPASS)) {
             audio_anc_fade_ctr_set(ANC_FADE_MODE_SWITCH, AUDIO_ANC_FDAE_CH_ALL, param->anc_fade_gain);
         }
     }
@@ -2283,6 +2284,10 @@ int anc_coeff_write(int *coeff, u16 len)
     anc_coeff_t *db_coeff = (anc_coeff_t *)coeff;
     anc_coeff_t *tmp_coeff = NULL;
 
+#if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN && TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+    audio_rtanc_cmp_data_clear();
+#endif
+
     user_anc_log("anc_coeff_write:0x%x, len:%d", (u32)coeff, len);
     int ret = anc_coeff_check(db_coeff, len);
     if (ret) {
@@ -2457,6 +2462,9 @@ int anc_cfg_online_deal(u8 cmd, anc_gain_t *cfg)
             audio_common_dac_cic_update();		//更新DAC CIC配置
             audio_common_dac_drc_update();		//更新DAC DRC配置
 #if ANC_MULT_ORDER_ENABLE
+#if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN && TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+            audio_rtanc_cmp_data_clear();
+#endif
             anc_mult_scene_set(anc_hdl->scene_id);	//覆盖增益以及增益符号
 #endif/*ANC_MULT_ORDER_ENABLE*/
             audio_anc_reset(&anc_hdl->param, 0);//ANC初始化，不可异步，因为后面会更新ANCIF区域内容

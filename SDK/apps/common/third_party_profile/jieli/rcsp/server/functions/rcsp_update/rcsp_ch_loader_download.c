@@ -532,7 +532,7 @@ void rcsp_update_loader_download_init(int update_type, void (*result_cbk)(void *
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 void cis_rcsp_recv_handle(u16 conn_handle, const void *const buf, size_t length, void *priv)
 {
-    if (g_cis_conn_handle == conn_handle) {
+    if (conn_handle) {
         printf("rcsp_cis_rx(%d)", (int)length);
         put_buf(buf, length);
         u8 custem_buf[] = {0x4A, 0x4C, 0xFF, 0xED};
@@ -540,6 +540,7 @@ void cis_rcsp_recv_handle(u16 conn_handle, const void *const buf, size_t length,
             rcsp_update_ancs_disconn_handler();
             JL_packet_clear_all_data();
         }
+        g_cis_conn_handle = conn_handle;
         bt_rcsp_recieve_callback(rcsp_server_ble_hdl, NULL, (u8 *)buf, length);
     }
 }
@@ -547,7 +548,7 @@ void cis_rcsp_recv_handle(u16 conn_handle, const void *const buf, size_t length,
 int bt_rcsp_data_send_filter(u16 ble_con_hdl, u8 *remote_addr, u8 *buf, u16 len)
 {
     int ret = 0;
-    if (g_cis_conn_handle && ble_con_hdl == g_cis_conn_handle) {
+    if (g_cis_conn_handle) {
         if (!JL_rcsp_get_auth_flag_with_bthdl(ble_con_hdl, NULL)) {
             if (!rcsp_protocol_head_check(buf, len)) {
                 connected_send_acl_data(ble_con_hdl, buf, len);
@@ -560,6 +561,11 @@ int bt_rcsp_data_send_filter(u16 ble_con_hdl, u8 *remote_addr, u8 *buf, u16 len)
     return ret;
 }
 
+u16 cis_rcsp_update_flag(void)
+{
+    return g_cis_conn_handle;
+}
+
 static int app_connected_conn_status_event_handler(int *msg)
 {
     cis_acl_info_t *acl_info = NULL;
@@ -570,7 +576,6 @@ static int app_connected_conn_status_event_handler(int *msg)
         if (rcsp_get_auth_support() && acl_info) {
             JL_rcsp_reset_bthdl_auth(acl_info->acl_hdl, NULL);
         }
-        g_cis_conn_handle = acl_info->acl_hdl;
         break;
     case CIG_EVENT_ACL_DISCONNECT:
         g_cis_conn_handle = 0;

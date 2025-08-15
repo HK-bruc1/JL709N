@@ -24,11 +24,12 @@
 #include "icsd_common.h"
 #include "icsd_common_v2.h"
 
-#if 0
+#if ADJDCC_PRINTF_EN
 #define _dcc_printf printf                  //打开自适应DCC算法库信息
 #else
 #define _dcc_printf icsd_printf_off
 #endif
+
 extern int (*dcc_printf)(const char *format, ...);
 
 struct icsd_adjdcc_libfmt {

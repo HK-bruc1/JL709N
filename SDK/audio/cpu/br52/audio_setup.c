@@ -185,7 +185,7 @@ void audio_dac_initcall(void)
     dac_data.bit_width = audio_general_out_dev_bit_width();
     dac_data.mute_delay_isel = 2;
     dac_data.mute_delay_time = 15;
-    if ((get_chip_version() >= 0x03) && (get_chip_version() < 0x0C)) {
+    if ((get_chip_version() >= 0x03) && (get_chip_version() <= 0x05)) {
         dac_data.performance_mode = DAC_MODE_HIGH_PERFORMANCE;
         dac_data.pa_isel0 = (TCFG_AUDIO_DAC_HP_PA_ISEL0 < 5) ? (5) : (TCFG_AUDIO_DAC_HP_PA_ISEL0);
         dac_data.pa_isel1 = (TCFG_AUDIO_DAC_HP_PA_ISEL1 < 3) ? (3) : (TCFG_AUDIO_DAC_HP_PA_ISEL1);
