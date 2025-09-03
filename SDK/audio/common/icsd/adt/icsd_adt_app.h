@@ -5,6 +5,7 @@
 #include "icsd_anc_user.h"
 #include "asm/anc.h"
 #include "icsd_wind_app.h"
+#include "audio_anc_common.h"
 
 #define SPEAK_TO_CHAT_TASK_NAME     "speak_to_chat"
 
@@ -47,6 +48,7 @@ enum {
     WIND_AREA_TAP_MULTIPLE_CLICK,   //大于3次多次连击
 };
 
+//enum-type : u16
 enum ICSD_ADT_MODE {
     ADT_MODE_CLOSE = 0,
     ADT_SPEAK_TO_CHAT_MODE = BIT(0), 			//智能免摘
@@ -168,7 +170,7 @@ void audio_icsd_adt_suspend();
 u16 get_icsd_adt_mode();
 
 /*同步tws配对时，同步adt的状态*/
-void audio_anc_icsd_adt_state_sync(u8 *data);
+void audio_anc_icsd_adt_state_sync(struct anc_tws_sync_info *info);
 void audio_icsd_adt_state_sync_done(u16 adt_mode, u8 speak_to_chat_state);
 
 int anc_adt_init();

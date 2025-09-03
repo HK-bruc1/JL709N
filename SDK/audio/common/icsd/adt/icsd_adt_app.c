@@ -338,12 +338,11 @@ void audio_icsd_adt_info_sync_cb(void *_data, u16 len, bool rx)
         break;
     case SYNC_ICSD_ADT_OPEN:
     case SYNC_ICSD_ADT_CLOSE:
-        adt_log("SYNC_ICSD_ADT_OPEN/CLOSE");
-        adt_mode = (((u8 *)_data)[2] << 8) | ((u8 *)_data)[1];
+        memcpy(&adt_mode, ((u8 *)_data) + 1, sizeof(u16));
+        adt_log("SYNC_ICSD_ADT_OPEN/CLOSE, cmd 0x%x, adt_mode 0x%x\n", mode, adt_mode);
         suspend = ((u8 *)_data)[3];
         //APP层 操作，需要修改标志
         icsd_adt_app_mode_set(adt_mode, (mode == SYNC_ICSD_ADT_OPEN));
-        adt_log("L:%d, H:%d, m:%d", ((u8 *)_data)[1], ((u8 *)_data)[2], adt_mode);
         err = os_taskq_post_msg(SPEAK_TO_CHAT_TASK_NAME, 3, mode, adt_mode, suspend);
         if (err != OS_NO_ERR) {
             adt_log("audio_icsd_adt_info_sync_cb err %d", err);
@@ -1479,14 +1478,15 @@ void audio_icsd_adt_state_sync_done(u16 adt_mode, u8 speak_to_chat_state)
     int close_adt = ADT_ALL_FUNCTION_ENABLE;
     audio_icsd_adt_res_close(close_adt, 0);
 
-    adt_debug_log("%s, adt %d, chat %d", __func__, adt_mode, speak_to_chat_state);
+    adt_log("%s, adt_app_mode 0x%x, chat %d", __func__, adt_mode, speak_to_chat_state);
     struct speak_to_chat_t *hdl = speak_to_chat_hdl;
     adt_info.speak_to_chat_state = speak_to_chat_state;
     if (hdl && hdl->state) {
         /*tws同步时重置记录的anc模式*/
         hdl->last_anc_state = anc_mode_get();
     }
-    // adt_info.adt_mode = adt_mode;
+
+    adt_info.app_adt_mode = adt_mode;
     /*同步动作前已经关闭adt了，这里只需要判断打开，避免没有开adt在anc off里面开了anc*/
     if (adt_info.adt_mode) {
         /*在anc跑完后面执行同步adt状态*/
@@ -1494,17 +1494,25 @@ void audio_icsd_adt_state_sync_done(u16 adt_mode, u8 speak_to_chat_state)
     }
 }
 
+#if TCFG_USER_TWS_ENABLE
 /*同步tws配对时，同步adt的状态*/
-static u8 sync_data[5];
-void audio_anc_icsd_adt_state_sync(u8 *data)
+void audio_anc_icsd_adt_state_sync(struct anc_tws_sync_info *info)
 {
     adt_debug_log("audio_anc_icsd_adt_state_sync");
-    memcpy(sync_data, data, sizeof(sync_data));
+    int len = sizeof(struct anc_tws_sync_info);
+    struct anc_tws_sync_info *sync_data = anc_malloc("ICSD_ADT", len);
+    if (!sync_data) {
+        return;
+    }
+    memcpy(sync_data, info, len);
+    //put_buf((u8*)sync_data, len);
     int err = os_taskq_post_msg(SPEAK_TO_CHAT_TASK_NAME, 2, ICSD_ADT_STATE_SYNC, (int)sync_data);
     if (err != OS_NO_ERR) {
+        anc_free(sync_data);
         adt_log("audio_anc_icsd_adt_state_sync err %d", err);
     }
 }
+#endif
 
 //ADT 播放完提示音回调接口
 void icsd_adt_task_play_tone_cb(void *priv)
@@ -1752,13 +1760,16 @@ static void audio_icsd_adt_task(void *p)
                     icsd_anc_fade_set(msg[3], msg[2]);
                 }
                 break;
+#if TCFG_USER_TWS_ENABLE
             case ICSD_ADT_STATE_SYNC:
                 adt_log("ICSD_ADT_STATE_SYNC");
-                u8 *s_data = (u8 *)msg[2];
+                struct anc_tws_sync_info *info = (struct anc_tws_sync_info *)msg[2];
                 /*先关闭adt，同步adt状态，然后同步anc，在anc里面做判断开adt*/
-                audio_icsd_adt_state_sync_done(s_data[3], s_data[4]);
-                anc_mode_sync(s_data);
+                audio_icsd_adt_state_sync_done(info->adt_app_mode, info->vdt_state);
+                anc_mode_sync(info);
+                anc_free(info);
                 break;
+#endif
 #if ICSD_ADT_MIC_DATA_EXPORT_EN
             case ICSD_ADT_EXPORT_DATA_WRITE:
                 aec_uart_write();
@@ -1956,11 +1967,10 @@ int audio_icsd_adt_sync_open(u16 adt_mode)
     /* uint32_t rets_addr; */
     /* __asm__ volatile("%0 = rets ;" : "=r"(rets_addr)); */
     /* adt_log("audio_icsd_adt_sync_open, mode=0x%x, rets=0x%x\n", adt_mode, rets_addr); */
-    adt_debug_log("%s", __func__);
+    adt_debug_log("%s, adt_mode 0x%x", __func__, adt_mode);
     u8 data[4] = {0};
     data[0] = SYNC_ICSD_ADT_OPEN;
-    data[1] = adt_mode & 0x00FF;
-    data[2] = (adt_mode >> 8) & 0x00FF;
+    memcpy(&(data[1]), &adt_mode, sizeof(u16));
 
     if (audio_icsd_adt_open_permit(adt_mode) == 0) {
         return -1;
@@ -1983,10 +1993,10 @@ int audio_icsd_adt_sync_open(u16 adt_mode)
  *ag: audio_icsd_adt_sync_close(ADT_SPEAK_TO_CHAT_MODE | ADT_WIDE_AREA_TAP_MODE | ADT_WIND_NOISE_DET_MODE) */
 int audio_icsd_adt_sync_close(u16 adt_mode, u8 suspend)
 {
+    adt_debug_log("%s, adt_mode 0x%x", __func__, adt_mode);
     u8 data[4] = {0};
     data[0] = SYNC_ICSD_ADT_CLOSE;
-    data[1] = adt_mode & 0x00FF;
-    data[2] = (adt_mode >> 8) & 0x00FF;
+    memcpy(&(data[1]), &adt_mode, sizeof(u16));
     data[3] = suspend;
 #if TCFG_USER_TWS_ENABLE
     if (get_tws_sibling_connect_state()) {

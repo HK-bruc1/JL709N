@@ -640,9 +640,12 @@ static void anc_task(void *p)
                 }
                 if (anc_hdl->last_mode == ANC_EXT) {
                     audio_adt_tone_adaptive_sync();
-                } else if (get_tws_sibling_connect_state() == 0) { //非对耳状态释放标志 或者 按键切换/手机切换
+                }
+#if TCFG_USER_TWS_ENABLE
+                else if (get_tws_sibling_connect_state() == 0) { //非对耳状态释放标志 或者 按键切换/手机切换
                     audio_anc_tone_adaptive_enable(0xFF);
                 }
+#endif
 #endif
 #if TCFG_AUDIO_ANC_DCC_TRIM_ENABLE
                 if (anc_hdl->param.dcc_trim.mode == ANC_DCC_TRIM_START) {
@@ -1138,14 +1141,15 @@ void anc_init(void)
     anc_hdl->param.howling_detect_toggle = ANC_HOWLING_DETECT_EN;
 
     //初始化滤波器淡入步进
-    anc_hdl->param.filter_fade_fast = 0;
-    anc_hdl->param.filter_fade_slow = 3;
+    anc_hdl->param.ff_filter_fade_fast = 0;
+    anc_hdl->param.ff_filter_fade_slow = 3;
+    anc_hdl->param.fb_filter_fade_fast = 0;
+    anc_hdl->param.fb_filter_fade_slow = 3;
 
     anc_hdl->param.drc_toggle = 1;
     anc_hdl->param.dcc_adaptive_toggle = 1;
     anc_hdl->param.lr_lowpower_en = ANC_LR_LOWPOWER_EN;
     anc_hdl->param.gains.version = ANC_GAINS_VERSION;
-    anc_hdl->param.gains.dac_gain = 1;
     anc_hdl->param.gains.l_ffmic_gain = 0;
     anc_hdl->param.gains.l_fbmic_gain = 0;
     anc_hdl->param.gains.r_ffmic_gain = 0;
@@ -1907,21 +1911,6 @@ void anc_ui_mode_sel(u8 mode, u8 tone_play)
     }
 }
 
-/*ANC模式同步(tws模式)*/
-void anc_mode_sync(u8 *data)
-{
-    if (anc_hdl) {
-#if ANC_EAR_ADAPTIVE_EN
-        anc_ear_adaptive_seq_set(data[1]);
-#endif/*ANC_EAR_ADAPTIVE_EN*/
-
-#if ANC_MULT_ORDER_ENABLE
-        anc_hdl->scene_id = data[2];
-#endif/*ANC_MULT_ORDER_ENABLE*/
-        os_taskq_post_msg("anc", 2, ANC_MSG_MODE_SYNC, data[0]);
-    }
-}
-
 /*在anc任务里面切换anc模式，避免上一次切换没有完成，这次切换被忽略的情况*/
 void anc_mode_switch_in_anctask(u8 mode, u8 tone_play)
 {
@@ -2163,16 +2152,6 @@ u8 anc_new_target_mode_get(void)
         return anc_hdl->new_mode;
     }
     return 0;
-}
-
-/*获取anc模式，dac左右声道的增益*/
-u8 anc_dac_gain_get(u8 ch)
-{
-    u8 gain = 0;
-    if (anc_hdl) {
-        gain = anc_hdl->param.gains.dac_gain;
-    }
-    return gain;
 }
 
 /*获取anc模式，ff_mic的增益*/
@@ -2452,7 +2431,6 @@ int anc_cfg_online_deal(u8 cmd, anc_gain_t *cfg)
     anc_param_fill(cmd, cfg);
     if (cmd == ANC_CFG_WRITE) {
         /*实时更新ANC配置*/
-        audio_anc_dac_gain(gains->dac_gain, gains->dac_gain);
         audio_anc_mic_management(&anc_hdl->param);
         audio_anc_mic_gain(anc_hdl->param.mic_param, 0);
         /* anc_mix_out_audio_drc_thr(gains->audio_drc_thr); */
@@ -2940,6 +2918,22 @@ void audio_anc_coeff_fb_smooth_update(void)
     }
 }
 
+void audio_anc_coeff_fade_set(u8 coeff_type, u8 fade_fast, u8 fade_slow)
+{
+    if (anc_hdl) {
+        switch (coeff_type) {
+        case ANC_COEFF_TYPE_FF:
+            anc_hdl->param.ff_filter_fade_fast = fade_fast;
+            anc_hdl->param.ff_filter_fade_slow = fade_slow;
+            break;
+        case ANC_COEFF_TYPE_FB:
+            anc_hdl->param.fb_filter_fade_fast = fade_fast;
+            anc_hdl->param.fb_filter_fade_slow = fade_slow;
+            break;
+        }
+    }
+}
+
 /*
    ANC 驱动复位（包括滤波器），支持淡入淡出
    前置条件：需在 "非ANC_OFF" 模式下调用;
@@ -3036,6 +3030,12 @@ int audio_anc_mult_scene_update(u16 scene_id)
         audio_anc_coeff_smooth_update();
     }
     return ret;
+}
+
+/*多滤波器-场景ID TWS同步*/
+void audio_anc_mult_scene_id_sync(u16 scene_id)
+{
+    anc_hdl->scene_id = scene_id;
 }
 
 u8 audio_anc_mult_scene_get(void)

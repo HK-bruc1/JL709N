@@ -447,7 +447,6 @@ int audio_dac_noisefloor_optimize_onoff(u8 onoff);
 
 
 void audio_dac_anc_set(struct audio_dac_hdl *dac, u8 toggle);
-void audio_anc_dac_gain(u8 gain_l, u8 gain_r);
 void audio_anc_dac_dsm_sel(u8 sel);
 void audio_anc_dac_open(u8 gain_l, u8 gain_r);
 void audio_anc_dac_close(void);

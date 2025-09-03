@@ -418,10 +418,6 @@ static int audio_combined_fade_timer_add(u8 gain_l, u8 gain_r)
         target_dgain_l = *(&__this->sys_cvol[gain_l * 2 + 1]);
         target_dgain_r = *(&__this->sys_cvol[gain_r * 2 + 1]);
     }
-#if 0//TCFG_AUDIO_ANC_ENABLE
-    target_again_l = anc_dac_gain_get(ANC_DAC_CH_L);
-    target_again_r = anc_dac_gain_get(ANC_DAC_CH_R);
-#endif
 
     printf("[l]v:%d,Av:%d,Dv:%d", gain_l, target_again_l, target_dgain_l);
     //y_printf("[r]v:%d,Av:%d,Dv:%d", gain_r, target_again_r, target_dgain_r);

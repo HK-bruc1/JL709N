@@ -1219,13 +1219,14 @@ static float audio_adaptive_eq_vol_gain_get(s16 volume)
     char mode_index       = 0;               //模式序号（当前节点无多参数组，mode_index是0）
     char *node_name       = ADAPTIVE_EQ_VOLUME_NODE_NAME;       //节点名称（节点内的第一参数，用户自定义,长度小于等于15byte）
     char cfg_index        = 0;               //目标配置项序号（当前节点无多参数组，cfg_index是0）
+    float vol_db = 0.0f;
     int ret = jlstream_read_form_node_info_base(mode_index, node_name, cfg_index, &info);
     if (!ret) {
         struct volume_cfg *vol_cfg = anc_malloc("ICSD_AEQ", info.size);
         if (!jlstream_read_form_cfg_data(&info, (void *)vol_cfg)) {
             aeq_debug_log("[AEQ]user vol cfg parm read err\n");
             anc_free(vol_cfg);
-            return 0;
+            return vol_db;
         }
         /* aeq_log("cfg_level_max = %d\n", vol_cfg->cfg_level_max); */
         /* aeq_log("cfg_vol_min = %d\n", vol_cfg->cfg_vol_min); */
@@ -1235,17 +1236,17 @@ static float audio_adaptive_eq_vol_gain_get(s16 volume)
         /* aeq_log("tab_len = %d\n", vol_cfg->tab_len); */
 
         if (info.size > sizeof(struct volume_cfg)) { //有自定义音量表, 直接返回对应音量
-            return vol_cfg->vol_table[volume];
+            vol_db = vol_cfg->vol_table[volume];
         } else {
             u16 step = (vol_cfg->cfg_level_max - 1 > 0) ? (vol_cfg->cfg_level_max - 1) : 1;
             float step_db = (vol_cfg->cfg_vol_max - vol_cfg->cfg_vol_min) / (float)step;
-            float vol_db = vol_cfg->cfg_vol_min + (volume - 1) * step_db;
-            return vol_db;
+            vol_db = vol_cfg->cfg_vol_min + (volume - 1) * step_db;
         }
     } else {
         aeq_debug_log("[AEQ]user vol cfg parm read err ret %d\n", ret);
     }
-    return 0;
+    anc_free(vol_cfg);
+    return vol_db;
 }
 
 // (单次)自适应EQ强制退出

@@ -14,6 +14,14 @@ enum anc_event {
     ANC_EVENT_ADT_RESET,
 };
 
+struct anc_tws_sync_info {
+    u8 anc_mode; 			//当前ANC模式
+    u8 ear_adaptive_seq;	//耳道自适应seq序号
+    u8 multi_scene_id;		//多滤波器场景ID
+    u8 vdt_state;			//智能免摘状态
+    u16 adt_app_mode;		//ADT APP模式
+};
+
 int audio_anc_event_notify(enum anc_event event, int arg);
 
 //ANC进入产测模式
@@ -30,6 +38,12 @@ int audio_anc_switch_adt_app_close(void);
 
 //检查通话和ANC复用MIC 模拟增益是否匹配
 int audio_anc_mic_gain_check(u8 is_phone_caller);
+
+//TWS 回连ANC信息同步发送API
+void bt_tws_sync_anc(void);
+
+//ANC基础-同步信息处理函数
+void anc_mode_sync(struct anc_tws_sync_info *info);
 
 //==============ANC 内存管理=================
 

@@ -980,14 +980,18 @@ static void audio_rtanc_suspend_list_query(u8 init_flag)
         if (hdl->state == RT_ANC_STATE_OPEN) {
             rtanc_log("RTANC_STATE:SUSPEND\n");
             hdl->state = RT_ANC_STATE_SUSPEND;
-            anc_ext_algorithm_state_update(ANC_EXT_ALGO_RTANC, ANC_EXT_ALGO_STA_SUSPEND, 0);
+            if (hdl->app_func_en) {
+                anc_ext_algorithm_state_update(ANC_EXT_ALGO_RTANC, ANC_EXT_ALGO_STA_SUSPEND, 0);
+            }
             icsd_adt_rtanc_suspend();
         }
     } else {
         if (hdl->state == RT_ANC_STATE_SUSPEND) {
             rtanc_log("RTANC_STATE:SUSPEND->OPEN\n");
             audio_rtanc_spp_send_data(RTANC_SPP_CMD_RESUME_STATE, NULL, 0);
-            anc_ext_algorithm_state_update(ANC_EXT_ALGO_RTANC, ANC_EXT_ALGO_STA_OPEN, 0);
+            if (hdl->app_func_en) {
+                anc_ext_algorithm_state_update(ANC_EXT_ALGO_RTANC, ANC_EXT_ALGO_STA_OPEN, 0);
+            }
             hdl->state = RT_ANC_STATE_OPEN;
             icsd_adt_rtanc_resume();
         }
