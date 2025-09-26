@@ -1001,7 +1001,6 @@ int audio_aec_open(struct audio_aec_init_param_t *init_param, s16 enablebit, int
         ref_channel = 1;
     }
     aec_param->ref_channel = ref_channel;
-
     switch (init_param->node_uuid) {
     case NODE_UUID_CVP_DMS_AWN_DNS:
         printf("CVP 2mic Algo:AWN");

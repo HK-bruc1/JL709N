@@ -206,6 +206,12 @@ static int audio_afq_common_output_process(void)
             break;
         }
     }
+    //遍历其他回调
+    list_for_each_entry_safe(bulk, temp, &common_hdl->head, entry) {
+        if (strcmp(bulk->name, "ANC_AEQ") && strcmp(bulk->name, "RTANC") && strcmp(bulk->name, "ANC_CMP")) {
+            bulk->output(p);
+        }
+    }
     os_mutex_post(&common_hdl->mutex);
 
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE

@@ -381,22 +381,6 @@ int audio_rtanc_permit(u8 sync_mode)
     if (ret) { //RTANC 工具参数缺失
         return ret;
     }
-    if (hdl->param->mode == ANC_OFF) {	//非ANC模式
-        //QHH: anc off开rtanc
-        //return RTANC_OPEN_FAIL_NO_ANC_MODE;
-    }
-    /*if (audio_anc_real_time_adaptive_state_get()) { //重入保护
-         return ANC_EXT_OPEN_FAIL_REENTRY;
-    }
-    if (anc_mode_switch_lock_get() && (!hdl->ignore_switch_lock) && (!sync_mode)) { //其他切模式过程不支持
-         return RTANC_OPEN_FAIL_SWITCH_LOCK;
-    }
-    */
-#if TCFG_AUDIO_FREQUENCY_GET_ENABLE
-    if (audio_icsd_afq_is_running()) {	//AFQ 运行过程中不支持
-        return ANC_EXT_OPEN_FAIL_AFQ_RUNNING;
-    }
-#endif
     if (hdl->param->lff_yorder > RT_ANC_MAX_ORDER || \
         hdl->param->lfb_yorder > RT_ANC_MAX_ORDER || \
         hdl->param->lcmp_yorder > RT_ANC_MAX_ORDER || \
@@ -791,6 +775,7 @@ static void audio_rt_anc_param_updata(void *rt_param_l, void *rt_param_r)
         cmp_eq_updat &= ~AUDIO_ADAPTIVE_CMP_UPDATE_FLAG;
     }
     if (ff_updat) {
+        param->ff_filter_fade_slow = anc_param->ff_fade_slow;
         audio_anc_coeff_check_crc(ANC_CHECK_RTANC_UPDATE);
         anc_coeff_ff_online_update(hdl->param);		//更新ANC FF滤波器
     }
@@ -958,7 +943,9 @@ static void audio_rtanc_suspend_list_query(u8 init_flag)
 {
     //ADT切模式过程并且非初始化时，禁止切换
     if (get_icsd_adt_mode_switch_busy() && !init_flag) {
-        return;
+        if (hdl->state != RT_ANC_STATE_SUSPEND) {	//如挂起RTANC，则表示RTANC活动中，允许释放
+            return;
+        }
     }
     if (!audio_anc_real_time_adaptive_state_get()) {
         return;

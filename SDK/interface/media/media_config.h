@@ -21,6 +21,7 @@ extern const int config_audio_dac_dma_buf_realloc_enable;
 extern const int config_audio_dac_delay_off_ms;
 extern const int CONFIG_MEDIA_MEM_DEBUG;
 
+extern const int CONFIG_JLSTREAM_SCENE_DEBUG;
 
 /*
  *******************************************************************
@@ -116,18 +117,36 @@ extern const int virtualbass_noisegate_hold_time;
 extern const float virtualbass_noisegate_threshold;
 extern const int spatial_imp_run_points;
 extern const int CONFIG_SPATIAL_EFFECT_VERSION;
+extern const int config_audio_limiter_xfade_enable;
+extern const int config_audio_mblimiter_xfade_enable;
+extern const int virtual_surround_hp_run_points;
+
+
 /*
  *******************************************************************
  *						Audio Codec Configs
  *******************************************************************
  */
+//通用配置
+extern const int CONFIG_DEC_SUPPORT_CHANNELS;
+extern const int CONFIG_DEC_SUPPORT_SAMPLERATE;
+
+//id3 配置
 extern const u8 config_flac_id3_enable;
 extern const u8 config_ape_id3_enable;
 extern const u8 config_m4a_id3_enable;
 extern const u8 config_wav_id3_enable;
 extern const u8 config_wma_id3_enable;
 
+//jla_v2 编解码配置
 extern const int JLA_V2_CODEC_WITH_FRAME_HEADER ;
+
+//bt_aac 解码配置
+extern const int AAC_DEC_MP4A_LATM_ANALYSIS;
+extern const int AAC_DEC_LIB_SUPPORT_24BIT_OUTPUT;
+extern const int AAC_DEC_STKBUF_RELEASE_ENABLE;
+extern const char config_bt_aac_dec_pcm24_enable;
+extern const char config_bt_aac_dec_fifo_precision;
 
 
 

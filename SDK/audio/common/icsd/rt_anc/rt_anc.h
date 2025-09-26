@@ -126,6 +126,7 @@ typedef struct {
     u8  fb_updat;
     u8  ff_use_outfgq;
     u8  updat_busy;
+    u8  ff_fade_slow;
     float ffgain;
     float fbgain;
     float ff_fade_gain;
@@ -147,11 +148,20 @@ typedef struct {
     u8 update_cnt;
     u8 music2norm_cnt;
     u8 cmp_ind_last;
+    u8 low_spl_cnt;
+    u8 low_spl_env;
+    u8 sz_ind_iir;
+    u8 rewear_ind;
+    u8 st_update_cnt;
 
     float part1_ref_lf_dB;
     float part1_err_lf_dB;
     float fb_aim_gain;
     float tg_db[MEMLEN / 2];
+    float tg_db_buf[MEMLEN / 2];
+    float sz_target_iir[MSELEN];
+    float sz_iir[MSELEN];
+
 } __rtanc_var_buffer;
 
 struct rt_anc_infmt {

@@ -9,6 +9,7 @@
 #include "icsd_common_v2.h"
 #include "icsd_adt_alg.h"
 
+
 extern const u8 adt_log_en;
 #define sd_adt_log(format, ...)  if(adt_log_en){{if(config_ulog_enable){printf(format, ##__VA_ARGS__);}if(config_dlog_enable){dlog_printf((-1 & ~BIT(31)), format, ##__VA_ARGS__);}}}
 
@@ -132,19 +133,11 @@ struct icsd_acoustic_detector_infmt {
     u8 mic2_type;        // MIC2 类型
     u8 mic3_type;        // MIC3 类型
     u8 sensitivity;      //智能免摘灵敏度设置
-    void *lfb_coeff;
-    void *lff_coeff;
-    void *ltrans_coeff;
-    void *ltransfb_coeff;
     float gains_l_fbgain;
     float gains_l_ffgain;
     float gains_l_transgain;
     float gains_l_transfbgain;
     u8    gain_sign;
-    u8    lfb_yorder;
-    u8    lff_yorder;
-    u8    ltrans_yorder;
-    u8    ltransfb_yorder;
     u32   trans_alogm;
     u32   alogm;
     void *alloc_ptr;    //外部申请的ram地址

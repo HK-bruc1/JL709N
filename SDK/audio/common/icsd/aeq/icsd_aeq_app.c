@@ -1242,10 +1242,10 @@ static float audio_adaptive_eq_vol_gain_get(s16 volume)
             float step_db = (vol_cfg->cfg_vol_max - vol_cfg->cfg_vol_min) / (float)step;
             vol_db = vol_cfg->cfg_vol_min + (volume - 1) * step_db;
         }
+        anc_free(vol_cfg);
     } else {
         aeq_debug_log("[AEQ]user vol cfg parm read err ret %d\n", ret);
     }
-    anc_free(vol_cfg);
     return vol_db;
 }
 

@@ -307,6 +307,7 @@ void icsd_gfq2hz_v2(float total_gain, float *gfq, u8 *type, u8 order, float *fre
 u8 icsd_biquad2ab_out_2(float gain, float f, float q, u8 type, float fs, double *a0, double *a1, double *a2, double *b0, double *b1, double *b2);
 void icsd_biquad2ab_double_v2(float gain, float f, float q, double *a0, double *a1, double *a2, double *b0, double *b1, double *b2, u8 type, float fs);
 void icsd_biquad2ab_out_v2(float gain, float f, float fs, float q, double *a0, double *a1, double *a2, double *b0, double *b1, double *b2, u8 type);
+void icsd_biquad2ab_out_v3(float gain, float f, float fs, float q, double *a0, double *a1, double *a2, double *b0, double *b1, double *b2, u8 type);
 void icsd_biquad2ab_double_pn(float gain, float f, float q, double *a0, double *a1, double *a2,
                               double *b0, double *b1, double *b2, u8 type);
 //

@@ -1670,7 +1670,7 @@ static void anc_fade(u32 gain, u8 mode)
             usr_timeout_del(anc_hdl->fade_in_timer);
             usr_timeout_add((void *)(intptr_t)mode, anc_fade_out_timeout, dly, 1);
         } else {/*不淡入淡出，则直接切模式*/
-            os_taskq_post_msg("anc", 1, ANC_MSG_RUN, mode);
+            os_taskq_post_msg("anc", 2, ANC_MSG_RUN, mode);
         }
     }
 }

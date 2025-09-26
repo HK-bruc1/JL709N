@@ -73,6 +73,7 @@
 #define AFX_VIRTUAL_SURRUOUND_PRO_AT_RAM    0   //虚拟环绕声pro/2t4/2t5
 #define AFX_SW_EQ_AT_RAM                    0   //软件EQ
 #define AFx_SPATIAL_EFFECT_AT_RAM           1   //空间音效
+#define AFx_STEREO_TO_LCR_AT_RAM            0   //virtual surround headphone 2t4
 
 /*通话语音处理算法*/
 #define AUDIO_CVP_TEXT_AT_RAM	        	1	//COMMON TEXT

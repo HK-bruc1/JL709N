@@ -802,6 +802,10 @@ void icsd_adt_alg_debug_free()
 #if ICSD_WIND_LIB
     icsd_alg_wdt_debug_free();
 #endif
+
+#if ICSD_AVC_LIB
+    icsd_alg_avc_debug_free();
+#endif
 }
 
 #endif/*TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN*/

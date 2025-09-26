@@ -4,6 +4,8 @@
 #include "audio_cfifo.h"
 #include "asm/dac.h"
 
+#define DAC_NOISEGATE_OFF()     audio_dac_noisefloor_optimize_onoff(0);
+#define DAC_NOISEGATE_ON()      audio_dac_noisefloor_optimize_onoff(1);
 
 struct audio_dac_channel_attr {
     u8  write_mode;         /*DAC写入模式*/

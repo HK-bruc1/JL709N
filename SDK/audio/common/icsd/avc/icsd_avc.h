@@ -61,6 +61,7 @@ void icsd_avc_ram_clean();
 void icsd_avc_run(__icsd_avc_run_parm *_run_parm, __icsd_avc_output *_output);
 void avc_config_update(__avc_config *_avc_config);
 float icsd_adt_get_avc_spldb_iir();
+void icsd_alg_avc_debug_free();
 
 extern const float tidy_scale;
 extern const float tidy_offset;

@@ -600,7 +600,9 @@ void audio_fade_in_fade_out(u8 left_vol, u8 right_vol)
     /* __this->digital_volume = __this->sys_hw_dvol_max; */
     /* } */
     printf("[SW_DVOL]Gain:%d,AVOL:%d,DVOL:%d\n", left_gain, __this->analog_volume_l, __this->digital_volume);
+#if !((defined CONFIG_CPU_BR50) || (defined CONFIG_CPU_BR52))
     audio_dac_set_analog_vol(&dac_hdl, __this->analog_volume_r);
+#endif
 #if defined(VOL_NOISE_OPTIMIZE) &&( VOL_NOISE_OPTIMIZE)
     if (__this->dac_dB) { //设置回目标数字音量
         audio_dac_set_digital_vol(&dac_hdl, __this->target_dig_vol);

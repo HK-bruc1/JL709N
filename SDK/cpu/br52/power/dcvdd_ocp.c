@@ -103,31 +103,27 @@ static int dcvdd_ocp_init(void)
 late_initcall(dcvdd_ocp_init);
 
 
-#if CONFIG_POFF_ENABLE
-
 static u32 gpcnt_con;
 
-static u8 gpcnt_enter_deepsleep(void)
+static u8 gpcnt_enter_sleep(void)
 {
     JL_GPCNT0->CON &= ~BIT(0);
     gpcnt_con = JL_GPCNT0->CON;
     return 0;
 }
 
-static u8 gpcnt_exit_deepsleep(void)
+static u8 gpcnt_exit_sleep(void)
 {
     JL_GPCNT0->CON = gpcnt_con;
     JL_GPCNT0->CON |= BIT(30) | BIT(0);
     return 0;
 }
 
-DEEPSLEEP_TARGET_REGISTER(deepsleep_gpcnt) = {
+SLEEP_TARGET_REGISTER(sleep_gpcnt) = {
     .name   = "gpcnt",
-    .enter  = gpcnt_enter_deepsleep,
-    .exit   = gpcnt_exit_deepsleep,
+    .enter  = gpcnt_enter_sleep,
+    .exit   = gpcnt_exit_sleep,
 };
-
-#endif
 
 #endif
 

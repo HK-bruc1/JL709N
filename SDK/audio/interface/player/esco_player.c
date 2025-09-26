@@ -139,15 +139,16 @@ int esco_player_open_extended(u8 *bt_addr, int ext_type, void *ext_param)
 
     return 0;
 
+__exit1:
+    jlstream_release(player->stream);
+__exit0:
+    free(player);
+
 #if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
     audio_icsd_adt_scene_set(ADT_SCENE_ESCO, 0);
     audio_icsd_adt_reset(ADT_SCENE_ESCO);
 #endif
 
-__exit1:
-    jlstream_release(player->stream);
-__exit0:
-    free(player);
     return err;
 }
 

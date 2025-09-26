@@ -189,6 +189,7 @@ LFLAGS := \
 	cpu/br52/liba/lib_opus_stenc.a \
 	cpu/br52/liba/lib_ogg_opus_dec.a \
 	cpu/br52/liba/libjlsp.a \
+	cpu/br52/liba/lib_nn_v3.a \
 	cpu/br52/liba/libjlsp_kws.a \
 	cpu/br52/liba/libjlsp_kws_far_keyword.a \
 	cpu/br52/liba/libjlsp_kws_india_english.a \
@@ -258,12 +259,17 @@ LFLAGS := \
 	cpu/br52/liba/lib_frequency_compressor.a \
 	cpu/br52/liba/lib_gain_mix.a \
 	cpu/br52/liba/liblhdc_x_edge.a \
+	cpu/br52/liba/libStereoToLCR_pi32v2_OnChip.a \
+	cpu/br52/liba/sbsbrir.a \
+	cpu/br52/liba/spatial_brir.a \
 	cpu/br52/liba/libFFT_pi32v2_OnChip.a \
 	cpu/br52/liba/lib_wtg_dec.a \
 	cpu/br52/liba/bfilterfun_lib.a \
 	cpu/br52/liba/lib_opusdec_rom_dec.a \
+	cpu/br52/liba/lib_bt_aac_dec_rom_ext.a \
 	cpu/br52/liba/crypto_toolbox_Osize.a \
 	cpu/br52/liba/lib_dns.a \
+	cpu/br52/liba/lib_dns_v3.a \
 	cpu/br52/liba/update.a \
 	cpu/br52/liba/cbuf.a \
 	cpu/br52/liba/lbuf.a \

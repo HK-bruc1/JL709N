@@ -645,10 +645,6 @@ int audio_acoustic_detector_updata()
         hdl->infmt.gains_l_ffgain = get_anc_gains_l_ffgain();
         hdl->infmt.gains_l_transgain = get_anc_gains_l_transgain();
         hdl->infmt.gains_l_transfbgain = get_anc_gains_lfb_transgain();
-        hdl->infmt.lfb_yorder     = get_anc_l_fbyorder();
-        hdl->infmt.lff_yorder     = get_anc_l_ffyorder();
-        hdl->infmt.ltrans_yorder  = get_anc_l_transyorder();
-        hdl->infmt.ltransfb_yorder  = get_anc_lfb_transyorder();
         hdl->infmt.trans_alogm    = get_anc_gains_trans_alogm();
         hdl->infmt.alogm          = get_anc_gains_alogm();
 
@@ -942,10 +938,6 @@ int audio_acoustic_detector_open()
     hdl->infmt.gains_l_ffgain = get_anc_gains_l_ffgain();
     hdl->infmt.gains_l_transgain = get_anc_gains_l_transgain();
     hdl->infmt.gains_l_transfbgain = get_anc_gains_lfb_transgain();
-    hdl->infmt.lfb_yorder     = get_anc_l_fbyorder();
-    hdl->infmt.lff_yorder     = get_anc_l_ffyorder();
-    hdl->infmt.ltrans_yorder  = get_anc_l_transyorder();
-    hdl->infmt.ltransfb_yorder  = get_anc_lfb_transyorder();
     hdl->infmt.trans_alogm    = get_anc_gains_trans_alogm();
     hdl->infmt.alogm          = get_anc_gains_alogm();
 
@@ -997,11 +989,13 @@ int audio_acoustic_detector_open()
         adt_debug_log("rtanc tool demo:0x%x==================================\n", (int)hdl->infmt.rtanc_tool);
     }
 #endif
+    extern void icsd_task_create();
+    icsd_task_create();
+
     icsd_acoustic_detector_set_infmt(&hdl->infmt);
     //set_icsd_adt_dma_done_flag(1);
 
-    extern void icsd_task_create();
-    icsd_task_create();
+
     icsd_acoustic_detector_open();
 
     //算法需要的MIC和当前样机配置的MIC不匹配: 需要检测MIC配置，或可能此方案不支持部分算法
