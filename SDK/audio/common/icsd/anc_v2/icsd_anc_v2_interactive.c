@@ -121,14 +121,14 @@ static void anc_ear_adaptive_icsd_anc_init(void);
 void anc_ear_adaptive_init(audio_anc_t *param)
 {
     //内部使用句柄
-    hdl = zalloc(sizeof(struct anc_ear_adaptive_param));
+    hdl = anc_malloc("ICSD_ANC_APP", sizeof(struct anc_ear_adaptive_param));
     hdl->ear_adaptive_data_from = ANC_ADAPTIVE_DATA_EMPTY;
     os_sem_create(&hdl->exit_sem, 0);
     //库关联句柄
     hdl->param = param;
-    param->adaptive = zalloc(sizeof(anc_ear_adaptive_param_t));
+    param->adaptive = anc_malloc("ICSD_ANC_APP", sizeof(anc_ear_adaptive_param_t));
     ASSERT(param->adaptive);
-    hdl->train_cfg.ff_coeff = malloc(ANC_ADAPTIVE_FF_ORDER * sizeof(double) * 5);
+    hdl->train_cfg.ff_coeff = anc_malloc("ICSD_ANC_APP", ANC_ADAPTIVE_FF_ORDER * sizeof(double) * 5);
     param->adaptive->ff_yorder = ANC_ADAPTIVE_FF_ORDER;
     param->adaptive->fb_yorder = ANC_ADAPTIVE_FB_ORDER;
 #if ANC_EAR_ADAPTIVE_CMP_EN
@@ -182,7 +182,7 @@ void anc_ear_adaptive_tone_play_start(void)
 #endif
     audio_anc_mic_open(hdl->param->mic_param, 0, hdl->param->adc_ch);
 #if ANC_USER_TRAIN_TONE_MODE
-    if (hdl->param->mode == ANC_ON) {
+    if (anc_mode_get() == ANC_ON) {
         anc_log("EAR_ADAPTIVE_STATE:ALOGM_START\n");
         hdl->adaptive_state = EAR_ADAPTIVE_STATE_ALOGM_START;
         icsd_anc_v2_tone_play_start();
@@ -231,7 +231,7 @@ void anc_ear_adaptive_part1_end_cb(void *priv)
 /* 耳道自适应开发者模式设置 */
 void anc_ear_adaptive_develop_set(u8 mode)
 {
-    if (hdl->param->mode != ANC_OFF) {
+    if (anc_mode_get() != ANC_OFF) {
         anc_mode_switch(ANC_OFF, 0);									//避免右耳参数异常，让调试者感受不适
     }
     if (hdl->param->anc_coeff_mode == ANC_COEFF_MODE_ADAPTIVE) {
@@ -339,7 +339,10 @@ int audio_anc_ear_adaptive_open(void)
 #endif/*ANC_USER_TRAIN_TONE_MODE*/
     /*自适应时需要挂起adt*/
 #if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
-    audio_anc_mode_switch_in_adt(ANC_ON);
+    audio_icsd_adt_scene_set(ADT_SCENE_EAR_ADAPTIVE, 1);
+    if (audio_icsd_adt_is_running()) {
+        audio_icsd_adt_reset(ADT_SCENE_EAR_ADAPTIVE);
+    }
 #endif
     anc_mode_switch(ANC_ON, ANC_USER_TRAIN_TONE_MODE);
     return 0;
@@ -545,27 +548,27 @@ void anc_user_train_cb(u8 mode, u8 forced_exit)
     if (hdl->adaptive_iir.result) {	//自适应成功或部分成功
         if (hdl->ear_adaptive_data_from == ANC_ADAPTIVE_DATA_FROM_VM) {		//释放掉原来VM使用的资源
             if (hdl->param->adaptive->lff_coeff) {
-                free(hdl->param->adaptive->lff_coeff);
+                anc_free(hdl->param->adaptive->lff_coeff);
                 hdl->param->adaptive->lff_coeff = NULL;
             };
             if (hdl->param->adaptive->lfb_coeff) {
-                free(hdl->param->adaptive->lfb_coeff);
+                anc_free(hdl->param->adaptive->lfb_coeff);
                 hdl->param->adaptive->lfb_coeff = NULL;
             };
             if (hdl->param->adaptive->lcmp_coeff) {
-                free(hdl->param->adaptive->lcmp_coeff);
+                anc_free(hdl->param->adaptive->lcmp_coeff);
                 hdl->param->adaptive->lcmp_coeff = NULL;
             };
             if (hdl->param->adaptive->rff_coeff) {
-                free(hdl->param->adaptive->rff_coeff);
+                anc_free(hdl->param->adaptive->rff_coeff);
                 hdl->param->adaptive->rff_coeff = NULL;
             };
             if (hdl->param->adaptive->rfb_coeff) {
-                free(hdl->param->adaptive->rfb_coeff);
+                anc_free(hdl->param->adaptive->rfb_coeff);
                 hdl->param->adaptive->rfb_coeff = NULL;
             };
             if (hdl->param->adaptive->rcmp_coeff) {
-                free(hdl->param->adaptive->rcmp_coeff);
+                anc_free(hdl->param->adaptive->rcmp_coeff);
                 hdl->param->adaptive->rcmp_coeff = NULL;
             };
         }
@@ -588,13 +591,18 @@ void anc_user_train_cb(u8 mode, u8 forced_exit)
     //关闭CMP
     audio_anc_ear_adaptive_cmp_close();
 #endif
+
+#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
+    audio_icsd_adt_scene_set(ADT_SCENE_EAR_ADAPTIVE, 0);
+    //后续anc_mode_switch会复位ADT
+#endif
     anc_ear_adaptive_close();
 }
 
 /* ANC滤波器模式循环切换 */
 int audio_anc_coeff_adaptive_switch()
 {
-    if (hdl->param->mode == ANC_ON && !anc_ear_adaptive_busy_get() && !anc_mode_switch_lock_get()) {
+    if (anc_mode_get() == ANC_ON && !anc_ear_adaptive_busy_get() && !anc_mode_switch_lock_get()) {
         hdl->param->anc_coeff_mode ^= 1;
         audio_anc_coeff_adaptive_update(hdl->param->anc_coeff_mode, 1);
     }
@@ -749,19 +757,19 @@ static void audio_anc_adaptive_data_format(anc_adaptive_iir_t *iir)
         hdl->ear_adaptive_data_from = ANC_ADAPTIVE_DATA_FROM_VM;
 #if ANC_CONFIG_LFF_EN
         if (hdl->param->lff_en && (result & ANC_ADAPTIVE_RESULT_LFF)) {
-            hdl->param->adaptive->lff_coeff = malloc(ANC_ADAPTIVE_FF_ORDER * sizeof(double) * 5);
+            hdl->param->adaptive->lff_coeff = anc_malloc("ICSD_ANC_APP", ANC_ADAPTIVE_FF_ORDER * sizeof(double) * 5);
             iir_lib.lff = hdl->adaptive_iir.lff;
         }
 #endif/*ANC_CONFIG_LFF_EN*/
 #if ANC_CONFIG_LFB_EN
         if (hdl->param->lfb_en) {
             if (result & ANC_ADAPTIVE_RESULT_LFB) {
-                hdl->param->adaptive->lfb_coeff = malloc(ANC_ADAPTIVE_FB_ORDER * sizeof(double) * 5);
+                hdl->param->adaptive->lfb_coeff = anc_malloc("ICSD_ANC_APP", ANC_ADAPTIVE_FB_ORDER * sizeof(double) * 5);
                 iir_lib.lfb = hdl->adaptive_iir.lfb;
             }
 #if ANC_EAR_ADAPTIVE_CMP_EN
             if (result & ANC_ADAPTIVE_RESULT_LCMP) {
-                hdl->param->adaptive->lcmp_coeff = malloc(ANC_ADAPTIVE_CMP_ORDER * sizeof(double) * 5);
+                hdl->param->adaptive->lcmp_coeff = anc_malloc("ICSD_ANC_APP", ANC_ADAPTIVE_CMP_ORDER * sizeof(double) * 5);
                 iir_lib.lcmp = hdl->adaptive_iir.lcmp;
             }
 #endif/*ANC_EAR_ADAPTIVE_CMP_EN*/
@@ -769,19 +777,19 @@ static void audio_anc_adaptive_data_format(anc_adaptive_iir_t *iir)
 #endif/*ANC_CONFIG_LFB_EN*/
 #if ANC_CONFIG_RFF_EN
         if (hdl->param->rff_en && (result & ANC_ADAPTIVE_RESULT_RFF)) {
-            hdl->param->adaptive->rff_coeff = malloc(ANC_ADAPTIVE_FF_ORDER * sizeof(double) * 5);
+            hdl->param->adaptive->rff_coeff = anc_malloc("ICSD_ANC_APP", ANC_ADAPTIVE_FF_ORDER * sizeof(double) * 5);
             iir_lib.rff = hdl->adaptive_iir.rff;
         }
 #endif/*ANC_CONFIG_RFF_EN*/
 #if ANC_CONFIG_RFB_EN
         if (hdl->param->rfb_en) {
             if (result & ANC_ADAPTIVE_RESULT_RFB) {
-                hdl->param->adaptive->rfb_coeff = malloc(ANC_ADAPTIVE_FB_ORDER * sizeof(double) * 5);
+                hdl->param->adaptive->rfb_coeff = anc_malloc("ICSD_ANC_APP", ANC_ADAPTIVE_FB_ORDER * sizeof(double) * 5);
                 iir_lib.rfb = hdl->adaptive_iir.rfb;
             }
 #if ANC_EAR_ADAPTIVE_CMP_EN
             if (result & ANC_ADAPTIVE_RESULT_LCMP) {
-                hdl->param->adaptive->rcmp_coeff = malloc(ANC_ADAPTIVE_CMP_ORDER * sizeof(double) * 5);
+                hdl->param->adaptive->rcmp_coeff = anc_malloc("ICSD_ANC_APP", ANC_ADAPTIVE_CMP_ORDER * sizeof(double) * 5);
                 iir_lib.rcmp = hdl->adaptive_iir.rcmp;
             }
 #endif/*ANC_EAR_ADAPTIVE_CMP_EN*/
@@ -1171,7 +1179,7 @@ void audio_anc_param_map_init(void)
 #if TCFG_USER_TWS_ENABLE && (TCFG_AUDIO_ANC_CH != (ANC_L_CH | ANC_R_CH))
     if (hdl) {
         if (hdl->param->developer_mode || anc_ext_tool_online_get()) {
-            anc_gain_t *cfg = zalloc(sizeof(anc_gain_t));
+            anc_gain_t *cfg = anc_malloc("ICSD_ANC_APP", sizeof(anc_gain_t));
             anc_cfg_online_deal(ANC_CFG_READ, cfg);
             u8 update = 0;
             //将左边的MIC增益拷贝至右边，避免增益不同导致效果异常；
@@ -1190,7 +1198,7 @@ void audio_anc_param_map_init(void)
                     anc_log("Err: %s, ret %d\n", __func__, ret);
                 }
             }
-            free(cfg);
+            anc_free(cfg);
         }
     }
 #endif

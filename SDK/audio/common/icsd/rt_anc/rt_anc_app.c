@@ -129,6 +129,8 @@ struct audio_rt_anc_hdl {
     float *debug_param;
     float *pz_cmp;
     float *sz_cmp;
+    float *sz_angle_rangel;
+    float *sz_angle_rangeh;
 #if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
     u8 *cmp_tool_data;							//CMP工具数据缓存
     int cmp_tool_data_len;
@@ -165,199 +167,6 @@ static void audio_rtanc_cmp_tool_data_catch(u8 *data, int len);
 static struct audio_rt_anc_hdl	*hdl = NULL;
 
 anc_packet_data_t *rtanc_tool_data = NULL;
-
-struct rtanc_in_ancoff_handle {
-    u8 state;//记录打开的状态
-    u8 busy;
-    u32 open_timer_id; //记录定时器id
-    u32 close_timer_id; //记录定时器id
-    u8 ancoff_open_rtanc_state;//记录是否允许ancoff下打开rtanc
-    u32 open_times; //配置从关闭到打开间隔时间，即关闭rtanc的时间长度，ms
-    u32 close_times; //配置从打开到关闭间隔时间，即打开rtanc的时间长度，ms
-    u8 close_output_cnt;//配置目标输出关闭次数
-    u8 output_cnt;//记录输出关闭次数
-};
-struct rtanc_in_ancoff_handle *rtanc_in_ancoff_hdl = NULL;
-
-#if 1
-#define ancoff_rtanc_log	r_printf
-#else
-#define ancoff_rtanc_log(...)
-#endif/*log_en*/
-
-#define ANCOFF_OPEN_RTANC_TIMES     (1000 * 10) //anc off 开 rtanc的时间长度，ms
-#define ANCOFF_CLOSE_RTANC_TIMES    (1000 * 5 * 60)//anc off 关 rtanc的时间长度，ms
-#define ANCOFF_CLOSE_RTANC_OUTPUT_CNT  0//(1) //anc off 关rtanc的输出次数
-
-static void ancoff_close_rtanc_timer(void *p);
-static void ancoff_open_rtanc_timer(void *p)
-{
-    struct rtanc_in_ancoff_handle *hdl_t = rtanc_in_ancoff_hdl;
-    if (anc_mode_get() != ANC_OFF) {
-        return;
-    }
-    ancoff_rtanc_log("ancoff_open_rtanc_timer\n");
-    if (hdl_t && hdl_t->state) {
-        hdl_t->busy = 1;
-        hdl_t->open_timer_id = 0;
-
-        hdl_t->ancoff_open_rtanc_state = 1;//配置当前允许anc off 开rtanc
-        //anc off时，开关rtanc
-        set_rtanc_reset_flag(1);//处理切相同模式
-        anc_mode_switch(ANC_OFF, 0);
-        set_rtanc_reset_flag(0);
-
-#if ANCOFF_CLOSE_RTANC_TIMES
-        //重新定时关闭rtanc
-        if (hdl_t->close_timer_id) {
-            sys_timeout_del(hdl_t->close_timer_id);
-            hdl_t->close_timer_id = 0;
-        }
-        hdl_t->close_timer_id = sys_timeout_add((void *)hdl_t, ancoff_close_rtanc_timer, hdl_t->close_times);
-#endif
-
-        hdl_t->busy = 0;
-    }
-}
-
-static void ancoff_close_rtanc_timer(void *p)
-{
-    struct rtanc_in_ancoff_handle *hdl_t = rtanc_in_ancoff_hdl;
-    if (anc_mode_get() != ANC_OFF) {
-        return;
-    }
-    ancoff_rtanc_log("ancoff_close_rtanc_timer\n");
-    if (hdl_t && hdl_t->state) {
-        hdl_t->busy = 1;
-        hdl_t->close_timer_id = 0;
-
-        //anc off 关闭rtanc
-        hdl_t->ancoff_open_rtanc_state = 0;//配置当前需要anc off 关闭rtanc
-        //anc off时，开关rtanc
-        audio_rtanc_anc_off_switch();
-
-        //重新定时打开rtanc
-        if (hdl_t->open_timer_id) {
-            sys_timeout_del(hdl_t->open_timer_id);
-            hdl_t->open_timer_id = 0;
-        }
-        hdl_t->open_timer_id = sys_timeout_add((void *)hdl_t, ancoff_open_rtanc_timer, hdl_t->open_times);
-
-        hdl_t->busy = 0;
-    }
-}
-
-int audio_rtanc_in_ancoff_open()
-{
-    ancoff_rtanc_log("audio_rtanc_in_ancoff_open \n");
-    if (rtanc_in_ancoff_hdl) {
-        ancoff_rtanc_log("rtanc_in_ancoff_hdl is already open!!!\n");
-        return -1;
-    }
-    struct rtanc_in_ancoff_handle *hdl_t = anc_malloc("ICSD_RTANC", sizeof(struct rtanc_in_ancoff_handle));
-    ASSERT(hdl_t);
-
-    hdl_t->open_times = ANCOFF_CLOSE_RTANC_TIMES; //配置从关闭到打开间隔时间，即关闭rtanc的时间长度，ms
-    hdl_t->close_times = ANCOFF_OPEN_RTANC_TIMES; //配置从打开到关闭间隔时间，即打开rtanc的时间长度，ms
-    hdl_t->close_output_cnt = ANCOFF_CLOSE_RTANC_OUTPUT_CNT; //
-    ancoff_rtanc_log("open times : %d ms, close times : %d ms, close output cnt : %d\n", hdl_t->open_times, hdl_t->close_times, hdl_t->close_output_cnt);
-
-    hdl_t->open_timer_id = 0;//先不开open定时器，在输出计算里面开定时器
-    hdl_t->output_cnt = 0;
-
-#if ANCOFF_CLOSE_RTANC_TIMES
-    hdl_t->close_timer_id = sys_timeout_add((void *)hdl_t, ancoff_close_rtanc_timer, hdl_t->close_times);
-#endif
-
-    hdl_t->ancoff_open_rtanc_state = 1;//配置当前允许anc off 开rtanc
-    hdl_t->busy = 0;
-    hdl_t->state = 1;
-    rtanc_in_ancoff_hdl = hdl_t;
-    return 0;
-
-}
-u8 get_ancoff_open_rtanc_state()
-{
-#if (ANCOFF_CLOSE_RTANC_OUTPUT_CNT || ANCOFF_CLOSE_RTANC_TIMES)
-    struct rtanc_in_ancoff_handle *hdl_t = rtanc_in_ancoff_hdl;
-    if (hdl_t && hdl_t->state) {
-        return hdl_t->ancoff_open_rtanc_state;
-    }
-    return 0;
-#else
-    return 1;
-#endif
-}
-
-int audio_rtanc_in_ancoff_close()
-{
-    struct rtanc_in_ancoff_handle *hdl_t = rtanc_in_ancoff_hdl;
-    if (hdl_t) {
-        hdl_t->state = 0;
-        ancoff_rtanc_log("audio_rtanc_in_ancoff_close\n");
-        while (hdl_t->busy) {
-            putchar('w');
-            os_time_dly(1);
-        }
-        if (hdl_t->open_timer_id) {
-            sys_timeout_del(hdl_t->open_timer_id);
-            hdl_t->open_timer_id = 0;
-        }
-#if ANCOFF_CLOSE_RTANC_TIMES
-        if (hdl_t->close_timer_id) {
-            sys_timeout_del(hdl_t->close_timer_id);
-            hdl_t->close_timer_id = 0;
-        }
-#endif
-        anc_free(hdl_t);
-        rtanc_in_ancoff_hdl = NULL;
-    }
-    return 0;
-}
-
-static int audio_rtanc_in_ancoff_add_output_cnt(int add)
-{
-#if ANCOFF_CLOSE_RTANC_OUTPUT_CNT
-    struct rtanc_in_ancoff_handle *hdl_t = rtanc_in_ancoff_hdl;
-    if (anc_mode_get() != ANC_OFF) {
-        return 0;
-    }
-    if (hdl_t && hdl_t->state) {
-        hdl_t->busy = 1;
-        hdl_t->output_cnt += add;
-        ancoff_rtanc_log("audio_rtanc_in_ancoff_add_output_cnt: %d \n", hdl_t->output_cnt);
-        if (hdl_t->output_cnt >= hdl_t->close_output_cnt) {
-            hdl_t->output_cnt = 0;
-#if ANCOFF_CLOSE_RTANC_TIMES
-            //删除关闭定时器
-            if (hdl_t->close_timer_id) {
-                sys_timeout_del(hdl_t->close_timer_id);
-                hdl_t->close_timer_id = 0;
-            }
-#endif
-
-            //达到输出计数，anc off关闭rtanc
-            hdl_t->ancoff_open_rtanc_state = 0;//配置当前不允许anc off 开rtanc
-            set_rtanc_reset_flag(1);//处理切相同模式
-            int err = os_taskq_post_msg(SPEAK_TO_CHAT_TASK_NAME, 3, ICSD_ANC_MODE_SWITCH, ANC_OFF, 0);
-            if (err != OS_NO_ERR) {
-                ancoff_rtanc_log("%s err %d", __func__, err);
-            }
-
-            //设置timeout 重新在anc off打开rtanc
-            if (hdl_t->open_timer_id) {
-                sys_timeout_del(hdl_t->open_timer_id);
-                hdl_t->open_timer_id = 0;
-            }
-            hdl_t->open_timer_id = sys_timeout_add((void *)hdl_t, ancoff_open_rtanc_timer, hdl_t->open_times);
-        }
-
-        hdl_t->busy = 0;
-    }
-#endif
-    return 0;
-}
-
 
 void audio_anc_real_time_adaptive_init(audio_anc_t *param)
 {
@@ -808,7 +617,7 @@ void audio_rtanc_cmp_update(void)
 
     audio_rtanc_adaptive_cmp_output_get(&cmp_p);
     hdl->out.lcmp_gain = cmp_p.l_gain;
-    if (param->mode == ANC_TRANSPARENCY) {
+    if (anc_mode_get() == ANC_TRANSPARENCY) {
         u8 sign = param->gains.gain_sign;
         param->ltrans_cmpgain = (sign & ANCL_CMP_SIGN) ? (0 - cmp_p.l_gain) : cmp_p.l_gain;
         param->ltrans_cmp_coeff = cmp_p.l_coeff;
@@ -824,7 +633,7 @@ void audio_rtanc_cmp_update(void)
     //rtanc_debug_log("cmp updata gain = %d, coef = %d, ", (int)(cmp_p.l_gain * 100), (int)(cmp_p.l_coeff[0] * 100));
     rtanc_log("ANC_CHECK:CMP_UPDATE, crc %x-%d/100\n", CRC16(cmp_p.l_coeff, ANC_ADAPTIVE_CMP_ORDER * AUDIO_RTANC_COEFF_SIZE), (int)(cmp_p.l_gain * 100));
 #endif
-    if (param->mode != ANC_OFF) {
+    if (anc_mode_get() != ANC_OFF) {
         audio_anc_coeff_fb_smooth_update();
     }
 }
@@ -933,7 +742,6 @@ void audio_adt_rtanc_output_handle(void *rt_param_l, void *rt_param_r)
     //恢复RT_ANC
     audio_anc_real_time_adaptive_resume("RTANC_OUTPUT");
 
-    audio_rtanc_in_ancoff_add_output_cnt(1);
 
     rtanc_log("RTANC_STATE:OUTPUT_RUN END\n");
     hdl->run_busy = 0;
@@ -1087,6 +895,10 @@ int audio_rtanc_adaptive_init(u8 sync_mode)
     hdl->pz_cmp = anc_malloc("ICSD_RTANC", 50 * sizeof(float));
     hdl->sz_cmp = anc_malloc("ICSD_RTANC", 50 * sizeof(float));
 #endif
+    //后续考虑工具直接生成
+    hdl->sz_angle_rangel = anc_malloc("ICSD_RTANC", MEMLEN / 2 * sizeof(float));
+    hdl->sz_angle_rangeh = anc_malloc("ICSD_RTANC", MEMLEN / 2 * sizeof(float));
+
     hdl->rtanc_p = anc_malloc("ICSD_RTANC", sizeof(struct rtanc_param));
 #if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
     audio_anc_ear_adaptive_cmp_open(CMP_FROM_RTANC);
@@ -1112,6 +924,10 @@ int audio_rtanc_adaptive_exit(void)
     hdl->pz_cmp = NULL;
     hdl->sz_cmp = NULL;
 #endif
+    anc_free(hdl->sz_angle_rangel);
+    anc_free(hdl->sz_angle_rangeh);
+    hdl->sz_angle_rangel = NULL;
+    hdl->sz_angle_rangeh = NULL;
 
 #if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
     audio_anc_ear_adaptive_cmp_close();
@@ -1349,7 +1165,7 @@ void audio_rtanc_cmp_data_packet(void)
 #endif
 
     if (hdl->cmp_tool_data) {
-        free(hdl->cmp_tool_data);
+        anc_free(hdl->cmp_tool_data);
     }
     hdl->cmp_tool_data = anc_malloc("ICSD_CMP", cmp_dat_len);
     hdl->cmp_tool_data_len = cmp_dat_len;
@@ -1446,20 +1262,6 @@ u8 audio_anc_real_time_adaptive_run_busy_get(void)
     return 0;
 }
 
-int get_rtanc_mode()
-{
-    return hdl->rtanc_mode;
-}
-static u8 rtanc_reset_flag = 0;
-u8 get_rtanc_reset_flag()
-{
-    return rtanc_reset_flag;
-}
-void set_rtanc_reset_flag(u8 flag)
-{
-    rtanc_reset_flag = flag;
-}
-
 REGISTER_LP_TARGET(RTANC_lp_target) = {
     .name       = "RTANC",
     .is_idle    = RTANC_idle_query,
@@ -1530,6 +1332,21 @@ float *audio_rtanc_sz_cmp_get(void)
 }
 #endif
 
+float *audio_rtanc_sz_angle_rangel_get(void)
+{
+    if (hdl) {
+        return hdl->sz_angle_rangel;
+    }
+    return NULL;
+}
+
+float *audio_rtanc_sz_angle_rangeh_get(void)
+{
+    if (hdl) {
+        return hdl->sz_angle_rangeh;
+    }
+    return NULL;
+}
 
 //SZ_SEL 模式: AFQ输出回调，根据SZ筛选一条稳定的SZ，和FF滤波器，提供给CMP/AEQ计算
 static void audio_rtanc_sz_select_afq_output_hdl(struct audio_afq_output *p)
@@ -1638,7 +1455,7 @@ static void audio_rtanc_sz_select_afq_output_hdl(struct audio_afq_output *p)
     rtanc_debug_log("sz_alogm_cmp_coeff output\n");
     // put_buf((u8 *)hdl->out.lcmp_coeff, 10 * AUDIO_RTANC_COEFF_SIZE);
     anc_free(cmp_dat);
-    free(hdl->sz_sel.lcmp_out);
+    anc_free(hdl->sz_sel.lcmp_out);
     //FGQ 输出为AABB:stop
 #endif
 
@@ -1702,21 +1519,14 @@ int audio_rtanc_sz_select_process(void)
     return 0;
 }
 
-int audio_rtanc_anc_off_switch(void)
-{
-    //用于ANC_OFF下，开关RTANC（mode switch内部会有判断音乐播放相关逻辑）
-    if (anc_mode_get() == ANC_OFF) {
-        set_rtanc_reset_flag(1);//处理切相同模式
-        anc_mode_switch(ANC_OFF, 0);
-        set_rtanc_reset_flag(0);
-    }
-    return 0;
-}
-
+//入耳提示音自适应结束callback
 int audio_rtanc_sz_sel_callback(void)
 {
-    //处于ANC_OFF模式需要关闭RTANC
-    return audio_rtanc_anc_off_switch();
+    //若用户模式是ANC_OFF，则需要关闭RTANC
+    if (anc_user_mode_get() == ANC_OFF) {
+        anc_mode_switch_base(ANC_OFF, 0);
+    }
+    return 0;
 }
 
 int audio_rtanc_sz_sel_state_get(void)
@@ -1763,7 +1573,7 @@ int audio_rtanc_coeff_set(void)
         }
 #endif
         if (out->lcmp_coeff) {
-            if (param->mode == ANC_ON) {
+            if (anc_mode_get() == ANC_ON) {
                 param->gains.l_cmpgain = out->lcmp_gain;
                 param->lcmp_coeff = out->lcmp_coeff;
             } else { //通透

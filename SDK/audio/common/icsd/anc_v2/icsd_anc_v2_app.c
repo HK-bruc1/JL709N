@@ -75,7 +75,7 @@ static void icsd_anc_v2_time_data_exit()
 static void icsd_anc_v2_exit()
 {
     if (ICSD_REG->anc_v2_ram_addr) {
-        free(ICSD_REG->anc_v2_ram_addr);
+        anc_free(ICSD_REG->anc_v2_ram_addr);
         ICSD_REG->anc_v2_ram_addr = 0;
     }
     printf("icsd_anc_v2_exit");
@@ -258,10 +258,10 @@ u8 icsd_anc_v2_set_bypass(u8 ff_yorder, float bypass_vol, s8 bypass_sign)
 
 float icsd_anc_v2_readfbgain()
 {
-    anc_gain_t *fb_gain = zalloc(sizeof(anc_gain_t));
+    anc_gain_t *fb_gain = anc_malloc("ICSD_ANC", sizeof(anc_gain_t));
     anc_param_fill(ANC_CFG_READ, fb_gain);
     float l_fbgain = fb_gain->gains.l_fbgain;
-    free(fb_gain);
+    anc_free(fb_gain);
     return l_fbgain;
 }
 

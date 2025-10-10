@@ -56,6 +56,5 @@ extern struct eq_function *EQ_FUNC;
 
 
 
-
-
+extern char lib_aeq_version[];
 #endif

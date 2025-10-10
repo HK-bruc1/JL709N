@@ -82,4 +82,5 @@ extern const float vdt_dmahgain;
 
 void vdt_config_init(__vdt_config *_vdt_config);
 
+extern char lib_vdt_version[];
 #endif

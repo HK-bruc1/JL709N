@@ -414,7 +414,7 @@ void audio_anc_power_adaptive_mode_set(u8 mode, u8 lvl)
     if (power_adaptive_hdl) {
         power_adaptive_hdl->param->adaptive_mode = mode;
         audio_anc_pow_export_en((mode == ANC_ADAPTIVE_GAIN_MODE), 0);
-        if (power_adaptive_hdl->param->mode == ANC_ON) {
+        if (anc_mode_get() == ANC_ON) {
             switch (mode) {
             case ANC_ADAPTIVE_MANUAL_MODE:
                 anc_plug_log("ANC_ADAPTIVE_MANUAL_MODE ,lvl%d\n", lvl);

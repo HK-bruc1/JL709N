@@ -347,7 +347,7 @@ int audio_real_time_adaptive_app_open_demo(void)
 #if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
     //1. 注册 实时自适应EQ 流程
     ret = audio_real_time_adaptive_eq_open(fre_sel, audio_adaptive_eq_end_result);
-    if (ret) {
+    if (ret && (ret != ANC_EXT_OPEN_FAIL_REENTRY)) {
         printf("adaptive eq open fail\n");
         goto __exit;
     }
@@ -422,7 +422,7 @@ int audio_anc_switch_adt_app_open(void)
 #if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
         int fre_sel = AUDIO_ADAPTIVE_FRE_SEL_ANC;
         ret = audio_real_time_adaptive_eq_open(fre_sel, audio_adaptive_eq_end_result);
-        if (ret) {
+        if (ret && (ret != ANC_EXT_OPEN_FAIL_REENTRY)) {
             printf("adaptive eq open fail\n");
             goto __exit;
         }
@@ -433,7 +433,7 @@ int audio_anc_switch_adt_app_open(void)
 
 #if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
     //2.打开ADT算法
-    ret = audio_icsd_adt_no_sync_open(adt_mode);
+    ret = audio_icsd_anc_switch_open(adt_mode);
     if (ret) {
         printf("anc_switch: adt app open fail, ret=%d\n", ret);
         goto __exit;
@@ -479,7 +479,7 @@ int audio_anc_switch_adt_app_close(void)
 
 #if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
     //2.关闭ADT算法
-    audio_icsd_adt_close(0, 0, adt_mode, 0);
+    audio_icsd_anc_switch_close(adt_mode);
 #endif
     return 0;
 }

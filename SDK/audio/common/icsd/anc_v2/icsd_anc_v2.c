@@ -23,6 +23,7 @@
 #include "anc_ext_tool.h"
 #include "audio_anc_debug_tool.h"
 
+u8 const ICSD_SPECIFIC_EN    = 0;
 u8 const ICSD_ANC_TOOL_DEBUG = 0;
 OS_SEM icsd_anc_sem;
 
@@ -136,7 +137,7 @@ static void icsd_anc_v2_open(void *_param, struct anc_ext_ear_adaptive_param *ex
     struct icsd_anc_v2_libfmt libfmt;
     icsd_anc_v2_get_libfmt(&libfmt);
     if (ICSD_REG->anc_v2_ram_addr == 0) {
-        ICSD_REG->anc_v2_ram_addr = zalloc(libfmt.lib_alloc_size);
+        ICSD_REG->anc_v2_ram_addr = anc_malloc("ICSD_ANC", libfmt.lib_alloc_size);
         printf("anc_v2_ram_addr:%d>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n", (int)ICSD_REG->anc_v2_ram_addr);
     }
     struct icsd_anc_v2_infmt infmt = {0};
@@ -148,7 +149,7 @@ static void icsd_anc_v2_open(void *_param, struct anc_ext_ear_adaptive_param *ex
     anc_adaptive_iir_t *anc_iir = (anc_adaptive_iir_t *)anc_ear_adaptive_iir_get();
 #if (TCFG_AUDIO_ANC_CH & ANC_L_CH)
     if (anc_iir->result & ANC_ADAPTIVE_RESULT_LFF) {
-        ICSD_REG->lff_fgq_last = (float *)zalloc(((ANC_MAX_ORDER * 3) + 1) * sizeof(float));
+        ICSD_REG->lff_fgq_last = (float *)anc_malloc("ICSD_ANC", ((ANC_MAX_ORDER * 3) + 1) * sizeof(float));
         ICSD_REG->lff_fgq_last[0] = anc_iir->lff_gain;
         for (int i = 0; i < ANC_ADAPTIVE_FF_ORDER; i++) {
             memcpy((u8 *)(ICSD_REG->lff_fgq_last + 1 + (i * 3)), (u8 *)(anc_iir->lff[i].a), 12);
@@ -159,7 +160,7 @@ static void icsd_anc_v2_open(void *_param, struct anc_ext_ear_adaptive_param *ex
 #endif
 #if (TCFG_AUDIO_ANC_CH & ANC_R_CH)
     if (anc_iir->result & ANC_ADAPTIVE_RESULT_RFF) {
-        ICSD_REG->rff_fgq_last = (float *)zalloc(((ANC_MAX_ORDER * 3) + 1) * sizeof(float));
+        ICSD_REG->rff_fgq_last = (float *)anc_malloc("ICSD_ANC", ((ANC_MAX_ORDER * 3) + 1) * sizeof(float));
         for (int i = 0; i < ANC_ADAPTIVE_FF_ORDER; i++) {
             memcpy((u8 *)(ICSD_REG->rff_fgq_last + 1 + (i * 3)), (u8 *)(anc_iir->rff[i].a), 12);
         }
@@ -188,11 +189,11 @@ void icsd_anc_v2_end(void *_param)
     mem_stats();
     if (ICSD_REG) {
         if (ICSD_REG->lff_fgq_last) {
-            free(ICSD_REG->lff_fgq_last);
+            anc_free(ICSD_REG->lff_fgq_last);
             ICSD_REG->lff_fgq_last = NULL;
         }
         if (ICSD_REG->rff_fgq_last) {
-            free(ICSD_REG->rff_fgq_last);
+            anc_free(ICSD_REG->rff_fgq_last);
             ICSD_REG->rff_fgq_last = NULL;
         }
         ICSD_REG->v2_user_train_state &= ~ANC_USER_TRAIN_DMA_EN;
@@ -257,7 +258,7 @@ void icsd_anc_v2_init(void *_hdl, struct anc_ext_ear_adaptive_param *ext_cfg)
     printf("icsd_anc_v2_init\n");
     if (ICSD_REG == NULL) {
         printf("ICSD REG malloc\n");
-        ICSD_REG = zalloc(sizeof(__icsd_anc_REG));
+        ICSD_REG = anc_malloc("ICSD_ANC", sizeof(__icsd_anc_REG));
     }
     anc_function_init();
 

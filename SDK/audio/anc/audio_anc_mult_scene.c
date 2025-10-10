@@ -344,7 +344,7 @@ static int anc_mult_scene_set_base(u16 scene_id)
         }
         param->lfb_coeff = mult_hdl->lfb_coeff;
         param->lfb_yorder = bulk->lfb.yorder;
-
+        // cppcheck-suppress knownConditionTrueFalse
         if (make_param_r_ch) {
             if (anc_mult_cfg_analsis(&bulk->rff, &mult_hdl->rff_coeff, &param->gains.r_ffgain, audio_anc_gains_alogm_get(ANC_FB_TYPE)) > 0) {
                 gain_sign |= ANCR_FF_SIGN;
@@ -367,6 +367,7 @@ static int anc_mult_scene_set_base(u16 scene_id)
         }
         param->lcmp_coeff = mult_hdl->lcmp_coeff;
         param->lcmp_yorder = cmp_bulk->lcmp.yorder;
+        // cppcheck-suppress knownConditionTrueFalse
         if (make_param_r_ch) {
             if (anc_mult_cfg_analsis(&cmp_bulk->rcmp, &mult_hdl->rcmp_coeff, &param->gains.r_cmpgain, audio_anc_gains_alogm_get(ANC_CMP_TYPE)) > 0) {
                 gain_sign |= ANCR_CMP_SIGN;
@@ -384,6 +385,7 @@ static int anc_mult_scene_set_base(u16 scene_id)
         }
         param->ltrans_coeff = mult_hdl->ltrans_coeff;
         param->ltrans_yorder = trans_bulk->ltrans.yorder;
+        // cppcheck-suppress knownConditionTrueFalse
         if (make_param_r_ch) {
             if (anc_mult_cfg_analsis(&trans_bulk->rtrans, &mult_hdl->rtrans_coeff, &param->gains.r_transgain, audio_anc_gains_alogm_get(ANC_TRANS_TYPE)) > 0) {
                 gain_sign |= ANCR_TRANS_SIGN;
@@ -400,6 +402,7 @@ static int anc_mult_scene_set_base(u16 scene_id)
         param->gains.l_transgain *= param->mic_cmp.lff_gain;
         param->gains.l_fbgain *= param->mic_cmp.lfb_gain;
         param->gains.l_cmpgain /= param->mic_cmp.lfb_gain;
+        // cppcheck-suppress knownConditionTrueFalse
         if (make_param_r_ch) {
             param->gains.r_ffgain *= param->mic_cmp.rff_gain;
             param->gains.r_transgain *= param->mic_cmp.rff_gain;
@@ -424,7 +427,7 @@ int anc_mult_scene_set(u16 scene_id)
     if (!mult_hdl) {
         return 1;
     }
-    if (mult_hdl->param->mode == ANC_TRANSPARENCY && ANC_MULT_TRANS_FB_ENABLE) {
+    if (anc_mode_get() == ANC_TRANSPARENCY && ANC_MULT_TRANS_FB_ENABLE) {
         ret = audio_anc_mult_trans_param_use_anc(mult_hdl->param, ANC_MULT_TRANS_FB_USB_ANC_ID);
     } else {
         ret = anc_mult_scene_set_base(scene_id);
@@ -918,7 +921,7 @@ int audio_anc_mult_coeff_file_read(void)
     int ret = anc_mult_coeff_file_fill(db_coeff);
 
     //更新效果
-    if (param->mode != ANC_OFF) {
+    if (anc_mode_get() != ANC_OFF) {
         /* g_printf("read cur scene_id %d\n",mult_hdl->cur_scene); */
         anc_mult_scene_set(mult_hdl->cur_scene);
         audio_anc_reset(param, 0);

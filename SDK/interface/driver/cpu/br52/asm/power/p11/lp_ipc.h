@@ -33,6 +33,7 @@
 
 
 //==================lpctmu===========================
+#define P2M_CTMU_SAMPLE_STATE                           P2M_MESSAGE_ACCESS(38)
 #define P2M_CTMU_CMD_ACK                                P2M_MESSAGE_ACCESS(39)
 #define P2M_CTMU_KEY_EVENT                              P2M_MESSAGE_ACCESS(40)
 #define P2M_CTMU_KEY_CNT                                P2M_MESSAGE_ACCESS(41)
@@ -87,6 +88,10 @@
 
 
 //==================lpctmu===========================
+#define M2P_CTMU_EARTCH_REF_CH					        M2P_MESSAGE_ACCESS(47)
+#define M2P_CTMU_RES_TRIML                              M2P_MESSAGE_ACCESS(48)
+#define M2P_CTMU_RES_TRIMH                              M2P_MESSAGE_ACCESS(49)
+
 /*触摸所有通道配置*/
 #define M2P_CTMU_CMD  									M2P_MESSAGE_ACCESS(50)
 #define M2P_CTMU_CH_ENABLE								M2P_MESSAGE_ACCESS(51)
@@ -120,6 +125,8 @@
 #define M2P_MASSAGE_CTMU_CH0_CFG1H                                         75
 #define M2P_MASSAGE_CTMU_CH0_CFG2L                                         76
 #define M2P_MASSAGE_CTMU_CH0_CFG2H                                         77
+#define M2P_MASSAGE_CTMU_CH0_CFG3L                                         78
+#define M2P_MASSAGE_CTMU_CH0_CFG3H                                         79
 
 #define M2P_CTMU_CH0_CFG0L                              M2P_MESSAGE_ACCESS((M2P_MASSAGE_CTMU_CH0_CFG0L + 0 * 8))
 #define M2P_CTMU_CH0_CFG0H                              M2P_MESSAGE_ACCESS((M2P_MASSAGE_CTMU_CH0_CFG0H + 0 * 8))
@@ -127,6 +134,8 @@
 #define M2P_CTMU_CH0_CFG1H                              M2P_MESSAGE_ACCESS((M2P_MASSAGE_CTMU_CH0_CFG1H + 0 * 8))
 #define M2P_CTMU_CH0_CFG2L                              M2P_MESSAGE_ACCESS((M2P_MASSAGE_CTMU_CH0_CFG2L + 0 * 8))
 #define M2P_CTMU_CH0_CFG2H                              M2P_MESSAGE_ACCESS((M2P_MASSAGE_CTMU_CH0_CFG2H + 0 * 8))
+#define M2P_CTMU_CH0_CFG3L                              M2P_MESSAGE_ACCESS((M2P_MASSAGE_CTMU_CH0_CFG3L + 0 * 8))
+#define M2P_CTMU_CH0_CFG3H                              M2P_MESSAGE_ACCESS((M2P_MASSAGE_CTMU_CH0_CFG3H + 0 * 8))
 
 #define M2P_CTMU_CH1_CFG0L                              M2P_MESSAGE_ACCESS((M2P_MASSAGE_CTMU_CH0_CFG0L + 1 * 8))
 #define M2P_CTMU_CH1_CFG0H                              M2P_MESSAGE_ACCESS((M2P_MASSAGE_CTMU_CH0_CFG0H + 1 * 8))
@@ -134,6 +143,8 @@
 #define M2P_CTMU_CH1_CFG1H                              M2P_MESSAGE_ACCESS((M2P_MASSAGE_CTMU_CH0_CFG1H + 1 * 8))
 #define M2P_CTMU_CH1_CFG2L                              M2P_MESSAGE_ACCESS((M2P_MASSAGE_CTMU_CH0_CFG2L + 1 * 8))
 #define M2P_CTMU_CH1_CFG2H                              M2P_MESSAGE_ACCESS((M2P_MASSAGE_CTMU_CH0_CFG2H + 1 * 8))
+#define M2P_CTMU_CH1_CFG3L                              M2P_MESSAGE_ACCESS((M2P_MASSAGE_CTMU_CH0_CFG3L + 1 * 8))
+#define M2P_CTMU_CH1_CFG3H                              M2P_MESSAGE_ACCESS((M2P_MASSAGE_CTMU_CH0_CFG3H + 1 * 8))
 
 #define M2P_CTMU_CH2_CFG0L                              M2P_MESSAGE_ACCESS((M2P_MASSAGE_CTMU_CH0_CFG0L + 2 * 8))
 #define M2P_CTMU_CH2_CFG0H                              M2P_MESSAGE_ACCESS((M2P_MASSAGE_CTMU_CH0_CFG0H + 2 * 8))
@@ -141,6 +152,8 @@
 #define M2P_CTMU_CH2_CFG1H                              M2P_MESSAGE_ACCESS((M2P_MASSAGE_CTMU_CH0_CFG1H + 2 * 8))
 #define M2P_CTMU_CH2_CFG2L                              M2P_MESSAGE_ACCESS((M2P_MASSAGE_CTMU_CH0_CFG2L + 2 * 8))
 #define M2P_CTMU_CH2_CFG2H                              M2P_MESSAGE_ACCESS((M2P_MASSAGE_CTMU_CH0_CFG2H + 2 * 8))
+#define M2P_CTMU_CH2_CFG3L                              M2P_MESSAGE_ACCESS((M2P_MASSAGE_CTMU_CH0_CFG3L + 2 * 8))
+#define M2P_CTMU_CH2_CFG3H                              M2P_MESSAGE_ACCESS((M2P_MASSAGE_CTMU_CH0_CFG3H + 2 * 8))
 
 #define M2P_CTMU_CH3_CFG0L                              M2P_MESSAGE_ACCESS((M2P_MASSAGE_CTMU_CH0_CFG0L + 3 * 8))
 #define M2P_CTMU_CH3_CFG0H                              M2P_MESSAGE_ACCESS((M2P_MASSAGE_CTMU_CH0_CFG0H + 3 * 8))
@@ -148,6 +161,8 @@
 #define M2P_CTMU_CH3_CFG1H                              M2P_MESSAGE_ACCESS((M2P_MASSAGE_CTMU_CH0_CFG1H + 3 * 8))
 #define M2P_CTMU_CH3_CFG2L                              M2P_MESSAGE_ACCESS((M2P_MASSAGE_CTMU_CH0_CFG2L + 3 * 8))
 #define M2P_CTMU_CH3_CFG2H                              M2P_MESSAGE_ACCESS((M2P_MASSAGE_CTMU_CH0_CFG2H + 3 * 8))
+#define M2P_CTMU_CH3_CFG3L                              M2P_MESSAGE_ACCESS((M2P_MASSAGE_CTMU_CH0_CFG3L + 3 * 8))
+#define M2P_CTMU_CH3_CFG3H                              M2P_MESSAGE_ACCESS((M2P_MASSAGE_CTMU_CH0_CFG3H + 3 * 8))
 
 #define M2P_CTMU_CH4_CFG0L                              M2P_MESSAGE_ACCESS((M2P_MASSAGE_CTMU_CH0_CFG0L + 4 * 8))
 #define M2P_CTMU_CH4_CFG0H                              M2P_MESSAGE_ACCESS((M2P_MASSAGE_CTMU_CH0_CFG0H + 4 * 8))
@@ -155,6 +170,8 @@
 #define M2P_CTMU_CH4_CFG1H                              M2P_MESSAGE_ACCESS((M2P_MASSAGE_CTMU_CH0_CFG1H + 4 * 8))
 #define M2P_CTMU_CH4_CFG2L                              M2P_MESSAGE_ACCESS((M2P_MASSAGE_CTMU_CH0_CFG2L + 4 * 8))
 #define M2P_CTMU_CH4_CFG2H                              M2P_MESSAGE_ACCESS((M2P_MASSAGE_CTMU_CH0_CFG2H + 4 * 8))//0x56
+#define M2P_CTMU_CH4_CFG3L                              M2P_MESSAGE_ACCESS((M2P_MASSAGE_CTMU_CH0_CFG3L + 4 * 8))
+#define M2P_CTMU_CH4_CFG3H                              M2P_MESSAGE_ACCESS((M2P_MASSAGE_CTMU_CH0_CFG3H + 4 * 8))
 
 
 
@@ -192,6 +209,8 @@ enum {
     P2M_BANK_INDEX,
     P2M_REPLY_SYNC_INDEX,
     P2M_APP_INDEX,
+    P2M_WK_LPTMR_INDEX,
+    P2M_CTMU_IO_INDEX = 24,
 };
 
 enum {

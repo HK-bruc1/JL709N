@@ -3,6 +3,10 @@
 #include "app_config.h"
 #include "cpu/includes.h"
 #include "gpio_config.h"
+#include "gSensor/gSensor_manage.h"
+#if TCFG_HRSENSOR_ENABLE
+#include "hr_sensor/hrSensor_manage.h"
+#endif
 
 //-------------------------------------------------------------------
 /*config
@@ -77,6 +81,17 @@ static void __mask_io_cfg()
 
 u8 power_soff_callback()
 {
+#if TCFG_GSENSOR_ENABLE || TCFG_HRSENSOR_ENABLE
+    extern void sensor_del_data_check_cb();
+    sensor_del_data_check_cb();
+#endif
+#if TCFG_GSENSOR_ENABLE
+    gsensor_disable();
+#endif      //end if CONFIG_GSENSOR_ENABLE
+#if TCFG_HRSENSOR_ENABLE
+    hr_sensor_measure_hr_stop();
+#endif
+
     DO_PLATFORM_UNINITCALL();
 
     __mask_io_cfg();

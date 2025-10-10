@@ -55,6 +55,10 @@
 #include "icsd_dot_app.h"
 #endif
 
+#if TCFG_AUDIO_SPEAK_TO_CHAT_ENABLE
+#include "icsd_vdt_app.h"
+#endif
+
 #if TCFG_VOICE_CHANGER_NODE_ENABLE
 #include "audio_voice_changer_api.h"
 static u8 esco_eff_uncle;

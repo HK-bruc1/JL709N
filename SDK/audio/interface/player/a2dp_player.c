@@ -23,7 +23,7 @@
 //tws音箱是否两个DAC通道都输出相同数据
 #define TCFG_TWS_DUAL_CHANNEL  0
 
-#if (defined TCFG_AUDIO_SPEAK_TO_CHAT_ENABLE) && TCFG_AUDIO_SPEAK_TO_CHAT_ENABLE
+#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
 #include "icsd_adt_app.h"
 #endif
 
@@ -34,10 +34,6 @@
 #if ((defined TCFG_AUDIO_SPATIAL_EFFECT_ENABLE) && TCFG_AUDIO_SPATIAL_EFFECT_ENABLE)
 #include "spatial_effects_process.h"
 #include "spatial_effect.h"
-#endif
-
-#if TCFG_AUDIO_ANC_ENABLE
-#include "audio_anc.h"
 #endif
 
 #if AUDIO_EQ_LINK_VOLUME
@@ -259,13 +255,6 @@ static void retry_start_a2dp_player(void *p)
 int a2dp_player_open(u8 *btaddr)
 {
     int err;
-
-#if (defined TCFG_AUDIO_SPEAK_TO_CHAT_ENABLE) && TCFG_AUDIO_SPEAK_TO_CHAT_ENABLE
-    if (get_speak_to_chat_state() == AUDIO_ADT_CHAT) {
-        audio_speak_to_char_sync_suspend();
-    }
-#endif
-
     err = a2dp_player_create(btaddr);
     if (err) {
         if (err == -EFAULT) {
@@ -273,6 +262,11 @@ int a2dp_player_open(u8 *btaddr)
         }
         return err;
     }
+
+#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
+    icsd_adt_a2dp_scene_set(1);
+#endif
+
     struct a2dp_player *player =  g_a2dp_player;
 
     player->a2dp_pitch_mode = PITCH_0; //默认打开是原声调
@@ -431,6 +425,10 @@ void a2dp_player_close(u8 *btaddr)
 
 #if (TCFG_SMART_VOICE_ENABLE && TCFG_SMART_VOICE_USE_AEC)
     audio_smart_voice_aec_close();
+#endif
+
+#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
+    icsd_adt_a2dp_scene_set(0);
 #endif
 
 }

@@ -69,6 +69,7 @@ struct anc_debug_tool_packt_t {
 struct anc_debug_tool_t {
     u8 state;
     u8 log_en;
+    u8 suspend;
     volatile u8 send_busy;
     volatile u8 send_id;
     OS_MUTEX mutex;
@@ -164,6 +165,13 @@ void audio_anc_debug_spp_log_en(u8 en)
     }
 }
 
+void audio_anc_debug_spp_suspend(u8 en)
+{
+    if (debug_hdl) {
+        debug_hdl->suspend = en;
+    }
+}
+
 int audio_anc_debug_send_data_packet(u8 cmd, u8 *buf, int len)
 {
     os_mutex_pend(&debug_hdl->mutex, 0);
@@ -212,7 +220,7 @@ __exit:
 int audio_anc_debug_send_data(u8 *buf, int len)
 {
     if (debug_hdl) {
-        if (!debug_hdl->log_en) {
+        if ((!debug_hdl->log_en) || debug_hdl->suspend) {
             //log 关闭时，打印类信息不允许上传
             switch (buf[0]) {
             case ANC_DEBUG_CMD_ICSD:

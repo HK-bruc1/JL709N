@@ -400,4 +400,7 @@ void icsd_sde_free();
 void sz_select_from_memory(__sz_sel_mem *hdl);
 
 void icsd_common_ancdma_4ch_cic8(int *r_ptr, s16 *__wptr_dma1_h, s16 *__wptr_dma1_l, s16 *__wptr_dma2_h, s16 *__wptr_dma2_l, u16 inpoints);
+
+
+extern char lib_common_version[];
 #endif

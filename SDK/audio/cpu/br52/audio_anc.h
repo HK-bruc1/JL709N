@@ -126,9 +126,6 @@
 //************************************************************************//
 #define AUDIO_ANC_WIDE_AREA_TAP_EVENT_SYNC      1//广域点击左右耳同步使能
 
-/*支持开免摘的anc模式*/
-#define SPEAK_TO_CHAT_ANC_MODE_ENABLE			(ANC_OFF_BIT | ANC_ON_BIT | ANC_TRANS_BIT)
-
 //****************** ICSD ADT 相关功能配置 end ************************//
 //
 /*ANC工具配对码使能*/
@@ -285,6 +282,12 @@ u8 anc_status_get(void);
 
 u8 anc_mode_get(void);
 
+void anc_user_mode_set(u8 mode);
+
+u8 anc_user_mode_get(void);
+
+u8 anc_real_mode_get(void);
+
 u8 anc_mode_switch_lock_get(void);
 
 void anc_mode_switch_lock_clean(void);
@@ -312,6 +315,8 @@ s8 audio_anc_mic_gain_get_dB(u8 mic_ch, u8 is_talk_mic);
 
 /*ANC模式切换(切换到指定模式)，并配置是否播放提示音*/
 int anc_mode_switch(u8 mode, u8 tone_play);
+
+int anc_mode_switch_base(u8 mode, u8 tone_play);
 
 /*在anc任务里面切换anc模式，
  *避免上一次切换没有完成，这次切换被忽略的情况*/

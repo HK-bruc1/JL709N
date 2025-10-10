@@ -29,6 +29,10 @@
 #include "icsd_adt_app.h"
 #endif /*TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN*/
 
+#if TCFG_AUDIO_SPEAK_TO_CHAT_ENABLE
+#include "icsd_vdt_app.h"
+#endif
+
 #if ANC_MULT_ORDER_ENABLE
 #include "audio_anc_mult_scene.h"
 #endif/*ANC_MULT_ORDER_ENABLE*/
@@ -74,7 +78,7 @@ int audio_anc_production_enter(void)
         //关闭风噪检测、智能免摘、广域点击
         audio_icsd_adt_scene_set(ADT_SCENE_PRODUCTION, 1);
         if (audio_icsd_adt_is_running()) {
-            audio_icsd_adt_close(0, 1, 0, 1);
+            audio_icsd_adt_reset(ADT_SCENE_PRODUCTION);
         }
 #endif /*TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN*/
 
@@ -135,8 +139,9 @@ int audio_anc_mic_gain_check(u8 is_phone_caller)
 #if TCFG_USER_TWS_ENABLE
 
 /*ANC模式同步(tws模式)*/
-void anc_mode_sync(struct anc_tws_sync_info *info)
+int anc_mode_sync(struct anc_tws_sync_info *info)
 {
+    anc_user_mode_set(info->user_anc_mode);
 #if ANC_EAR_ADAPTIVE_EN
     anc_ear_adaptive_seq_set(info->ear_adaptive_seq);
 #endif/*ANC_EAR_ADAPTIVE_EN*/
@@ -144,7 +149,11 @@ void anc_mode_sync(struct anc_tws_sync_info *info)
 #if ANC_MULT_ORDER_ENABLE
     audio_anc_mult_scene_id_sync(info->multi_scene_id);
 #endif/*ANC_MULT_ORDER_ENABLE*/
+    if (info->anc_mode == anc_mode_get()) {
+        return -1;
+    }
     os_taskq_post_msg("anc", 2, ANC_MSG_MODE_SYNC, info->anc_mode);
+    return 0;
 }
 
 #define TWS_FUNC_ID_ANC_SYNC    TWS_FUNC_ID('A', 'N', 'C', 'S')
@@ -172,13 +181,8 @@ REGISTER_TWS_FUNC_STUB(app_anc_sync_stub) = {
 void bt_tws_sync_anc(void)
 {
     struct anc_tws_sync_info info;
-#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
-    /* 处理tws配对前一瞬间，在anc off开adt和
-     * 进入免摘通透同步anc mode的情况*/
-    info.anc_mode = get_icsd_adt_anc_mode();
-#else
+    info.user_anc_mode = anc_user_mode_get();
     info.anc_mode = anc_mode_get();
-#endif /*TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN*/
 #if ANC_EAR_ADAPTIVE_EN
     info.ear_adaptive_seq = anc_ear_adaptive_seq_get();
 #endif/*ANC_EAR_ADAPTIVE_EN*/
@@ -186,8 +190,10 @@ void bt_tws_sync_anc(void)
     info.multi_scene_id = audio_anc_mult_scene_get();
 #endif/*ANC_MULT_ORDER_ENABLE*/
 #if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
-    info.vdt_state = get_speak_to_chat_state();
-    info.adt_app_mode = icsd_adt_app_mode_get();
+#if TCFG_AUDIO_SPEAK_TO_CHAT_ENABLE
+    info.vdt_state = audio_speak_to_chat_is_trigger();
+#endif
+    info.app_adt_mode = icsd_adt_app_mode_get();
 #endif /*TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN*/
     anc_log("[master]bt_tws_sync_anc\n");
     put_buf((u8 *)&info, sizeof(struct anc_tws_sync_info));

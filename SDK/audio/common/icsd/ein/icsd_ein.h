@@ -101,4 +101,7 @@ extern const float pz_in_trans[28];
 extern const float pz_out_trans[28];
 extern const float sz_in[14];
 extern const float sz_out[14];
+
+
+extern char lib_ein_version[];
 #endif

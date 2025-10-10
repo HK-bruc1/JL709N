@@ -7,6 +7,7 @@
 
 #include "app_config.h"
 #include "audio_anc.h"
+#include "audio_anc_develop.h"
 #if ((defined TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN) && TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN && \
 	 TCFG_AUDIO_ANC_ENABLE)
 
@@ -806,6 +807,18 @@ void icsd_adt_alg_debug_free()
 #if ICSD_AVC_LIB
     icsd_alg_avc_debug_free();
 #endif
+}
+
+void icsd_adt_uart2sd_open()
+{
+#if AUDIO_ANC_DATA_EXPORT_VIA_UART
+    audio_anc_develop_open(2);
+#endif
+}
+
+void icsd_adt_anc46k_outen_set(u8 en)
+{
+    ANC46K_CTL->out_en = en;
 }
 
 #endif/*TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN*/

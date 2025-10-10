@@ -8,6 +8,7 @@
 #include "gpadc.h"
 #include "app_config.h"
 #include "gSensor/gSensor_manage.h"
+#include "hrSensor_manage.h"
 #include "imuSensor_manage.h"
 #include "iic_api.h"
 #include "audio_adc.h"
@@ -31,7 +32,6 @@
 #if TCFG_ICM42670P_ENABLE
 #include "imu_sensor/icm_42670p/icm_42670p.h"
 #endif
-
 
 #include "sdk_config.c"
 
@@ -101,6 +101,41 @@ IMU_SENSOR_PLATFORM_DATA_BEGIN(imu_sensor_data)
 },
 #endif
 IMU_SENSOR_PLATFORM_DATA_END();
+#endif
+/************************** gsensor ****************************/
+#if TCFG_GSENSOR_ENABLE
+GSENSOR_PLATFORM_DATA_BEGIN(gSensor_data)
+#if TCFG_SC7A20_EN
+{
+    .iic = 0,
+     .gSensor_name = "sc7a20",
+},
+#endif
+#if TCFG_STK832x_EN
+{
+    .iic = 0,
+    .gSensor_name = "stk832x",
+},
+#endif
+GSENSOR_PLATFORM_DATA_END();
+#endif
+
+/************************** hrsensor ****************************/
+#if TCFG_HRSENSOR_ENABLE
+HRSENSOR_PLATFORM_DATA_BEGIN(hr_sensor_data)
+#if TCFG_HX3918_ENABLE
+{
+    .iic = 0,
+     .hrSensor_name = "hx3918",
+},
+#endif
+#if TCFG_HX3011_ENABLE
+{
+    .iic = 0,
+    .hrSensor_name = "hx3011",
+},
+#endif
+HRSENSOR_PLATFORM_DATA_END()
 #endif
 
 void board_imu_sensor_init()
@@ -253,6 +288,18 @@ void board_init()
 
 #if ((TCFG_AUDIO_SPATIAL_EFFECT_ENABLE && TCFG_SPATIAL_AUDIO_SENSOR_ENABLE) || TCFG_AUDIO_SOMATOSENSORY_ENABLE)
     board_imu_sensor_init();
+#endif
+#if TCFG_GSENSOR_ENABLE
+    gravity_sensor_init((void*)&gSensor_data);
+#endif      //end if CONFIG_GSENSOR_ENABLE
+
+#if TCFG_HRSENSOR_ENABLE
+    hr_sensor_init((void *)&hr_sensor_data);
+#endif
+
+#if TCFG_GSENSOR_ENABLE || TCFG_HRSENSOR_ENABLE
+void app_sensor_init(void);
+    app_sensor_init();
 #endif
 }
 

@@ -1329,3 +1329,47 @@ objs += \
 	$(ROOT)/apps/earphone/mode/bt/le_audio/big/le_broadcast_config.o \
 
 
+objs += \
+	$(ROOT)/apps/common/device/sensor/gSensor/gSensor_manage.o \
+
+objs += \
+	$(ROOT)/apps/common/device/sensor/gSensor/SC7A20.o \
+
+MASK_LIBS+= \
+	$(ROOT)/apps/common/device/sensor/gSensor/sensor_algorithm_jl_motion.a \
+
+objs += \
+	$(ROOT)/apps/common/device/sensor/gSensor/stk832x.o \
+
+objs += \
+	$(ROOT)/apps/common/device/sensor/gSensor/bma580.o \
+
+
+objs += \
+	$(ROOT)/apps/common/device/sensor/hr_sensor/hrSensor_manage.o \
+
+objs += \
+	$(ROOT)/apps/common/device/sensor/hr_sensor/hx3918/hx3918.o \
+	$(ROOT)/apps/common/device/sensor/hr_sensor/hx3918/hx3918_check_touch.o \
+	$(ROOT)/apps/common/device/sensor/hr_sensor/hx3918/hx3918_hrs_agc.o \
+	$(ROOT)/apps/common/device/sensor/hr_sensor/hx3918/hx3918_hrv_agc.o \
+	$(ROOT)/apps/common/device/sensor/hr_sensor/hx3918/hx3918_spo2_agc.o \
+	$(ROOT)/apps/common/device/sensor/hr_sensor/hx3918/hx3918_factory_test.o \
+
+MASK_LIBS+= \
+   $(ROOT)/apps/common/device/sensor/hr_sensor/hx3918/CodeBlocks_3605_spo2_20241021_v2.2.a \
+   $(ROOT)/apps/common/device/sensor/hr_sensor/hx3918/CodeBlocks_3918_hrs_bp_20250324_v2.2.a \
+   $(ROOT)/apps/common/device/sensor/hr_sensor/hx3918/CodeBlocks_3918_hrv_20241026_v2.2.a \
+
+
+objs += \
+	$(ROOT)/apps/common/device/sensor/hr_sensor/hx3011/hx3011.o \
+	$(ROOT)/apps/common/device/sensor/hr_sensor/hx3011/hx3011_check_touch.o \
+	$(ROOT)/apps/common/device/sensor/hr_sensor/hx3011/hx3011_hrs_agc.o \
+	$(ROOT)/apps/common/device/sensor/hr_sensor/hx3011/hx3011_spo2_agc.o \
+	$(ROOT)/apps/common/device/sensor/hr_sensor/hx3011/hx3011_factory_test.o \
+
+MASK_LIBS+= \
+   $(ROOT)/apps/common/device/sensor/hr_sensor/hx3011/CodeBlocks_3011_hrs_spo2_20250606_v2.2.a \
+
+

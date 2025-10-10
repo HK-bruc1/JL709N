@@ -1816,3 +1816,61 @@ c_SRC_FILES += \
 
 #endif
 
+#if TCFG_GSENSOR_ENABLE
+c_SRC_FILES += \
+	apps/common/device/sensor/gSensor/gSensor_manage.c \
+
+#if TCFG_SC7A20_EN
+c_SRC_FILES += \
+	apps/common/device/sensor/gSensor/SC7A20.c \
+
+MASK_LIBS+= \
+	apps/common/device/sensor/gSensor/sensor_algorithm_jl_motion.a \
+
+#endif
+#if TCFG_STK832x_EN
+c_SRC_FILES += \
+	$(ROOT)/apps/common/device/sensor/gSensor/stk832x.c \
+
+#endif
+#if TCFG_BMA580_EN
+c_SRC_FILES += \
+	apps/common/device/sensor/gSensor/bma580.c \
+
+#endif
+#endif
+
+#if TCFG_HRSENSOR_ENABLE
+c_SRC_FILES += \
+	apps/common/device/sensor/hr_sensor/hrSensor_manage.c \
+
+#if TCFG_HX3918_ENABLE
+c_SRC_FILES += \
+	apps/common/device/sensor/hr_sensor/hx3918/hx3918.c \
+	apps/common/device/sensor/hr_sensor/hx3918/hx3918_check_touch.c \
+	apps/common/device/sensor/hr_sensor/hx3918/hx3918_hrs_agc.c \
+	apps/common/device/sensor/hr_sensor/hx3918/hx3918_hrv_agc.c \
+	apps/common/device/sensor/hr_sensor/hx3918/hx3918_spo2_agc.c \
+	apps/common/device/sensor/hr_sensor/hx3918/hx3918_factory_test.c \
+
+MASK_LIBS+= \
+   apps/common/device/sensor/hr_sensor/hx3918/CodeBlocks_3605_spo2_20241021_v2.2.a \
+   $(ROOT)/apps/common/device/sensor/hr_sensor/hx3918/CodeBlocks_3918_hrs_bp_20250324_v2.2.a \
+   $(ROOT)/apps/common/device/sensor/hr_sensor/hx3918/CodeBlocks_3918_hrv_20241026_v2.2.a \
+
+#endif
+
+#if TCFG_HX3011_ENABLE
+c_SRC_FILES += \
+	$(ROOT)/apps/common/device/sensor/hr_sensor/hx3011/hx3011.c \
+	apps/common/device/sensor/hr_sensor/hx3011/hx3011_check_touch.c \
+	apps/common/device/sensor/hr_sensor/hx3011/hx3011_hrs_agc.c \
+	apps/common/device/sensor/hr_sensor/hx3011/hx3011_spo2_agc.c \
+	apps/common/device/sensor/hr_sensor/hx3011/hx3011_factory_test.c \
+
+MASK_LIBS+= \
+   $(ROOT)/apps/common/device/sensor/hr_sensor/hx3011/CodeBlocks_3011_hrs_spo2_20250606_v2.2.a \
+
+#endif
+
+#endif

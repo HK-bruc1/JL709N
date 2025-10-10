@@ -116,6 +116,7 @@ struct __anc_ext_tool_hdl {
     u8 tool_ear_adaptive_en;						//工具启动耳道自适应标志
     u8 adaptive_cmp_en;								//工具自适应CMP使能
     u8 adaptive_eq_en;								//工具自适应EQ使能
+    u16 adt_reset_timer;							//ADT 复位定时
     u32 DEBUG_TOOL_FUNCTION;						//工具调试模式:算法SPP打印使能
     struct list_head alloc_list;
     struct anc_ext_ear_adaptive_param ear_adaptive;	//耳道自适应工具参数
@@ -913,15 +914,36 @@ int anc_ext_subfile_analysis_each(u32 file_id, u8 *data, int len, u8 alloc_flag)
     return ret;
 }
 
+void anc_ext_write_adt_reset_timeout(void *priv)
+{
+    audio_icsd_adt_async_reset(0);
+    tool_hdl->adt_reset_timer = 0;
+}
+
 //SUBFILE 工具写文件文件结束
 int anc_ext_tool_write_end(u32 file_id, u8 *data, int len, u8 alloc_flag)
 {
+#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
+    u8 adt_suspend = icsd_adt_is_running();
+    if (adt_suspend) {
+        audio_icsd_adt_algom_suspend();
+    }
+#endif
     int ret = anc_ext_subfile_analysis_each(file_id, data, len, alloc_flag);
     //工具下发参数针对特殊ID做处理
     switch (file_id) {
     case FILE_ID_ANC_EXT_EAR_ADAPTIVE_DUT_CMP:
         break;
     }
+#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
+    if (adt_suspend) {
+        if (tool_hdl->adt_reset_timer) {
+            sys_timer_modify(tool_hdl->adt_reset_timer, 2000);
+        } else {
+            tool_hdl->adt_reset_timer = sys_timeout_add(NULL, anc_ext_write_adt_reset_timeout, 2000);
+        }
+    }
+#endif
     return ret;
 }
 

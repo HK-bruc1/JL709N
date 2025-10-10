@@ -8,6 +8,7 @@ c_SRC_FILES := \
 	apps/common/debug/debug_lite.c \
 	apps/common/debug/debug_uart_config.c \
 	apps/common/dev_manager/dev_manager.c \
+	apps/common/device/sensor/app_sensor.c \
 	apps/common/device/storage_device/norflash/norflash_sfc.c \
 	apps/common/fat_nor/virfat_flash.c \
 	apps/common/temp_trim/dtemp_pll_trim.c \
@@ -262,12 +263,20 @@ LFLAGS := \
 	cpu/br52/liba/libStereoToLCR_pi32v2_OnChip.a \
 	cpu/br52/liba/sbsbrir.a \
 	cpu/br52/liba/spatial_brir.a \
+	apps/common/device/sensor/gSensor/sensor_algorithm_jl_motion.a \
+	apps/common/device/sensor/hr_sensor/hx3918/CodeBlocks_3605_spo2_20241021_v2.2.a \
+	apps/common/device/sensor/hr_sensor/hx3918/CodeBlocks_3918_hrs_bp_20250324_v2.2.a \
+	apps/common/device/sensor/hr_sensor/hx3918/CodeBlocks_3918_hrv_20241026_v2.2.a \
+	apps/common/device/sensor/hr_sensor/hx3011/CodeBlocks_3011_hrs_spo2_20250606_v2.2.a \
 	cpu/br52/liba/libFFT_pi32v2_OnChip.a \
 	cpu/br52/liba/lib_wtg_dec.a \
 	cpu/br52/liba/bfilterfun_lib.a \
 	cpu/br52/liba/lib_opusdec_rom_dec.a \
 	cpu/br52/liba/lib_bt_aac_dec_rom_ext.a \
 	cpu/br52/liba/crypto_toolbox_Osize.a \
+	apps/common/device/sensor/hr_sensor/hx3918/CodeBlocks_3605_spo2_20241021_v2.2.a  \
+	apps/common/device/sensor/hr_sensor/hx3918/CodeBlocks_3918_hrs_bp_20250324_v2.2.a  \
+	apps/common/device/sensor/hr_sensor/hx3918/CodeBlocks_3918_hrv_20241026_v2.2.a  \
 	cpu/br52/liba/lib_dns.a \
 	cpu/br52/liba/lib_dns_v3.a \
 	cpu/br52/liba/update.a \

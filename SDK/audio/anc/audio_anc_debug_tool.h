@@ -42,6 +42,9 @@ void audio_anc_debug_tool_close(void);
 //debug spp打印开关
 void audio_anc_debug_spp_log_en(u8 en);
 
+//debug spp打印挂起
+void audio_anc_debug_spp_suspend(u8 en);
+
 /*
    debug 数据发送
    return len表示写入成功，0则写入失败

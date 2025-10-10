@@ -85,4 +85,5 @@ extern const u8 icsd_howl_debug;
 extern const u8 howl_debug_dlen;
 extern const u8 howl_ft_debug;
 
+extern char lib_howl_version[];
 #endif

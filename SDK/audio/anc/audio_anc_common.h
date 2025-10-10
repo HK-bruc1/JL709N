@@ -6,20 +6,28 @@
 #include "app_config.h"
 #include "audio_config_def.h"
 
-extern const u8 anc_ext_support_scene[6][10];
+extern const u8 anc_ext_support_scene[7][10];
 
 enum anc_event {
-    ANC_EVENT_NONE,
+    ANC_EVENT_NONE = 0,
     ANC_EVENT_ADT_INIT,
     ANC_EVENT_ADT_RESET,
+    ANC_EVENT_FILTER_UPDATE_BEFORE,
+    ANC_EVENT_FILTER_UPDATE_AFTER,
+    ANC_EVENT_RESET_BEFORE,
+    ANC_EVENT_RESET_AFTER,
+    ANC_EVENT_ADT_OPEN,
+    ANC_EVENT_ADT_CLOSE,
+    ANC_EVENT_ADT_SCENE_CHECK,
 };
 
 struct anc_tws_sync_info {
     u8 anc_mode; 			//当前ANC模式
+    u8 user_anc_mode;		//用户ANC模式
     u8 ear_adaptive_seq;	//耳道自适应seq序号
     u8 multi_scene_id;		//多滤波器场景ID
     u8 vdt_state;			//智能免摘状态
-    u16 adt_app_mode;		//ADT APP模式
+    u16 app_adt_mode;		//ADT APP模式
 };
 
 int audio_anc_event_notify(enum anc_event event, int arg);
@@ -43,7 +51,7 @@ int audio_anc_mic_gain_check(u8 is_phone_caller);
 void bt_tws_sync_anc(void);
 
 //ANC基础-同步信息处理函数
-void anc_mode_sync(struct anc_tws_sync_info *info);
+int anc_mode_sync(struct anc_tws_sync_info *info);
 
 //==============ANC 内存管理=================
 

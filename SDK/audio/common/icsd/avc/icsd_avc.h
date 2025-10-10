@@ -65,4 +65,7 @@ void icsd_alg_avc_debug_free();
 
 extern const float tidy_scale;
 extern const float tidy_offset;
+
+
+extern char lib_avc_version[];
 #endif

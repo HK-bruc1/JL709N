@@ -49,6 +49,13 @@ enum CTMU_M2P_CMD {
     RESET_IDENTIFY_ALGO_WITH_TRIM,
     REQUEST_LPCTMU_RES_TRIM,
     RESET_EARTCH_STATE,
+    RESET_ALL_ALGO,
+    RESET_ALL_ALGO_WITH_TRIM,
+    RESET_EARTCH_ALGO,
+    RESET_EARTCH_ALGO_WITH_TRIM,
+    CLOSE_EARTCH,
+    OPEN_EARTCH,
+    CHANNEL_INFO_INIT,
 };
 
 enum bt_arb_wl2ext_act {
@@ -109,6 +116,10 @@ struct lpctmu_config_data {
 }
 
 
+void lpctmu_kistart(void);
+
+void lpctmu_set_io_state(u32 ch, u32 state);
+
 void lpctmu_send_m2p_cmd(enum CTMU_M2P_CMD cmd);
 
 u32 lpctmu_get_cur_ch_by_idx(u32 ch_idx);
@@ -128,6 +139,8 @@ void lpctmu_init(struct lpctmu_config_data *cfg_data);
 void lpctmu_disable(void);
 
 void lpctmu_enable(void);
+
+u32 lpctmu_is_working(void);
 
 u32 lpctmu_is_sf_keep(void);
 

@@ -9,6 +9,23 @@
 #include "effects/eq_config.h"
 #include "icsd_common_v2_app.h"
 
+/*-----------------------------------------------------------------
+              定时启动实时自适应EQ(ANC_OFF场景)
+  设计意义：实时自适应EQ，ANC_OFF与ANC_ON功耗接近, 因此使用
+            间隔开关的方式来节约ANC_OFF场景的功耗
+
+  注意：    处于关闭状态时，EQ不会自适应更新
+------------------------------------------------------------------*/
+/*
+   ANC OFF间隔开关RT AEQ使能:
+       使能1：ANC_OFF(音乐场景)按照时间配置，定时开关RT AEQ
+       失能0: ANC_OFF(音乐场景)常开RT AEQ
+*/
+#define RT_AEQ_ANCOFF_TIMER_ENABLE   0
+#define RT_AEQ_ANCOFF_OPEN_TIMES     (1000 * 10) 		//ANC OFF 开实时自适应EQ的时间长度，ms
+#define RT_AEQ_ANCOFF_CLOSE_TIMES    (1000 * 5 * 60)	//ANC OFF 关实时自适应EQ的时间长度，ms
+
+
 #define ADAPTIVE_EQ_TARGET_NODE_NAME 			"AEQ"			//自适应EQ目标节点名称
 #define ADAPTIVE_EQ_VOLUME_NODE_NAME			"Vol_BtmMusic"	//自适应EQ依赖音量节点名称
 #define ADAPTIVE_EQ_ORDER						10
@@ -85,6 +102,12 @@ int audio_adaptive_eq_force_exit(void);
 int audio_adaptive_eq_tool_data_get(u8 **buf, u32 *len);
 
 int audio_adaptive_eq_tool_sz_data_get(u8 **buf, u32 *len);
+
+int audio_rtaeq_in_ancoff_open(void);
+
+int audio_rtaeq_in_ancoff_close(void);
+
+u8 audio_rtaeq_ancoff_timer_state_get(void);
 
 #endif/*__ICSD_AEQ_APP_H_*/
 

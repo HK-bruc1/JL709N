@@ -3,8 +3,11 @@
 
 #pragma   code_seg(".audio.text.cache.L1")
 
-const u8 CONFIG_ANC_MEM_DEBUG = 0;      //ANC内存管理
-void anc_mem_unfree_dump();             //未释放的ANC内存打印
+#define ANC_DEBUG_MAX_MEMORY_USAGE		0	//统计ANC最大内存使用量, 刷新最大值时会默认dump
+
+const u8 CONFIG_ANC_MEM_DEBUG = 0;      	//ANC内存管理使能
+
+void anc_mem_unfree_dump();             	//未释放的ANC内存打印
 
 /*Format:[0]addr [1]size [2]name [3]rets*/
 static u32 anc_unfree_rets[4][64];
@@ -89,7 +92,9 @@ void *anc_malloc(const char *name, size_t size)
         //printf("[w]anc_malloc,module:%s,size:%d\n", name, (int)size);
         void *ptr = zalloc(size);
         anc_unfree_rets_push(name, rets_addr, ptr, size);
-        //anc_mem_unfree_dump_max(0);
+#if ANC_DEBUG_MAX_MEMORY_USAGE
+        anc_mem_unfree_dump_max(0);
+#endif
         return ptr;
     }
     return zalloc(size);

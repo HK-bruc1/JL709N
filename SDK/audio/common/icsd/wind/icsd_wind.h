@@ -186,4 +186,6 @@ extern const u8 wdt_lff_tlk_debug;
 extern const float icsd_wdt_sen;
 extern const u8 wdt_lff_lfb_debug;
 extern const u8 wdt_lff_rff_debug;
+
+extern char lib_wdt_version[];
 #endif

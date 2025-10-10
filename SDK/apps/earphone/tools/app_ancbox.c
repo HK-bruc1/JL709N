@@ -834,12 +834,6 @@ int app_ancbox_event_handler(int *msg)
     case CMD_ANC_STATUS:
     case CMD_ANC_TOOLS_SYNC:
         putchar('S');
-#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
-        /*关闭所有模块*/
-        if (audio_icsd_adt_is_running()) {
-            audio_icsd_adt_close_all();
-        }
-#endif
 #if TCFG_CHARGESTORE_PORT == LDOIN_BIND_IO
         if (!app_in_mode(APP_MODE_IDLE)) {
             os_time_dly(1);

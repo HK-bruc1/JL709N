@@ -43,4 +43,6 @@ void icsd_dot_get_libfmt(struct icsd_dot_libfmt *libfmt);
 void icsd_dot_set_infmt(struct icsd_dot_infmt *fmt);
 _dot_output *icsd_dot_run(float *sz_out, float *msc);
 void icsd_dot_parm_init();
+
+extern char lib_dot_version[];
 #endif

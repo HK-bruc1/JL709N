@@ -57,5 +57,5 @@ void icsd_wat_ram_clean();
 
 extern const u8 wat_data_en;
 
-
+extern char lib_wat_version[];
 #endif

@@ -130,6 +130,11 @@ struct icsd_anc_v2_infmt {
     float *target_out_r;
     float *ff_fgq_l;
     float *ff_fgq_r;
+    float *specific_szl;
+    float *specific_pzl;
+    float *specific_szr;
+    float *specific_pzr;
+    u8     specific_en;
 };
 
 enum {
@@ -244,6 +249,8 @@ void icsd_anc_v2_mode_init();
 //DEBUG 函数
 void icsd_anc_v2_time_data_debug();
 extern const u8 EAR_ADAPTIVE_MODE_SIGN_TRIM_VEL;
+extern u8 const ICSD_SPECIFIC_EN;
 
 
+extern char lib_ancv2_version[];
 #endif/*_SD_ANC_LIB_V2_H*/

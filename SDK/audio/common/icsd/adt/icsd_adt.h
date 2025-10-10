@@ -164,6 +164,7 @@ struct icsd_acoustic_detector_libfmt {
 };
 
 typedef struct {
+    u8  out_en;
     int loop_len;    //循环BUF长度
     u16 loop_remain; //循环BUF内可用数据长度
     s16 *ch0_dptr;   //通道1数据地址
@@ -305,4 +306,5 @@ extern u16 adt_debug_ramsize;
 extern const u8 ADT_MIC_VERSION;
 extern const u8 ICSD_AVC_DATAPATH;
 
+extern char lib_adt_version[];
 #endif

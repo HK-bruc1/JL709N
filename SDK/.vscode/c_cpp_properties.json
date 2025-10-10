@@ -229,6 +229,7 @@
                 "${workspaceFolder}/audio/effect/spatial_effect",
                 "${workspaceFolder}/audio/effect/somatosensory",
                 "${workspaceFolder}/interface/media/aispeech/enc",
+                "${workspaceFolder}/apps/common/device/sensor/hr_sensor",
                 "${workspaceFolder}/interface/system/math/cpu/br52",
                 "C:/JL/pi32/pi32v2-include"
             ],
