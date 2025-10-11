@@ -916,8 +916,10 @@ int anc_ext_subfile_analysis_each(u32 file_id, u8 *data, int len, u8 alloc_flag)
 
 void anc_ext_write_adt_reset_timeout(void *priv)
 {
+#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
     audio_icsd_adt_async_reset(0);
     tool_hdl->adt_reset_timer = 0;
+#endif
 }
 
 //SUBFILE 工具写文件文件结束

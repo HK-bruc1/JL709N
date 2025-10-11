@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "app_config.h"
 
 //#include "tyhx_mems.h"
 //#define DEBUG_PPG_ONLY     // 只用IR 判断佩带和非佩戴, 靠近感应功能关闭,  但是hx3011_PROX.C要合入编译

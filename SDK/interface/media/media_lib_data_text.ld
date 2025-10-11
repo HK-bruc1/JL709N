@@ -81,6 +81,7 @@
     *(.llns_dns.code)
     *(.conv_params)
     *(.seq_params)
+    *(.seq2_params)
 #endif
 
 #if (AFx_SPATIAL_EFFECT_AT_RAM)

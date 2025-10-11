@@ -353,6 +353,7 @@
 <Add option="cpu/br52/liba/howling.a" />
 <Add option="cpu/br52/liba/lib_HarmonicExciter.a" />
 <Add option="cpu/br52/liba/libllns.a" />
+<Add option="cpu/br52/liba/lib_llns_dns.a" />
 <Add option="cpu/br52/liba/lib_icsd_common_v2.a" />
 <Add option="cpu/br52/liba/lib_icsd_anc_v2.a" />
 <Add option="cpu/br52/liba/lib_icsd_rt_anc.a" />
@@ -1777,6 +1778,7 @@
 <Unit filename="interface/media/cvp/cvp_sms.h" />
 <Unit filename="interface/media/cvp/cvp_tms.h" />
 <Unit filename="interface/media/cvp/cvp_v3.h" />
+<Unit filename="interface/media/cvp/lib_h/jlsp_DualMicSystem_Hybrid.h" />
 <Unit filename="interface/media/cvp/lib_h/jlsp_ns.h" />
 <Unit filename="interface/media/cvp/lib_h/jlsp_v3_ns.h" />
 <Unit filename="interface/media/effects/AudioEffect_DataType.h" />

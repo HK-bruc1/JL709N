@@ -934,13 +934,16 @@ static struct eq_default_seg_tab *audio_adaptive_eq_run(float maxgain_dB, int cn
     __adpt_aeq_cfg *aeq_cfg = anc_malloc("ICSD_AEQ", sizeof(__adpt_aeq_cfg));
     icsd_aeq_cfg_set(aeq_cfg, ext_cfg, 0, output_seg_num);
 
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
     if (aeq_hdl->fre_out->sz_l_sel_idx && aeq_hdl->real_time_eq_en) {
         sz_l_sel_idx = (aeq_hdl->fre_out->sz_l_sel_idx == 101) ? 1 : aeq_hdl->fre_out->sz_l_sel_idx;
         aeq_log("aeq sz_sel %d -> %d\n", aeq_hdl->fre_out->sz_l_sel_idx, sz_l_sel_idx);
         /* fgq_getfrom_table((s16 *)eq_fgq_table, sz_l_sel_idx - 1, lib_eq_cur); */
         fgq_getfrom_table(ext_cfg->aeq_mem_iir->mem_iir, sz_l_sel_idx - 1, lib_eq_cur);
         audio_adaptive_eq_data_packet(NULL, sz_cur, lib_eq_cur, cnt, aeq_cfg);
-    } else {
+    } else
+#endif
+    {
         audio_adaptive_eq_start();
         aeq_output = icsd_aeq_run(aeq_hdl->sz_ref, sz_cur, \
                                   (void *)aeq_hdl->eq_ref, aeq_hdl->sz_dut_cmp, maxgain_dB, lib_eq_cur, aeq_cfg);

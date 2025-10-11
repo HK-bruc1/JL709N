@@ -1,4 +1,3 @@
-#include "app_config.h"
 #include "hr_sensor/hrSensor_manage.h"
 #include "gSensor/gSensor_manage.h"
 

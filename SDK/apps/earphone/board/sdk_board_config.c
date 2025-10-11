@@ -106,39 +106,29 @@ IMU_SENSOR_PLATFORM_DATA_END();
 #if TCFG_GSENSOR_ENABLE
 GSENSOR_PLATFORM_DATA_BEGIN(gSensor_data)
 #if TCFG_SC7A20_EN
-{
-    .iic = 0,
-     .gSensor_name = "sc7a20",
-},
+.iic = 0,
+ .gSensor_name = "sc7a20",
+#elif TCFG_STK832x_EN
+.iic = 0,
+ .gSensor_name = "stk832x",
 #endif
-#if TCFG_STK832x_EN
-{
-    .iic = 0,
-    .gSensor_name = "stk832x",
-},
-#endif
-GSENSOR_PLATFORM_DATA_END();
+  GSENSOR_PLATFORM_DATA_END();
 #endif
 
 /************************** hrsensor ****************************/
 #if TCFG_HRSENSOR_ENABLE
 HRSENSOR_PLATFORM_DATA_BEGIN(hr_sensor_data)
 #if TCFG_HX3918_ENABLE
-{
-    .iic = 0,
-     .hrSensor_name = "hx3918",
-},
+.iic = 0,
+ .hrSensor_name = "hx3918",
+#elif TCFG_HX3011_ENABLE
+.iic = 0,
+ .hrSensor_name = "hx3011",
 #endif
-#if TCFG_HX3011_ENABLE
-{
-    .iic = 0,
-    .hrSensor_name = "hx3011",
-},
-#endif
-HRSENSOR_PLATFORM_DATA_END()
+  HRSENSOR_PLATFORM_DATA_END()
 #endif
 
-void board_imu_sensor_init()
+  void board_imu_sensor_init()
 {
 #if (TCFG_AUDIO_SPATIAL_EFFECT_ENABLE || TCFG_AUDIO_SOMATOSENSORY_ENABLE)
     extern void imu_sensor_power_ctl(u32 gpio, u8 value);

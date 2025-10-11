@@ -686,8 +686,8 @@ const int lfaudio_plc_mode24bit_16bit_en = 1;
 -----------------------------------------------------------------------
  */
 
-const  int  ESCO_PLC_SUPPORT_24BIT_EN = MEDIA_24BIT_ENABLE;  //24bit开关
-
+//通话流程默认使用的是16bit ,如果通话使用24bit音频流需要打开plc24bit配置
+const  int  ESCO_PLC_SUPPORT_24BIT_EN = 0;//MEDIA_24BIT_ENABLE;  //24bit开关
 const  int  ESCO_PLC_FADE_OUT_START_POINT = 500;	//丢包后修复过程中，维持音量的点数.即修复这么多点后，开始淡出
 const  int  ESCO_PLC_FADE_OUT_POINTS = 2048; 		//丢包维持指定点数后,淡出的速度,音量从满幅到0需要的点数. 即淡出完需要的点数
 const  int  ESCO_PLC_FADE_IN_POINTS = 32; 			//丢包后收到正确包淡入,淡入的速度,音量从0到满幅需要的点数.即淡入完需要的点数
@@ -695,6 +695,19 @@ const  int  ESCO_PLC_FADE_IN_POINTS = 32; 			//丢包后收到正确包淡入,�
 //1:在配置的淡出点数结束之前，根据信号的特征如果认为已经修不好了，提前快速淡出，
 //0:按照实际配置的淡出点数淡出
 const  int  ESCO_PLC_ADV_ENABLE = 1;
+/*
+   不同配置的code/ram使用情况
+------------------------------------------------------------------------
+  ESCO_PLC_SUPPORT_24BIT_EN     |        0          |         1        |
+------------------------------------------------------------------------
+   ESCO_PLC_ADV_ENABLE          |   0     |    1    |    0    |   1    |
+------------------------------------------------------------------------
+        code(byte)              |   1.8K  |    6K   |   3.6k  |   11K  |
+------------------------------------------------------------------------
+        ram(byte)               |   1.3K  |   4.1K  |   2.4K  |   5.3K |
+------------------------------------------------------------------------
+ */
+
 
 //***********************
 //*   Howling Suppress  *
@@ -769,13 +782,20 @@ const int audio_effect_nsgate_pro_enable = 1;
 const int audio_effect_nsgate_pro_enable = 0;
 #endif
 
+//***********************
+//*   	LLNS DNS   *
+//***********************
+const u8 LLNS_DNS_AGC_EN = 0; //可以默认置1，由节点的配置判断是否使能agc
+const u32 LLNS_DNS_SUPPORT_SAMPLE_RATE = TCFG_AUDIO_GLOBAL_SAMPLE_RATE; //仅支持32k、48k采样率
+const u16 LLNS_DNS_PROCESS_FRAME_SIZE = (LLNS_DNS_SUPPORT_SAMPLE_RATE == 32000) ? 480 : 720; //降噪一次输出数据长度(点)，请在原厂指导下更改
+const u32 LLNS_DNS_TABLE_SELECT = (LLNS_DNS_SUPPORT_SAMPLE_RATE == 32000) ? BIT(0) : BIT(1);
 
 //***********************
 //*   	Others          *
 //***********************
 const  int RS_FAST_MODE_QUALITY = 2;	//软件变采样 滤波阶数配置，范围2到8， 8代表16阶的变采样模式 ,速度跟它的大小呈正相关
 
-const int TWS_TONE_PLAYER_REFERENCE_CLOCK = 0; // 0 - 默认使用经典蓝牙时钟，1 - 使用经典蓝牙网络转为本地参考时钟(避免时钟域的冲突)
+const int TWS_TONE_PLAYER_REFERENCE_CLOCK = 1; // 0 - 默认使用经典蓝牙时钟，1 - 使用经典蓝牙网络转为本地参考时钟(避免时钟域的冲突)
 /*
  *******************************************************************
  *						Audio Smart Voice Config

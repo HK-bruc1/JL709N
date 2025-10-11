@@ -468,7 +468,6 @@ int audio_anc_switch_adt_app_close(void)
 
 #if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
     u16 adt_mode = icsd_adt_app_mode_get();
-#endif
 
 #if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
     //1. 关闭实时自适应EQ
@@ -477,7 +476,6 @@ int audio_anc_switch_adt_app_close(void)
     }
 #endif
 
-#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
     //2.关闭ADT算法
     audio_icsd_anc_switch_close(adt_mode);
 #endif

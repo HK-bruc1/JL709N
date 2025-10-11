@@ -387,6 +387,7 @@
     *(.llns_dns.code)
     *(.conv_params)
     *(.seq_params)
+    *(.seq2_params)
 #endif
     *(.media_device_code)
     *(.media_device_const)

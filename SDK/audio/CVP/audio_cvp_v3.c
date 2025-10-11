@@ -497,6 +497,8 @@ static void audio_cvp_v3_param_init(struct cvp_attr *p, u16 node_uuid)
     cvp_cfg->tri_cfg        	= tri_init_cfg;
     cvp_cfg->hybrid_cfg 	  	= hybrid_init_cfg;
     cvp_cfg->single_aecnlp_cfg 	= aecnlp_init_cfg;
+    cvp_cfg->dual_flex_adf_cfg  = dual_flex_adf_cfg;
+    cvp_cfg->dual_flex_cfg      = dual_flex_cfg;
 
     //读取工具配置参数+预处理参数
     CVP_CONFIG cfg;
@@ -515,6 +517,7 @@ static void audio_cvp_v3_param_init(struct cvp_attr *p, u16 node_uuid)
         cvp_cfg->dual_cfg.enableBit 		= cfg.enable_module;
         cvp_cfg->tri_cfg.enableBit 			= cfg.enable_module;
         cvp_cfg->single_aecnlp_cfg.enableBit = cfg.enable_module;
+        cvp_cfg->dual_flex_cfg.enableBit    = cfg.enable_module;
 
         p->ul_eq_en = cfg.ul_eq_en;
         p->output_sel = cfg.output_sel;
@@ -525,6 +528,7 @@ static void audio_cvp_v3_param_init(struct cvp_attr *p, u16 node_uuid)
             cvp_cfg->single_cfg.singleCompenDb = cfg.CompenDb;
             cvp_cfg->dual_cfg.dualCompenDb     = cfg.CompenDb;
             cvp_cfg->tri_cfg.triCompenDb       = cfg.CompenDb;
+            cvp_cfg->dual_flex_cfg.dualCompenDb = cfg.CompenDb;
         }
         // aec
         cvp_cfg->aec1_cfg.aecProcessMaxFrequency = cfg.aec_process_maxfrequency;
@@ -559,37 +563,41 @@ static void audio_cvp_v3_param_init(struct cvp_attr *p, u16 node_uuid)
             cvp_cfg->dual_cfg.minSupress = cfg.minsuppress;
             cvp_cfg->tri_cfg.aggressFactor = cfg.aggressfactor;
             cvp_cfg->tri_cfg.minSupress = cfg.minsuppress;
+            cvp_cfg->dual_flex_cfg.aggressFactor = cfg.aggressfactor;
+            cvp_cfg->dual_flex_cfg.minSupress = cfg.minsuppress;
             // drc
             cvp_cfg->drc_cfg.noiseGateThresholdDb = cfg.noisegatethresholdDb;
             cvp_cfg->drc_cfg.makeUpGain = cfg.makeupGain;
             cvp_cfg->drc_cfg.kneeThresholdDb = cfg. kneethresholdDb;
         }
 #if (CVP_V3_2MIC_ALGO_ENABLE || CVP_V3_3MIC_ALGO_ENABLE)//2mic/3mic
-        if ((cvp_v3->algo_type & CVP_TYPE_2MIC) || (cvp_v3->algo_type & CVP_ALGO_3MIC)) {
-            //enc
-            cvp_cfg->bf_cfg.encProcessMaxFrequency = cfg.enc_process_maxfreq;
-            cvp_cfg->bf_cfg.encProcessMinFrequency = cfg.enc_process_minfreq;
-            cvp_cfg->bf_cfg.micDistance = cfg.mic_distance;
-            cvp_cfg->bf_cfg.sirMaxFreq = cfg.sir_maxfreq;
-            cvp_cfg->bf_cfg.targetSignalDegradation = cfg.target_signal_degradation;
-            cvp_cfg->bf_cfg.aggressFactor = cfg.enc_aggressfactor;
-            cvp_cfg->bf_cfg.minSuppress = cfg.enc_minsuppress;
-        }
-        //双麦三麦有wnc mfdt
-        if ((cvp_v3->algo_type & CVP_TYPE_2MIC) || (cvp_v3->algo_type & CVP_ALGO_3MIC)) {
-            // wnc
-            cvp_cfg->wind_cfg.windProbHighTh = cfg.windProbHighTh;
-            cvp_cfg->wind_cfg.windProbLowTh = cfg.windProbLowTh;
-            cvp_cfg->wind_cfg.windEngDbTh = cfg.windEngDbTh;
-            //mfdt
-            cvp_cfg->micSel_cfg.detectTime = cfg.detect_time;            // in second
-            /*0~-90 dB 两个mic能量差异持续大于此阈值超过检测时间则会检测为故障*/
-            cvp_cfg->micSel_cfg.detectEngDiffTh = cfg.detect_eng_diff_thr;     //  dB
-            /*0~-90 dB 当处于故障状态时，正常的mic能量大于此阈值才会检测能量差异，避免安静环境下误判切回正常状态*/
-            cvp_cfg->micSel_cfg.detectEngLowerBound = cfg.detect_eng_lowerbound; // 0~-90 dB start detect when mic energy lower than this
-            cvp_cfg->micSel_cfg.detMaxFrequency = cfg.MalfuncDet_MaxFrequency;  //检测频率上限
-            cvp_cfg->micSel_cfg.detMinFrequency = cfg.MalfuncDet_MinFrequency;   //检测频率下限
-            cvp_cfg->micSel_cfg.onlyDetect = cfg.OnlyDetect;// 0 -> 故障切换到单mic模式， 1-> 只检测不切换
+        if (!(cvp_v3->algo_type & CVP_ALGO_2MIC_FLEXIBLE)) {
+            if ((cvp_v3->algo_type & CVP_TYPE_2MIC) || (cvp_v3->algo_type & CVP_ALGO_3MIC)) {
+                //enc
+                cvp_cfg->bf_cfg.encProcessMaxFrequency = cfg.enc_process_maxfreq;
+                cvp_cfg->bf_cfg.encProcessMinFrequency = cfg.enc_process_minfreq;
+                cvp_cfg->bf_cfg.micDistance = cfg.mic_distance;
+                cvp_cfg->bf_cfg.sirMaxFreq = cfg.sir_maxfreq;
+                cvp_cfg->bf_cfg.targetSignalDegradation = cfg.target_signal_degradation;
+                cvp_cfg->bf_cfg.aggressFactor = cfg.enc_aggressfactor;
+                cvp_cfg->bf_cfg.minSuppress = cfg.enc_minsuppress;
+            }
+            //双麦三麦有wnc mfdt
+            if ((cvp_v3->algo_type & CVP_TYPE_2MIC) || (cvp_v3->algo_type & CVP_ALGO_3MIC)) {
+                // wnc
+                cvp_cfg->wind_cfg.windProbHighTh = cfg.windProbHighTh;
+                cvp_cfg->wind_cfg.windProbLowTh = cfg.windProbLowTh;
+                cvp_cfg->wind_cfg.windEngDbTh = cfg.windEngDbTh;
+                //mfdt
+                cvp_cfg->micSel_cfg.detectTime = cfg.detect_time;            // in second
+                /*0~-90 dB 两个mic能量差异持续大于此阈值超过检测时间则会检测为故障*/
+                cvp_cfg->micSel_cfg.detectEngDiffTh = cfg.detect_eng_diff_thr;     //  dB
+                /*0~-90 dB 当处于故障状态时，正常的mic能量大于此阈值才会检测能量差异，避免安静环境下误判切回正常状态*/
+                cvp_cfg->micSel_cfg.detectEngLowerBound = cfg.detect_eng_lowerbound; // 0~-90 dB start detect when mic energy lower than this
+                cvp_cfg->micSel_cfg.detMaxFrequency = cfg.MalfuncDet_MaxFrequency;  //检测频率上限
+                cvp_cfg->micSel_cfg.detMinFrequency = cfg.MalfuncDet_MinFrequency;   //检测频率下限
+                cvp_cfg->micSel_cfg.onlyDetect = cfg.OnlyDetect;// 0 -> 故障切换到单mic模式， 1-> 只检测不切换
+            }
         }
 #endif
         //flow
@@ -597,6 +605,7 @@ static void audio_cvp_v3_param_init(struct cvp_attr *p, u16 node_uuid)
         cvp_cfg->dual_cfg.dualPreGainDb = cfg.preGainDb;
         cvp_cfg->tri_cfg.triPreGainDb = cfg.preGainDb;
         cvp_cfg->single_aecnlp_cfg.preGainDb = cfg.preGainDb;
+        cvp_cfg->dual_flex_cfg.dualPreGainDb = cfg.preGainDb;
     } else {
         log_error("CVP-V3 read cfg error,use default param\n");
         p->EnableBit = AEC_EN | NLP_EN; //读取cfg配置文件失败，默认使能AEC和NLP避免选择当前模式时传EnableBit错误
@@ -611,6 +620,8 @@ static void audio_cvp_v3_param_init(struct cvp_attr *p, u16 node_uuid)
         cvp_cfg->dual_cfg.dualNbEqVec   = cvp_cfg->single_cfg.singleNbEq;
         cvp_cfg->tri_cfg.triWbEqVec  	= cvp_cfg->single_cfg.singleWbEq;
         cvp_cfg->tri_cfg.triNbEqVec  	= cvp_cfg->single_cfg.singleNbEq;
+        cvp_cfg->dual_flex_cfg.dualFlexWbEqVec  	= cvp_cfg->single_cfg.singleWbEq;
+        cvp_cfg->dual_flex_cfg.dualFlexNbEqVec  	= cvp_cfg->single_cfg.singleNbEq;
     }
 
     //对于有参考线的算法模式,如需传入参考线对应的EQ曲线,需手动修改传入get_mag函数的类型为对应的

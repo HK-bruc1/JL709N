@@ -79,9 +79,8 @@ struct CVP_ENC_HYBRID_CONFIG {
     u8 en;
     int enc_process_maxfreq;		//default:8000,range[3000:8000]
     int enc_process_minfreq;		//default:0,range[0:1000]
-    float snr_db_T0;  //sir设定阈值
-    float snr_db_T1;  //sir设定阈值
-    float floor_noise_db_T;
+    float noise_level_db_T0;  //噪声水平等级阈值下限,退出融合阈值,范围(10~90db)
+    float noise_level_db_T1;  //噪声水平等级阈值上限,进入融合阈值,范围(10~90db)
     float compen_db; //mic增益补偿, dB
 } __attribute__((packed));
 
@@ -99,6 +98,9 @@ struct CVP_DNS_CONFIG {
     float aggressfactor;			//default:1.25,range[1:2]
     float minsuppress;				//default:0.04,range[0.01:0.1]
     float init_noise_lvl;			//default:-75dB,range[-100:-30]
+#if (TCFG_AUDIO_CVP_DMS_HYBRID_DNS_MODE)
+    float compensate;				//default: 0dB,range[0:30]
+#endif
 } __attribute__((packed));
 
 struct CVP_GLOBAL_CONFIG {
@@ -510,9 +512,8 @@ int cvp_node_dms_hybrid_cfg_update(struct cvp_dms_hybrid_cfg_t *cfg, void *priv)
 
     p->enc_process_maxfreq = cfg->enc.enc_process_maxfreq;
     p->enc_process_minfreq = cfg->enc.enc_process_minfreq;
-    p->snr_db_T0 = cfg->enc.snr_db_T0;
-    p->snr_db_T1 = cfg->enc.snr_db_T1;
-    p->floor_noise_db_T = cfg->enc.floor_noise_db_T;
+    p->noise_level_db_T0 = cfg->enc.noise_level_db_T0;
+    p->noise_level_db_T1 = cfg->enc.noise_level_db_T1;
     p->compen_db = cfg->enc.compen_db;
 
     p->dns_process_maxfrequency = cfg->dns.dns_process_maxfrequency;
@@ -520,6 +521,7 @@ int cvp_node_dms_hybrid_cfg_update(struct cvp_dms_hybrid_cfg_t *cfg, void *priv)
     p->aggressfactor = cfg->dns.aggressfactor;
     p->minsuppress = cfg->dns.minsuppress;
     p->init_noise_lvl = cfg->dns.init_noise_lvl;
+    p->compensate = cfg->dns.compensate;
 
     p->agc_type = cfg->agc.agc_type;
     if (p->agc_type == AGC_EXTERNAL) {
