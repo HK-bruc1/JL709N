@@ -227,7 +227,7 @@ static int audio_cvp_v3_post(s16 *data, u16 len)
     if (get_cvp_icsd_wind_lvl_det_state()) {
         int wd_flag = 0;
         float wind_lvl = 0.f;
-        audio_cvp_v3_get_wind_detect_info(&wd_flag, &wind_lvl)
+        audio_cvp_v3_get_wind_detect_info(&wd_flag, &wind_lvl);
         audio_cvp_wind_lvl_output_handle(wind_lvl);
     }
 #endif

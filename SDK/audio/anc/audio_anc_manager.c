@@ -183,7 +183,7 @@ static int audio_anc_event_filter_update_before(void)
     // 滤波器更新前
     log_debug("Filter update before event handled");
 #if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
-    if (audio_icsd_adt_is_running()) {
+    if (audio_icsd_adt_is_running() && (get_icsd_adt_mode() & ADT_SPEAK_TO_CHAT_MODE)) {
         audio_icsd_adt_suspend();
     }
 #endif /*TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN*/
@@ -199,7 +199,8 @@ static int audio_anc_event_filter_update_after(void)
     // 滤波器更新后
     log_debug("Filter update after event handled");
 #if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
-    if (audio_icsd_adt_is_running()) {
+    if (audio_icsd_adt_is_running() && (get_icsd_adt_mode() & ADT_SPEAK_TO_CHAT_MODE)) {
+        //免摘需要更新滤波器信息
         audio_icsd_adt_param_update();
         audio_icsd_adt_resume();
     }
