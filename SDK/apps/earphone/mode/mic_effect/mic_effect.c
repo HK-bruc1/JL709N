@@ -15,6 +15,7 @@
 #include "app_main.h"
 #include "mic_effect.h"
 #include "audio_config_def.h"
+#include "audio_dac.h"
 
 #if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
 #include "icsd_adt_app.h"
@@ -327,6 +328,7 @@ void mic_effect_dvol_down(void)
 /**********************************辅听接口**************************/
 int hearing_aid_player_open()
 {
+    DAC_NOISEGATE_OFF();
     return mic_effect_player_create(MIC_EFX_DHA);
 }
 
@@ -337,6 +339,7 @@ bool hearing_aid_player_runing()
 
 void hearing_aid_player_close()
 {
+    DAC_NOISEGATE_ON();
     mic_effect_player_delete();
 }
 

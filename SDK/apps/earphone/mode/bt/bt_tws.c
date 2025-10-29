@@ -1053,7 +1053,8 @@ static void bt_tws_enter_sniff(void *parm)
 {
     int interval;
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
-    if (is_cig_phone_conn() || is_cig_other_phone_conn()) {
+    if (is_cig_music_play() || is_cig_other_music_play() || is_cig_phone_call_play() || is_cig_other_phone_call_play()) {
+        puts("cis music or call , can not enter sniff\n");
         goto __exit;
     }
 #endif
