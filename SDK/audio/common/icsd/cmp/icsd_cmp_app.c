@@ -86,15 +86,10 @@ static int anc_ear_adaptive_cmp_run_ch(struct icsd_cmp_param *p, float *sz, int 
 #if ANC_ADAPTIVE_CMP_RUN_TIME_DEBUG
         u32 last = jiffies_usec();
 #endif
-        //CMP 算法要求输入SZ的符号必须为正，因此需要单独备份SZ的数据，以便修改
+        //icsd_cmp_run 会修改SZ数据，需要备份
         sz_tmp = (float *)anc_malloc("ICSD_CMP", sz_len * sizeof(float));
         memcpy((u8 *)sz_tmp, (u8 *)sz, sz_len * sizeof(float));
-        //CMP来自实时自适应时，SZ符合一定为正，不需要翻转符号
-        if ((sz_sign == -1) && (cmp_hdl->data_from == CMP_FROM_ANC_EAR_ADAPTIVE)) {
-            for (int j = 0; j < sz_len; j++) {
-                sz_tmp[j] = 0 -  sz_tmp[j];
-            }
-        }
+        //CMP来自耳道/实时自适应时，SZ符号一定为正
         output = icsd_cmp_run(sz_tmp, cmp_cfg);
 
         cmp_log("ANC_ADAPTIVE_CMP_OUTPUT_SIZE %lu\n", ANC_ADAPTIVE_CMP_OUTPUT_SIZE);
@@ -291,13 +286,13 @@ int audio_anc_ear_adaptive_cmp_open(u8 data_from)
     cmp_log("ICSD_CMP_STATE:OPEN");
     cmp_hdl->state = ANC_EAR_ADAPTIVE_CMP_STATE_OPEN;
     cmp_hdl->data_from = data_from;
-    cmp_hdl->l_param.output = malloc(sizeof(_cmp_output));
-    cmp_hdl->l_param.output->fgq = malloc(ANC_ADAPTIVE_CMP_OUTPUT_SIZE);
+    cmp_hdl->l_param.output = anc_malloc("ICSD_CMP_APP", sizeof(_cmp_output));
+    cmp_hdl->l_param.output->fgq = anc_malloc("ICSD_CMP_APP", ANC_ADAPTIVE_CMP_OUTPUT_SIZE);
     cmp_log("%p %p\n", cmp_hdl->l_param.output, cmp_hdl->l_param.output->fgq);
 
 #if ANC_CONFIG_RFB_EN
-    cmp_hdl->r_param.output = malloc(sizeof(_cmp_output));
-    cmp_hdl->r_param.output->fgq = malloc(ANC_ADAPTIVE_CMP_OUTPUT_SIZE);
+    cmp_hdl->r_param.output = anc_malloc("ICSD_CMP_APP", sizeof(_cmp_output));
+    cmp_hdl->r_param.output->fgq = anc_malloc("ICSD_CMP_APP", ANC_ADAPTIVE_CMP_OUTPUT_SIZE);
 #endif
 
     if (data_from == CMP_FROM_RTANC) {
@@ -392,7 +387,7 @@ static void audio_rtanc_adaptive_cmp_data_format(struct icsd_cmp_param *p, doubl
     u8 *cmp_dat = (u8 *)&p->gain;
     audio_anc_fr_format(cmp_dat, p->output->fgq, ANC_ADAPTIVE_CMP_ORDER, p->type);
     /* if (p->coeff == NULL) { */
-    /* p->coeff = malloc(ANC_ADAPTIVE_CMP_ORDER * sizeof(double) * 5); */
+    /* p->coeff = anc_malloc("ICSD_CMP_APP", ANC_ADAPTIVE_CMP_ORDER * sizeof(double) * 5); */
     /* } */
     int alogm = audio_anc_gains_alogm_get(ANC_CMP_TYPE);
     audio_anc_biquad2ab_double(p->fr, coeff, ANC_ADAPTIVE_CMP_ORDER, alogm);

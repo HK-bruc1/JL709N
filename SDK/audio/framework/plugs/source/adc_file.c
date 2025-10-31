@@ -56,7 +56,7 @@ struct adc_file_hdl {
     struct adc_file_common *adc_f;
     int force_dump;
     int value;
-    u16 sample_rate;
+    u32 sample_rate;
     u16 irq_points;
     u8 adc_seq;
     u8 channel_mode;
@@ -595,7 +595,7 @@ static void adc_ioc_get_fmt(struct adc_file_hdl *hdl, struct stream_fmt *fmt)
     } else {
         fmt->channel_mode   = AUDIO_CH_MIX;
     }
-    printf("adc num: %d , channel_mode: %x", hdl->ch_num, fmt->channel_mode);
+    printf("adc num:%d, channel_mode:0x%x, bit_width:%dbit", hdl->ch_num, fmt->channel_mode, (adc_hdl.bit_width) ? 24 : 16);
     if (adc_hdl.bit_width == ADC_BIT_WIDTH_24) {
         fmt->bit_wide = DATA_BIT_WIDE_24BIT;
     } else {
@@ -605,12 +605,12 @@ static void adc_ioc_get_fmt(struct adc_file_hdl *hdl, struct stream_fmt *fmt)
 
     hdl->channel_mode = fmt->channel_mode;
     hdl->sample_rate = fmt->sample_rate;
-
 }
 
 static int adc_ioc_set_fmt(struct adc_file_hdl *hdl, struct stream_fmt *fmt)
 {
     hdl->sample_rate = fmt->sample_rate;
+    printf("adc_ioc_set_fmt,Fs = %d", hdl->sample_rate);
     return 0;
 }
 
@@ -644,6 +644,7 @@ int adc_file_mic_open(struct adc_mic_ch *mic, int ch) //用于打开通话使用
     return 0;
 }
 
+/*返回值：使能打开的ADC通道数*/
 __AUDIO_ADC_BANK_CODE
 int adc_file_cfg_mic_open(struct adc_mic_ch *mic, int ch, struct adc_file_common *adc_f) //用于打开通话外其他mic
 {
@@ -651,10 +652,12 @@ int adc_file_cfg_mic_open(struct adc_mic_ch *mic, int ch, struct adc_file_common
     int mic_gain;
     int mic_pre_gain;
     int ch_index;
+    u8 mic_en_num = 0;
 
     u32 i = 0;
     for (i = 0; i < AUDIO_ADC_MAX_NUM; i++) {
         if (ch & BIT(i)) {
+            mic_en_num++;
             ch_index = i;
 
             audio_adc_param_fill(&mic_param, &adc_f->platform_cfg[ch_index]);
@@ -672,7 +675,7 @@ int adc_file_cfg_mic_open(struct adc_mic_ch *mic, int ch, struct adc_file_common
             audio_adc_mic_gain_boost(AUDIO_ADC_MIC(ch_index), mic_pre_gain);
         }
     }
-    return 0;
+    return mic_en_num;
 }
 
 static u8 adc_mic_start = 0;
@@ -703,20 +706,11 @@ static int adc_file_ioc_start(struct adc_file_hdl *hdl)
         smart_voice_mcu_mic_suspend();
 #endif
         hdl->dump_cnt = 0;
-        //不启动ANC动态MIC增益时，由用户自己保证ANC与通话复用的ADC增益一致
-#if TCFG_AUDIO_ANC_ENABLE && TCFG_AUDIO_DYNAMIC_ADC_GAIN
-#if (!TCFG_AUDIO_DUAL_MIC_ENABLE && (TCFG_AUDIO_ADC_MIC_CHA & AUDIO_ADC_MIC_1)) || \
-		(TCFG_AUDIO_DUAL_MIC_ENABLE && (TCFG_AUDIO_DMS_MIC_MANAGE == DMS_MASTER_MIC0))
-        anc_dynamic_micgain_start(hdl->adc_f->cfg.param[1].mic_gain);
-#else
-        anc_dynamic_micgain_start(hdl->adc_f->cfg.param[0].mic_gain);
-#endif/*TCFG_AUDIO_DUAL_MIC_ENABLE*/
-#endif/*TCFG_AUDIO_ANC_ENABLE && TCFG_AUDIO_DYNAMIC_ADC_GAIN*/
 
         //br50的LPADC需要根据采样率配置模拟部分的时钟分频,需要先设置采样率才能打开MIC
         audio_adc_mic_set_sample_rate(&hdl->mic_ch, hdl->sample_rate);
-        adc_file_cfg_mic_open(&hdl->mic_ch, hdl->adc_f->cfg.mic_en_map, (void *)hdl->adc_f);
-
+        u8 mic_en_num = adc_file_cfg_mic_open(&hdl->mic_ch, hdl->adc_f->cfg.mic_en_map, (void *)hdl->adc_f);
+        ASSERT(mic_en_num > 0, "mic cfg failed, mic_num=%d\n", mic_en_num);
         if (esco_adc_file_g.fixed_buf) {
             hdl->adc_buf = esco_adc_file_g.fixed_buf;
             audio_adc_set_buf_fix(1, &adc_hdl);
@@ -725,7 +719,16 @@ static int adc_file_ioc_start(struct adc_file_hdl *hdl)
             if (!hdl->irq_points) {
                 hdl->irq_points = 256;
             }
-            hdl->adc_buf = zalloc(ESCO_ADC_BUF_NUM * hdl->irq_points * ((adc_hdl.bit_width == ADC_BIT_WIDTH_16) ? 2 : 4) * (adc_hdl.max_adc_num));
+            u16 adc_dma_buf_size;
+            if (const_adc_async_en) {
+                adc_dma_buf_size = ESCO_ADC_BUF_NUM * hdl->irq_points * ((adc_hdl.bit_width == ADC_BIT_WIDTH_16) ? 2 : 4) * (adc_hdl.max_adc_num);
+                printf("adc_dma_buf_size:%d,ch_num:%d,bit_width:%d", adc_dma_buf_size, adc_hdl.max_adc_num, ((adc_hdl.bit_width == ADC_BIT_WIDTH_16) ? 16 : 24));
+            } else {
+                adc_dma_buf_size = ESCO_ADC_BUF_NUM * hdl->irq_points * ((adc_hdl.bit_width == ADC_BIT_WIDTH_16) ? 2 : 4) * (mic_en_num);
+                printf("adc_dma_buf_size:%d,ch_num:%d,bit_width:%d", adc_dma_buf_size, mic_en_num, ((adc_hdl.bit_width == ADC_BIT_WIDTH_16) ? 16 : 24));
+            }
+            hdl->adc_buf = zalloc(adc_dma_buf_size);
+
             if (!hdl->adc_buf) {
                 ret = -1;
                 return ret;
@@ -768,9 +771,6 @@ static int adc_file_ioc_stop(struct adc_file_hdl *hdl)
         if (jl_call_kws_get_status() == BT_STATUS_PHONE_INCOME) {
             audio_phone_call_kws_start();
         }
-#endif
-#if TCFG_AUDIO_ANC_ENABLE && TCFG_AUDIO_DYNAMIC_ADC_GAIN
-        anc_dynamic_micgain_stop();
 #endif
 
 #ifdef CONFIG_CPU_BR36

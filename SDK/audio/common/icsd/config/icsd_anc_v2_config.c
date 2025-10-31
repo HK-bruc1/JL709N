@@ -293,6 +293,7 @@ static const float weight_gold[] = {
 
 static const float degree_set_gold[] = {11, 30, 50, 2700, 50, 2700, 5};
 
+
 void icsd_sd_cfg_set(__icsd_anc_config_data *SD_CFG, void *_ext_cfg)
 {
     icsd_common_version();
@@ -481,6 +482,26 @@ void icsd_sd_cfg_set(__icsd_anc_config_data *SD_CFG, void *_ext_cfg)
         } else {
             SD_CFG->adpt_cfg.sz_coef_table = NULL;
         }
+
+        float *sz_sel0 = &SD_CFG->adpt_cfg.sz_table[0];
+        float *sz_sel1 = &SD_CFG->adpt_cfg.sz_table[59 * 50];
+
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+        SD_CFG->sz_angle_rangel = audio_rtanc_sz_angle_rangel_get();
+        SD_CFG->sz_angle_rangeh = audio_rtanc_sz_angle_rangeh_get();
+        if (SD_CFG->sz_angle_rangel && SD_CFG->sz_angle_rangeh) {
+            for (int i = 0; i < MEMLEN / 2; i++) {
+                SD_CFG->sz_angle_rangel[i] = angle_float(sz_sel0[2 * i + 0], sz_sel0[2 * i + 1]) * 180 - 30;
+                SD_CFG->sz_angle_rangeh[i] = angle_float(sz_sel1[2 * i + 0], sz_sel1[2 * i + 1]) * 180 + 30;
+                printf("angle : %d, %d\n", (int)(SD_CFG->sz_angle_rangel[i]), (int)(SD_CFG->sz_angle_rangeh[i]));
+            }
+        } else {
+            printf("[ICSD] adaptive anc sz angle range is empty\n");
+        }
+#else
+        SD_CFG->sz_angle_rangel = NULL;
+        SD_CFG->sz_angle_rangeh = NULL;
+#endif
 
         // 预置FF滤波器
         SD_CFG->adpt_cfg.ff_filter = (float *)ff_filter;

@@ -934,13 +934,16 @@ static struct eq_default_seg_tab *audio_adaptive_eq_run(float maxgain_dB, int cn
     __adpt_aeq_cfg *aeq_cfg = anc_malloc("ICSD_AEQ", sizeof(__adpt_aeq_cfg));
     icsd_aeq_cfg_set(aeq_cfg, ext_cfg, 0, output_seg_num);
 
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
     if (aeq_hdl->fre_out->sz_l_sel_idx && aeq_hdl->real_time_eq_en) {
         sz_l_sel_idx = (aeq_hdl->fre_out->sz_l_sel_idx == 101) ? 1 : aeq_hdl->fre_out->sz_l_sel_idx;
         aeq_log("aeq sz_sel %d -> %d\n", aeq_hdl->fre_out->sz_l_sel_idx, sz_l_sel_idx);
         /* fgq_getfrom_table((s16 *)eq_fgq_table, sz_l_sel_idx - 1, lib_eq_cur); */
         fgq_getfrom_table(ext_cfg->aeq_mem_iir->mem_iir, sz_l_sel_idx - 1, lib_eq_cur);
         audio_adaptive_eq_data_packet(NULL, sz_cur, lib_eq_cur, cnt, aeq_cfg);
-    } else {
+    } else
+#endif
+    {
         audio_adaptive_eq_start();
         aeq_output = icsd_aeq_run(aeq_hdl->sz_ref, sz_cur, \
                                   (void *)aeq_hdl->eq_ref, aeq_hdl->sz_dut_cmp, maxgain_dB, lib_eq_cur, aeq_cfg);
@@ -1219,13 +1222,14 @@ static float audio_adaptive_eq_vol_gain_get(s16 volume)
     char mode_index       = 0;               //模式序号（当前节点无多参数组，mode_index是0）
     char *node_name       = ADAPTIVE_EQ_VOLUME_NODE_NAME;       //节点名称（节点内的第一参数，用户自定义,长度小于等于15byte）
     char cfg_index        = 0;               //目标配置项序号（当前节点无多参数组，cfg_index是0）
+    float vol_db = 0.0f;
     int ret = jlstream_read_form_node_info_base(mode_index, node_name, cfg_index, &info);
     if (!ret) {
         struct volume_cfg *vol_cfg = anc_malloc("ICSD_AEQ", info.size);
         if (!jlstream_read_form_cfg_data(&info, (void *)vol_cfg)) {
             aeq_debug_log("[AEQ]user vol cfg parm read err\n");
             anc_free(vol_cfg);
-            return 0;
+            return vol_db;
         }
         /* aeq_log("cfg_level_max = %d\n", vol_cfg->cfg_level_max); */
         /* aeq_log("cfg_vol_min = %d\n", vol_cfg->cfg_vol_min); */
@@ -1235,17 +1239,17 @@ static float audio_adaptive_eq_vol_gain_get(s16 volume)
         /* aeq_log("tab_len = %d\n", vol_cfg->tab_len); */
 
         if (info.size > sizeof(struct volume_cfg)) { //有自定义音量表, 直接返回对应音量
-            return vol_cfg->vol_table[volume];
+            vol_db = vol_cfg->vol_table[volume];
         } else {
             u16 step = (vol_cfg->cfg_level_max - 1 > 0) ? (vol_cfg->cfg_level_max - 1) : 1;
             float step_db = (vol_cfg->cfg_vol_max - vol_cfg->cfg_vol_min) / (float)step;
-            float vol_db = vol_cfg->cfg_vol_min + (volume - 1) * step_db;
-            return vol_db;
+            vol_db = vol_cfg->cfg_vol_min + (volume - 1) * step_db;
         }
+        anc_free(vol_cfg);
     } else {
         aeq_debug_log("[AEQ]user vol cfg parm read err ret %d\n", ret);
     }
-    return 0;
+    return vol_db;
 }
 
 // (单次)自适应EQ强制退出
@@ -1264,5 +1268,139 @@ int audio_adaptive_eq_force_exit(void)
     }
     return 0;
 }
+
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+
+struct rtaeq_in_ancoff_handle {
+    u8 state;			//状态
+    u8 busy;			//定时器繁忙状态，不可关闭
+    u8 timer_state; 	//AEQ_ANCOFF支持状态  1 打开; 0 关闭
+    u32 open_timer_id; 	//记录定时器id
+    u32 close_timer_id; //记录定时器id
+    u32 open_times;     //配置从关闭到打开间隔时间，即关闭rtanc的时间长度，ms
+    u32 close_times;    //配置从打开到关闭间隔时间，即打开rtanc的时间长度，ms
+};
+static struct rtaeq_in_ancoff_handle *rtaeq_in_ancoff_hdl = NULL;
+
+static void rtaeq_ancoff_close_timer(void *p);
+static void rtaeq_ancoff_open_timer(void *p)
+{
+    struct rtaeq_in_ancoff_handle *hdl = rtaeq_in_ancoff_hdl;
+    if (anc_mode_get() != ANC_OFF) {
+        return;
+    }
+    aeq_log("RTEQ_ANCOFF_STATE:OPEN TIMER TRIGGER\n");
+    if (hdl && hdl->state) {
+        hdl->busy = 1;
+        hdl->open_timer_id = 0;
+
+        hdl->timer_state = 1;
+        audio_icsd_adt_scene_check(icsd_adt_app_mode_get(), 0);	//赋值当前APP模式, 便于复位启动
+        audio_icsd_adt_async_reset(0);
+
+#if RT_AEQ_ANCOFF_CLOSE_TIMES
+        //重新定时关闭rtaeq
+        if (hdl->close_timer_id) {
+            sys_timeout_del(hdl->close_timer_id);
+            hdl->close_timer_id = 0;
+        }
+        hdl->close_timer_id = sys_timeout_add((void *)hdl, rtaeq_ancoff_close_timer, hdl->close_times);
+#endif
+
+        hdl->busy = 0;
+    }
+}
+
+static void rtaeq_ancoff_close_timer(void *p)
+{
+    struct rtaeq_in_ancoff_handle *hdl = rtaeq_in_ancoff_hdl;
+    if (anc_mode_get() != ANC_OFF) {
+        return;
+    }
+    aeq_log("RTEQ_ANCOFF_STATE:CLOSE TIMER TRIGGER\n");
+    if (hdl && hdl->state) {
+        hdl->busy = 1;
+        hdl->close_timer_id = 0;
+
+        hdl->timer_state = 0;
+        audio_icsd_adt_async_reset(0);
+
+        if (hdl->open_timer_id) {
+            sys_timeout_del(hdl->open_timer_id);
+            hdl->open_timer_id = 0;
+        }
+        hdl->open_timer_id = sys_timeout_add((void *)hdl, rtaeq_ancoff_open_timer, hdl->open_times);
+
+        hdl->busy = 0;
+    }
+}
+
+int audio_rtaeq_in_ancoff_open()
+{
+#if RT_AEQ_ANCOFF_TIMER_ENABLE
+    aeq_log("RTEQ_ANCOFF_STATE:OPEN\n");
+    if (rtaeq_in_ancoff_hdl) {
+        aeq_log("rtaeq_in_ancoff_hdl is already open!!!\n");
+        return -1;
+    }
+    struct rtaeq_in_ancoff_handle *hdl = anc_malloc("ICSD_RTAEQ", sizeof(struct rtaeq_in_ancoff_handle));
+    ASSERT(hdl);
+
+    hdl->open_times = RT_AEQ_ANCOFF_CLOSE_TIMES; //配置从关闭到打开间隔时间，即关闭rtaeq的时间长度，ms
+    hdl->close_times = RT_AEQ_ANCOFF_OPEN_TIMES; //配置从打开到关闭间隔时间，即打开rtaeq的时间长度，ms
+    aeq_log("RTEQ open: %d ms, close: %d ms\n", hdl->open_times, hdl->close_times);
+
+#if RT_AEQ_ANCOFF_CLOSE_TIMES
+    hdl->close_timer_id = sys_timeout_add((void *)hdl, rtaeq_ancoff_close_timer, hdl->close_times);
+#endif
+
+    hdl->timer_state = 1;
+    hdl->state = 1;
+    rtaeq_in_ancoff_hdl = hdl;
+#endif
+    return 0;
+
+}
+
+int audio_rtaeq_in_ancoff_close()
+{
+#if RT_AEQ_ANCOFF_TIMER_ENABLE
+    struct rtaeq_in_ancoff_handle *hdl = rtaeq_in_ancoff_hdl;
+    if (hdl) {
+        hdl->state = 0;
+        aeq_log("RTEQ_ANCOFF_STATE:CLOSE\n");
+        while (hdl->busy) {
+            putchar('w');
+            os_time_dly(1);
+        }
+        if (hdl->open_timer_id) {
+            sys_timeout_del(hdl->open_timer_id);
+            hdl->open_timer_id = 0;
+        }
+#if RT_AEQ_ANCOFF_CLOSE_TIMES
+        if (hdl->close_timer_id) {
+            sys_timeout_del(hdl->close_timer_id);
+            hdl->close_timer_id = 0;
+        }
+#endif
+        anc_free(hdl);
+        rtaeq_in_ancoff_hdl = NULL;
+    }
+#endif
+    return 0;
+}
+
+u8 audio_rtaeq_ancoff_timer_state_get(void)
+{
+    struct rtaeq_in_ancoff_handle *hdl = rtaeq_in_ancoff_hdl;
+    if (hdl && hdl->state) {
+        /* aeq_log("RTEQ timer_state = %d", hdl->timer_state); */
+        return hdl->timer_state;
+    }
+    return 1;
+}
+
+#endif
+
 
 #endif/*TCFG_AUDIO_ADAPTIVE_EQ_ENABLE*/

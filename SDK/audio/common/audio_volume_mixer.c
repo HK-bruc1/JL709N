@@ -418,10 +418,6 @@ static int audio_combined_fade_timer_add(u8 gain_l, u8 gain_r)
         target_dgain_l = *(&__this->sys_cvol[gain_l * 2 + 1]);
         target_dgain_r = *(&__this->sys_cvol[gain_r * 2 + 1]);
     }
-#if 0//TCFG_AUDIO_ANC_ENABLE
-    target_again_l = anc_dac_gain_get(ANC_DAC_CH_L);
-    target_again_r = anc_dac_gain_get(ANC_DAC_CH_R);
-#endif
 
     printf("[l]v:%d,Av:%d,Dv:%d", gain_l, target_again_l, target_dgain_l);
     //y_printf("[r]v:%d,Av:%d,Dv:%d", gain_r, target_again_r, target_dgain_r);
@@ -604,7 +600,9 @@ void audio_fade_in_fade_out(u8 left_vol, u8 right_vol)
     /* __this->digital_volume = __this->sys_hw_dvol_max; */
     /* } */
     printf("[SW_DVOL]Gain:%d,AVOL:%d,DVOL:%d\n", left_gain, __this->analog_volume_l, __this->digital_volume);
+#if !((defined CONFIG_CPU_BR50) || (defined CONFIG_CPU_BR52))
     audio_dac_set_analog_vol(&dac_hdl, __this->analog_volume_r);
+#endif
 #if defined(VOL_NOISE_OPTIMIZE) &&( VOL_NOISE_OPTIMIZE)
     if (__this->dac_dB) { //设置回目标数字音量
         audio_dac_set_digital_vol(&dac_hdl, __this->target_dig_vol);
@@ -690,8 +688,10 @@ static void app_audio_volume_change(void)
 
 int audio_digital_vol_node_name_get(u8 dvol_idx, char *node_name)
 {
-    struct app_mode *mode;
-    mode = app_get_current_mode();
+    struct app_mode *mode = app_get_current_mode();
+    if (!mode) {
+        return -1;
+    }
     int i = 0;
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN | LE_AUDIO_AURACAST_SINK_EN)))
     if (le_audio_player_get_stream_scene() == STREAM_SCENE_LE_AUDIO) {
@@ -816,6 +816,9 @@ int audio_digital_vol_update_parm(u8 dvol_idx, s32 param)
     err = audio_digital_vol_node_name_get(dvol_idx, vol_name);
     if (!err) {
         err |= jlstream_set_node_param(NODE_UUID_VOLUME_CTRLER, vol_name, (void *)param, sizeof(struct volume_cfg));
+        if (err) {
+            printf("[Error]%s:jlstream_set_node_param err:0x%x", __func__, err);
+        }
     } else {
         printf("[Error]audio_digital_vol_node_name_get err:%x\n", err);
     }
@@ -1024,7 +1027,7 @@ void audio_app_set_vol_offset_dB(float offset_dB)
     default:
         break;
     }
-    u32 param = dvol_idx << 16 | (u16)(offset_dB * 100);
+    u32 param = (dvol_idx << 16) | (((short)(offset_dB * 100)) & 0xFFFF);
     sys_timeout_add((void *)param, app_audio_set_vol_offset_timer_func, 5);
 }
 

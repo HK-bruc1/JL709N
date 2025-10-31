@@ -74,6 +74,10 @@ float *audio_rtanc_pz_cmp_get(void);
 
 float *audio_rtanc_sz_cmp_get(void);
 
+float *audio_rtanc_sz_angle_rangel_get(void);
+
+float *audio_rtanc_sz_angle_rangeh_get(void);
+
 void audio_rtanc_self_talk_output(u8 flag);
 
 int audio_rtanc_adaptive_init(u8 sync_mode);
@@ -86,10 +90,6 @@ void audio_rtanc_cmp_update(void);
 
 void audio_rtanc_dut_mode_set(u8 mode);
 
-int get_rtanc_mode();
-u8 get_rtanc_reset_flag();
-void set_rtanc_reset_flag(u8 flag);
-
 int audio_rtanc_sz_select_open(void);
 
 int audio_rtanc_sz_select_process(void);
@@ -97,12 +97,6 @@ int audio_rtanc_sz_select_process(void);
 int audio_rtanc_sz_sel_state_get(void);
 
 int audio_rtanc_coeff_set(void);
-
-int audio_rtanc_in_ancoff_open();
-u8 get_ancoff_open_rtanc_state();
-int audio_rtanc_in_ancoff_close();
-
-int audio_rtanc_anc_off_switch(void);
 
 int audio_rtanc_var_cache_set(u8 flag);
 

@@ -24,6 +24,10 @@
 #include "rt_anc_app.h"
 #endif
 
+#if TCFG_AUDIO_SPEAK_TO_CHAT_ENABLE
+#include "icsd_vdt_app.h"
+#endif
+
 /*
 #define ICSD_ANC_TASK_NAME  "icsd_anc"
 #define ICSD_ADT_TASK_NAME  "icsd_adt"
@@ -337,7 +341,9 @@ void icsd_adt_anc46k_out_reset()
 void icsd_adt_anc46k_out_isr()
 {
     //该函数为中断内部函数只能做简单的流程处理，不能占用太多时间
-    if (ANC46K_CTL->loop_remain >= 512) {
+    if (ANC46K_CTL->loop_remain >= 256) {
+        //printf("post 46k:%d\n",ANC46K_CTL->loop_remain);
+        ANC46K_CTL->loop_remain -= 256;
         os_taskq_post_msg("anc", 1, ANC_MSG_46KOUT_DEMO);
     }
 }
@@ -417,7 +423,7 @@ u8 audio_adt_talk_mic_analog_close()
 }
 u8 audio_adt_talk_mic_analog_open()
 {
-    printf("talk_mic_analog_open\n");
+    /* printf("talk_mic_analog_open\n"); */
     return 0;
 }
 

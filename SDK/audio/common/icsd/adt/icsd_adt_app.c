@@ -49,6 +49,14 @@
 #include "rt_anc_app.h"
 #endif
 
+#if TCFG_AUDIO_SPEAK_TO_CHAT_ENABLE
+#include "icsd_vdt_app.h"
+#endif
+
+#if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
+#include "icsd_aeq_app.h"
+#endif
+
 #if TCFG_AUDIO_ANC_WIND_NOISE_DET_ENABLE && ICSD_ADT_WIND_INFO_SPP_DEBUG_EN && (!TCFG_BT_SUPPORT_SPP || !APP_ONLINE_DEBUG)
 #error "please open TCFG_BT_SUPPORT_SPP and APP_ONLINE_DEBUG"
 #endif
@@ -89,26 +97,15 @@ struct speak_to_chat_t {
     struct icsd_acoustic_detector_infmt infmt;//转递资源
     struct icsd_adt_input_param_v3 input_param;
     void *lib_alloc_ptr;//adt申请的内存指针
-    u32 timer;//免摘结束定时齐
-    u8 sensitivity;
-    u8 voice_state;//免摘检测到声音的状态
-    u8 adt_resume;//resume的状态
-    u8 adt_suspend;//suspend的状态
-    u8 adt_resume_timer;//resume定时器
     u8 wind_lvl;//记录风强信息
-    u8 a2dp_state;//触发免摘时是否播歌的状态
-    u8 speak_to_chat_state;//智能免摘的状态
-    u8 last_anc_state;//记录触发免摘前的anc模式
-    u8 anc_switch_flag;//是否是内部免摘触发的anc模式切换
-    u8 tws_sync_state;//是否已经接收到同步的信息
     u8 adt_wind_lvl;//风噪等级
     u8 local_wind_lvl;//本地风噪等级
     u8 adt_tmp_wind_lvl;//风噪等级
     int adt_wind_gain_lvl;	//当前风噪噪声等级
     u8 adt_wind_suspend_rtanc;	//触发风噪时挂起RT_ANC 标志
     u8 adt_wat_result;//广域点击次数
-    u8 adt_param_updata;//是否在resume前更新参数
     u8 adt_wat_ignore_flag;//是否忽略广域点击的响应
+    u16 resume_timer;	//ADT恢复定时器
 #if (ICSD_ADT_WIND_INFO_SPP_DEBUG_EN || ICSD_ADT_VOL_NOISE_LVL_SPP_DEBUG_EN)
     struct spp_operation_t *spp_opt;
     u8 spp_connected_state;
@@ -120,7 +117,6 @@ struct speak_to_chat_t {
     s16 tmpbuf1[256];
     s16 tmpbuf2[256];
 #endif /*ICSD_ADT_MIC_DATA_EXPORT_EN*/
-    u8 adt_switch_trans_state;//判断是否adt里面切的trans
     u8 drc_flag;
     float drc_gain[4];
     u16 adt_env_adaptive_hold_id;   //环境自适应触发冷却
@@ -136,28 +132,42 @@ struct speak_to_chat_t {
     s16 *rfb_mic_buf;
     u8 tmp_noise_lvl;//音量自适应噪声等级
     u8 cur_noise_lvl;   //本耳 环境自适应等级
+    char *sync_cnt;		//TWS实时性消息计数
 };
 struct speak_to_chat_t *speak_to_chat_hdl = NULL;
 
 typedef struct {
     u8 mode_switch_busy;
-    u8 speak_to_chat_state;
     u16 adt_mode;			   //已生效的adt_mode
     u16 record_adt_mode;       //预设的adt_mode(befor scene check)
     u16 app_adt_mode;		   //用户层adt_mode记录
-    u16 speak_to_chat_end_time; //免摘定时结束的时间，单位ms
     enum ICSD_ADT_SCENE scene;
     //spinlock_t lock;
     OS_MUTEX mutex;
 } adt_info_t;
 static adt_info_t adt_info = {
     .mode_switch_busy = 0,
-    .speak_to_chat_state = AUDIO_ADT_CLOSE,
     .adt_mode = ADT_MODE_CLOSE,
     .record_adt_mode = ADT_MODE_CLOSE,    //
     .app_adt_mode = ADT_MODE_CLOSE,    //
-    .speak_to_chat_end_time = 5000,
     .scene = 0,
+};
+
+//映射ANC模式和算法恢复变量关系
+const u8 adt_resume_mode[3][2] = {
+    {RESUME_ANCMODE, ADT_ANC_OFF},		//ANC_OFF
+    {RESUME_ANCMODE, ADT_ANC_ON},		//ANC_ON
+    {RESUME_BYPASSMODE, ADT_ANC_OFF},	//ANC_TRANSPARENCY
+};
+
+//ADT TWS通讯有实时性要求的信息
+const int adt_tws_rt_sync_table[] = {
+    SYNC_ICSD_ADT_VDT_TIRRGER,
+    SYNC_ICSD_ADT_WIND_LVL_RESULT,
+    SYNC_ICSD_ADT_WIND_LVL_CMP,
+    SYNC_ICSD_ADT_WAT_RESULT,
+    SYNC_ICSD_ADT_ENV_NOISE_LVL_CMP,
+    SYNC_ICSD_ADT_ENV_NOISE_LVL_RESULT,
 };
 
 void icsd_adt_lock_init()
@@ -177,14 +187,38 @@ void icsd_adt_unlock()
 }
 /*tws同步char状态使用*/
 static u8 globle_speak_to_chat_state = 0;
-/*用于判断先开anc off再开免摘*/
-static u8 adt_open_in_anc = 0;
 static u8 anc_env_adaptive_gain_suspend = 0;
 static u16 anc_env_adaptive_suspend_id = 0;
 static u16 anc_wind_det_suspend_id = 0;
 u8 get_icsd_adt_mic_ch(struct icsd_acoustic_detector_libfmt *libfmt);
 static void audio_rtanc_drc_flag_remote_set(u8 ouput, float gain, float fb_gain);
 static int icsd_adt_debug_tool_function_get(void);
+
+//检查TWS 消息是否多次发送未收到，避免TWS消息池堆积过多
+static int icsd_adt_info_sync_add_check(int mode, int num)
+{
+    struct speak_to_chat_t *hdl = speak_to_chat_hdl;
+    if (hdl && hdl->state) {
+        u8 cnt = ARRAY_SIZE(adt_tws_rt_sync_table);
+        for (int i = 0; i < cnt; i++) {
+            if (mode == adt_tws_rt_sync_table[i]) {
+                hdl->sync_cnt[i] += num;
+                /* adt_log("ADT SYNC_MODE %d, cnt[%d] %d, num %d\n", mode, i, hdl->sync_cnt[i], num); */
+                if (hdl->sync_cnt[i] < 0) {
+                    hdl->sync_cnt[i] = 0;
+                    adt_log("Err: icsd_adt_info_sync cnt error %d\n", mode);
+                }
+                if (hdl->sync_cnt[i] > 3) {	//同一条消息TWS发送多次未收到
+                    hdl->sync_cnt[i] = 3;
+                    adt_log("Err: icsd_adt_info_sync full %d\n", mode);
+                    return -1;
+                }
+                break;
+            }
+        }
+    }
+    return 0;
+}
 
 //ADT TWS 信息同步回调处理函数
 void audio_icsd_adt_info_sync_cb(void *_data, u16 len, bool rx)
@@ -193,7 +227,6 @@ void audio_icsd_adt_info_sync_cb(void *_data, u16 len, bool rx)
     u8 tmp_data[4];
     u8 *data = (u8 *)_data;
     int mode = data[0];
-    int voice_state = 0;
     int wind_lvl    = 0;
     int wat_result  = 0;
     int noise_lvl  = 0;
@@ -205,6 +238,12 @@ void audio_icsd_adt_info_sync_cb(void *_data, u16 len, bool rx)
     int anc_fade_mode = 0;
     int anc_fade_time = 0;
     // adt_debug_log("audio_icsd_adt_info_sync_cb rx:%d, mode:%d ", rx, mode);
+
+#if TCFG_USER_TWS_ENABLE
+    if (!rx) {
+        icsd_adt_info_sync_add_check(mode, -1);
+    }
+#endif
     switch (mode) {
 #if TCFG_AUDIO_ANC_WIND_NOISE_DET_ENABLE
     case SYNC_ICSD_ADT_WIND_LVL_CMP:
@@ -303,12 +342,16 @@ void audio_icsd_adt_info_sync_cb(void *_data, u16 len, bool rx)
         break;
 #endif
 #if TCFG_AUDIO_SPEAK_TO_CHAT_ENABLE
-    case SYNC_ICSD_ADT_VOICE_STATE:
-        voice_state    = ((u8 *)_data)[1];
-        if ((adt_info.adt_mode & ADT_SPEAK_TO_CHAT_MODE) && voice_state) {
+    case SYNC_ICSD_ADT_VDT_TIRRGER:
+        u8 voice_state    = ((u8 *)_data)[1];
+        if (adt_info.adt_mode & ADT_SPEAK_TO_CHAT_MODE) {
             /* err = os_taskq_post_msg(SPEAK_TO_CHAT_TASK_NAME, 2, ICSD_ADT_VOICE_STATE, voice_state); */
-            set_speak_to_chat_voice_state(1);
+            audio_vdt_trigger_send_to_adt(voice_state);
         }
+        break;
+
+    case SYNC_ICSD_ADT_VDT_RESUME:
+        audio_vdt_resume_send_to_adt();
         break;
 #endif /*TCFG_AUDIO_SPEAK_TO_CHAT_ENABLE*/
 #if TCFG_AUDIO_WIDE_AREA_TAP_ENABLE
@@ -333,17 +376,13 @@ void audio_icsd_adt_info_sync_cb(void *_data, u16 len, bool rx)
         hdl->busy = 0;
         break;
 #endif /*TCFG_AUDIO_WIDE_AREA_TAP_ENABLE*/
-    case SYNC_ICSD_ADT_SUSPEND:
-        audio_speak_to_char_suspend();
-        break;
     case SYNC_ICSD_ADT_OPEN:
     case SYNC_ICSD_ADT_CLOSE:
-        adt_log("SYNC_ICSD_ADT_OPEN/CLOSE");
-        adt_mode = (((u8 *)_data)[2] << 8) | ((u8 *)_data)[1];
+        memcpy(&adt_mode, ((u8 *)_data) + 1, sizeof(u16));
+        adt_log("SYNC_ICSD_ADT_OPEN/CLOSE, cmd 0x%x, adt_mode 0x%x\n", mode, adt_mode);
         suspend = ((u8 *)_data)[3];
         //APP层 操作，需要修改标志
         icsd_adt_app_mode_set(adt_mode, (mode == SYNC_ICSD_ADT_OPEN));
-        adt_log("L:%d, H:%d, m:%d", ((u8 *)_data)[1], ((u8 *)_data)[2], adt_mode);
         err = os_taskq_post_msg(SPEAK_TO_CHAT_TASK_NAME, 3, mode, adt_mode, suspend);
         if (err != OS_NO_ERR) {
             adt_log("audio_icsd_adt_info_sync_cb err %d", err);
@@ -384,7 +423,11 @@ void audio_icsd_adt_info_sync(u8 *data, int len)
 {
     struct speak_to_chat_t *hdl = speak_to_chat_hdl;
     // adt_log("audio_icsd_adt_info_sync , %d, %d, %d", data[0], data[1], data[2]);
+
 #if TCFG_USER_TWS_ENABLE
+    if (icsd_adt_info_sync_add_check(data[0], 1)) {
+        return;
+    }
     if (get_tws_sibling_connect_state()) {
         int ret = tws_api_send_data_to_sibling(data, len, TWS_FUNC_ID_ICSD_ADT_M2S);
     } else
@@ -527,80 +570,6 @@ static void audio_mic_output_handle(void *priv, s16 *data, int len)
     }
 }
 
-/*算法结果输出*
- * voice_state : 是否有说话，0 无讲话，1 有讲话
- * wind_lvl : 风噪等级，0 - 10
- * wat_result : 连击次数，2 双击， 3 三击
- */
-extern int tws_in_sniff_state();
-void audio_acoustic_detector_output_hdl(u8 voice_state, u8 wind_lvl, u8 wat_result)
-{
-    struct speak_to_chat_t *hdl = speak_to_chat_hdl;
-    u8 data[4] = {SYNC_ICSD_ADT_WIND_LVL_CMP, voice_state, wind_lvl, wat_result};
-    static u8 cnt = 0;
-    u8 wind_lvl_target_cnt = 0;;
-
-    if (hdl && hdl->state) {
-        hdl->busy = 1;
-        /*限制少的判断放前面*/
-        if ((adt_info.adt_mode & ADT_WIDE_AREA_TAP_MODE) && wat_result && !hdl->adt_wat_ignore_flag) {
-            adt_debug_log("%s:%d", __func__, __LINE__);
-#if TCFG_USER_TWS_ENABLE
-            if (tws_in_sniff_state()) {
-                /*如果在蓝牙siniff下需要退出蓝牙sniff再发送*/
-                icsd_adt_tx_unsniff_req();
-            }
-#endif
-            /*没有tws时直接更新状态*/
-            data[0] = SYNC_ICSD_ADT_WAT_RESULT;
-            audio_icsd_adt_info_sync(data, 4);
-        } else if ((adt_info.adt_mode & ADT_SPEAK_TO_CHAT_MODE) && voice_state) {
-            adt_debug_log("%s:%d", __func__, __LINE__);
-#if TCFG_USER_TWS_ENABLE
-            if (tws_in_sniff_state() && (tws_api_get_role() == TWS_ROLE_MASTER)) {
-                /*如果在蓝牙siniff下需要退出蓝牙sniff再发送*/
-                icsd_adt_tx_unsniff_req();
-            }
-#endif
-            /*同步状态*/
-            data[0] = SYNC_ICSD_ADT_VOICE_STATE;
-            audio_icsd_adt_info_sync(data, 4);
-
-        } else if (adt_info.adt_mode & ADT_WIND_NOISE_DET_MODE) {
-            /*独立风噪，500ms一次输出，不需要间隔响应*/
-            cnt ++;
-#if TCFG_USER_TWS_ENABLE
-            if (get_tws_sibling_connect_state()) {
-                /*记录本地的风噪强度*/
-                hdl->adt_tmp_wind_lvl = wind_lvl;
-                /*同步主机风噪和从机风噪比较*/
-                if ((tws_api_get_role() == TWS_ROLE_MASTER)) {
-                    if (cnt > wind_lvl_target_cnt) {
-                        /*间隔wind_lvl_target_cnt次发送一次*/
-                        data[0] = SYNC_ICSD_ADT_WIND_LVL_CMP;
-                        audio_icsd_adt_info_sync(data, 4);
-
-                        cnt = 0;
-                    }
-                }
-            } else
-#endif
-            {
-                /*没有tws时直接更新状态*/
-                hdl->adt_wind_lvl = wind_lvl;
-                if (cnt > wind_lvl_target_cnt) {
-                    /*间隔wind_lvl_target_cnt次发送一次*/
-                    data[0] = SYNC_ICSD_ADT_WIND_LVL_RESULT;
-                    audio_icsd_adt_info_sync(data, 4);
-                    cnt = 0;
-                }
-            }
-        }
-
-        hdl->busy = 0;
-    }
-}
-
 //ANC task dma 抄数回调接口
 void audio_acoustic_detector_anc_dma_post_msg(void)
 {
@@ -615,23 +584,7 @@ void audio_acoustic_detector_anc_dma_output_callback(void)
 void audio_icsd_adt_start()
 {
     struct speak_to_chat_t *hdl = speak_to_chat_hdl;
-    if (hdl->last_anc_state == ANC_ON) {
-        //启动,变量优化
-        icsd_acoustic_detector_resume(RESUME_ANCMODE, ADT_ANC_ON);
-    } else if (hdl->last_anc_state == ANC_TRANSPARENCY) {
-        icsd_acoustic_detector_resume(RESUME_BYPASSMODE, ADT_ANC_OFF);
-    } else { /*if (hdl->last_anc_state == ANC_OFF)*/
-        icsd_acoustic_detector_resume(RESUME_ANCMODE, ADT_ANC_OFF);
-    }
-}
-
-//将coeff/gain 等信息更新给免摘 : 触发
-void set_icsd_adt_param_updata()
-{
-    struct speak_to_chat_t *hdl = speak_to_chat_hdl;
-    if (hdl && hdl->state) {
-        hdl->adt_param_updata = 1;
-    }
+    audio_icsd_adt_algom_resume(anc_mode_get());
 }
 
 //将coeff/gain 等信息更新给免摘 : 执行
@@ -646,10 +599,6 @@ int audio_acoustic_detector_updata()
         hdl->infmt.gains_l_ffgain = get_anc_gains_l_ffgain();
         hdl->infmt.gains_l_transgain = get_anc_gains_l_transgain();
         hdl->infmt.gains_l_transfbgain = get_anc_gains_lfb_transgain();
-        hdl->infmt.lfb_yorder     = get_anc_l_fbyorder();
-        hdl->infmt.lff_yorder     = get_anc_l_ffyorder();
-        hdl->infmt.ltrans_yorder  = get_anc_l_transyorder();
-        hdl->infmt.ltransfb_yorder  = get_anc_lfb_transyorder();
         hdl->infmt.trans_alogm    = get_anc_gains_trans_alogm();
         hdl->infmt.alogm          = get_anc_gains_alogm();
 
@@ -815,6 +764,10 @@ int audio_acoustic_detector_open()
     }
 #endif
 
+#if TCFG_AUDIO_SPEAK_TO_CHAT_ENABLE
+    audio_adt_vdt_ioctl(ICSD_ADT_IOC_INIT, 0);
+#endif
+
     if (adt_info.adt_mode & ADT_ENV_NOISE_DET_MODE) {
         hdl->adt_env_adaptive_hold_id = sys_timeout_add(NULL, adt_env_adaptive_hold_timeout, 5000);
         adt_debug_log("[ENV_ADAPTIVE]:hold time start\n");
@@ -867,7 +820,7 @@ int audio_acoustic_detector_open()
 
 #ifndef TCFG_AUDIO_ADC_ENABLE_ALL_DIGITAL_CH
     if (((adt_info.scene & ADT_SCENE_ESCO) || adc_file_is_runing()) && mic_ch) {
-        adt_log("ERR:ICSD_ADT Without enabling the ASYNC ADC, the call doesn't support ADT.")
+        adt_log("ERR:ICSD_ADT Without enabling the ASYNC ADC, the call doesn't support ADT.");
         return -1;
     }
 #endif
@@ -943,10 +896,6 @@ int audio_acoustic_detector_open()
     hdl->infmt.gains_l_ffgain = get_anc_gains_l_ffgain();
     hdl->infmt.gains_l_transgain = get_anc_gains_l_transgain();
     hdl->infmt.gains_l_transfbgain = get_anc_gains_lfb_transgain();
-    hdl->infmt.lfb_yorder     = get_anc_l_fbyorder();
-    hdl->infmt.lff_yorder     = get_anc_l_ffyorder();
-    hdl->infmt.ltrans_yorder  = get_anc_l_transyorder();
-    hdl->infmt.ltransfb_yorder  = get_anc_lfb_transyorder();
     hdl->infmt.trans_alogm    = get_anc_gains_trans_alogm();
     hdl->infmt.alogm          = get_anc_gains_alogm();
 
@@ -998,11 +947,13 @@ int audio_acoustic_detector_open()
         adt_debug_log("rtanc tool demo:0x%x==================================\n", (int)hdl->infmt.rtanc_tool);
     }
 #endif
+    extern void icsd_task_create();
+    icsd_task_create();
+
     icsd_acoustic_detector_set_infmt(&hdl->infmt);
     //set_icsd_adt_dma_done_flag(1);
 
-    extern void icsd_task_create();
-    icsd_task_create();
+
     icsd_acoustic_detector_open();
 
     //算法需要的MIC和当前样机配置的MIC不匹配: 需要检测MIC配置，或可能此方案不支持部分算法
@@ -1055,15 +1006,6 @@ int audio_acoustic_detector_open()
     audio_icsd_adt_start();
 
     hdl->state = 1;
-    /*用于TWS同步adt状态*/
-    if (adt_info.speak_to_chat_state == AUDIO_ADT_CHAT) {
-#if TCFG_AUDIO_SPEAK_TO_CHAT_ENABLE
-        audio_speak_to_chat_voice_state_sync();
-#endif
-        hdl->adt_resume = 0;
-    }
-    adt_info.speak_to_chat_state = AUDIO_ADT_OPEN;
-    hdl->speak_to_chat_state = AUDIO_ADT_OPEN;
     return 0;
 err0:
     audio_acoustic_detector_close();
@@ -1084,7 +1026,7 @@ int audio_acoustic_detector_close()
         //set_icsd_adt_dma_done_flag(0);
         if (hdl->lib_alloc_ptr) {
             /*需要先挂起再关闭*/
-            icsd_acoustic_detector_suspend();
+            audio_icsd_adt_algom_suspend();
             adt_debug_log("icsd_acoustic_detector_close, 0\n");
             icsd_acoustic_detector_close();
             adt_debug_log("icsd_acoustic_detector_close, 1\n");
@@ -1127,124 +1069,66 @@ int audio_acoustic_detector_close()
     return 0;
 }
 
-//触发免摘之后对DAC mute 的动作
-/*dac数据清零 mute*/
-void audio_adt_dac_check_slience_cb(void *buf, int len)
-{
-    /* memset((u8 *)buf, 0x0, len); */
-}
-void audio_adt_dac_mute_start(void *priv)
-{
-    /* dac_node_write_callback_add("ANC_ADT", 0XFF, audio_adt_dac_check_slience_cb);	//注册DAC回调接口-静音检测 */
-}
-void audio_adt_dac_mute_stop(void)
-{
-    /* dac_node_write_callback_del("ANC_ADT"); */
-}
-
-
-//免摘触发切模式行为
-void adt_anc_mode_switch(u8 mode, u8 tone_play)
-{
-    struct speak_to_chat_t *hdl = speak_to_chat_hdl;
-    if (hdl) {
-        anc_mode_switch(ANC_ON, 0);
-    }
-}
-
-
-//普通挂起行为
+//ADT挂起, 可用于避免滤波器增益突变导致ADT异常
 void audio_icsd_adt_suspend()
 {
+    //其他线程调用
     struct speak_to_chat_t *hdl = speak_to_chat_hdl;
     if (hdl && hdl->state) {
+        hdl->busy = 1;
         adt_debug_log("%s : %d", __func__, __LINE__);
-        icsd_acoustic_detector_suspend();
-        hdl->adt_suspend = 0;
-        /*删除定时器*/
-        if (hdl->timer) {
-            sys_s_hi_timeout_del(hdl->timer);
-            hdl->timer = 0;
+        if (hdl->resume_timer) {
+            sys_s_hi_timeout_del(hdl->resume_timer);
         }
+        audio_icsd_adt_algom_suspend();
+#if TCFG_AUDIO_SPEAK_TO_CHAT_ENABLE
+        audio_adt_vdt_ioctl(ICSD_ADT_IOC_SUSPEND, 0);
+#endif
+        hdl->busy = 0;
     }
 }
 
-/*char 定时结束后从通透同步恢复anc on /anc off*/
-//1、a2dp player 点击播歌,挂起免摘，恢复到ANC ON/OFF
-void audio_speak_to_char_suspend(void)
+//ANC更新滤波器、增益时需要通知免摘更新算法参数
+int audio_icsd_adt_param_update(void)
 {
+    //其他线程调用
     struct speak_to_chat_t *hdl = speak_to_chat_hdl;
-    int err = 0;
     if (hdl && hdl->state) {
-        adt_debug_log("%s : %d", __func__, __LINE__);
-        /*tws同步suspend时，防止二次调用*/
-        if (hdl->adt_suspend) {
-            return;
-        }
         hdl->busy = 1;
-        hdl->adt_suspend = 1;
-        adt_debug_log("%s : %d", __func__, hdl->last_anc_state);
-        /*tws同步后，删除定时器*/
-        if (hdl->timer) {
-            sys_s_hi_timeout_del(hdl->timer);
-            hdl->timer = 0;
-        }
-        hdl->speak_to_chat_state = AUDIO_ADT_OPEN;
-        adt_info.speak_to_chat_state = AUDIO_ADT_OPEN;
-        icsd_acoustic_detector_suspend();
-        /*播放结束提示音的标志*/
-        hdl->anc_switch_flag = 1;
-        if (hdl->last_anc_state == ANC_ON) {
-            if (anc_mode_get() == ANC_ON) {
-                icsd_acoustic_detector_resume(RESUME_ANCMODE, ADT_ANC_ON);
-#if SPEAK_TO_CHAT_PLAY_TONE_EN
-                /*免摘结束退出通透提示音*/
-                err = os_taskq_post_msg(SPEAK_TO_CHAT_TASK_NAME, 2, ICSD_ADT_TONE_PLAY, (int)ICSD_ADT_TONE_NUM0);
-#else
-                hdl->adt_suspend = 0;
-#endif /*SPEAK_TO_CHAT_PLAY_TONE_EN*/
-                hdl->anc_switch_flag = 0;
-            } else {
-                /* anc_mode_switch(ANC_ON, 0); */
-                err = os_taskq_post_msg(SPEAK_TO_CHAT_TASK_NAME, 3, ICSD_ANC_MODE_SWITCH, ANC_ON, 0);
-            }
-        } else if (hdl->last_anc_state == ANC_TRANSPARENCY) {
-            if (anc_mode_get() == ANC_TRANSPARENCY) {
-                icsd_acoustic_detector_resume(RESUME_BYPASSMODE, ADT_ANC_OFF);
-#if SPEAK_TO_CHAT_PLAY_TONE_EN
-                /*免摘结束退出通透提示音*/
-                err = os_taskq_post_msg(SPEAK_TO_CHAT_TASK_NAME, 2, ICSD_ADT_TONE_PLAY, (int)ICSD_ADT_TONE_NUM0);
-#else
-                hdl->adt_suspend = 0;
-#endif /*SPEAK_TO_CHAT_PLAY_TONE_EN*/
-                hdl->anc_switch_flag = 0;
-            } else {
-                /* anc_mode_switch(ANC_TRANSPARENCY, 0); */
-                err = os_taskq_post_msg(SPEAK_TO_CHAT_TASK_NAME, 3, ICSD_ANC_MODE_SWITCH, ANC_TRANSPARENCY, 0);
-            }
-        } else { /*if (hdl->last_anc_state == ANC_OFF*/
-            if (anc_mode_get() == ANC_OFF) {
-                icsd_acoustic_detector_resume(RESUME_ANCMODE, ADT_ANC_OFF);
-#if SPEAK_TO_CHAT_PLAY_TONE_EN
-                /*免摘结束退出通透提示音*/
-                err = os_taskq_post_msg(SPEAK_TO_CHAT_TASK_NAME, 2, ICSD_ADT_TONE_PLAY, (int)ICSD_ADT_TONE_NUM0);
-#else
-                hdl->adt_suspend = 0;
-#endif /*SPEAK_TO_CHAT_PLAY_TONE_EN*/
-                hdl->anc_switch_flag = 0;
-            } else {
-                adt_open_in_anc = 1;
-                /* anc_mode_switch(ANC_OFF, 0); */
-                err = os_taskq_post_msg(SPEAK_TO_CHAT_TASK_NAME, 3, ICSD_ANC_MODE_SWITCH, ANC_OFF, 0);
-            }
-        }
+        adt_debug_log("%s : %d", __func__, __LINE__);
+        audio_acoustic_detector_updata();
+        hdl->busy = 0;
+    }
+    return 0;
+}
 
-        audio_adt_dac_mute_stop();
-        if (hdl->a2dp_state && (bt_a2dp_get_status() != BT_MUSIC_STATUS_STARTING)) {
-            adt_debug_log("send PLAY cmd");
-            bt_cmd_prepare(USER_CTRL_AVCTP_OPID_PLAY, 0, NULL);
+static void audio_icsd_adt_resume_timer(void *p)
+{
+    //中断调用
+    struct speak_to_chat_t *hdl = speak_to_chat_hdl;
+    adt_debug_log("%s\n", __func__);
+    if (hdl && hdl->state) {
+        hdl->busy = 1;
+        //挂起后恢复ADT
+        audio_icsd_adt_algom_resume(anc_mode_get());
+
+        hdl->resume_timer = 0;
+        hdl->busy = 0;
+    }
+}
+
+//ADT恢复, 与挂起成对使用
+void audio_icsd_adt_resume()
+{
+    //其他线程调用
+    struct speak_to_chat_t *hdl = speak_to_chat_hdl;
+    if (hdl && hdl->state) {
+        hdl->busy = 1;
+        adt_debug_log("%s : %d", __func__, __LINE__);
+
+        if (hdl->resume_timer == 0) {
+            hdl->resume_timer = sys_s_hi_timerout_add(NULL, audio_icsd_adt_resume_timer, 500);
         }
-        hdl->a2dp_state = 0;
         hdl->busy = 0;
     }
 }
@@ -1263,161 +1147,28 @@ void audio_adt_tone_adaptive_sync(void)
     audio_icsd_adt_info_sync(data, 4);
 }
 
-void audio_speak_to_char_sync_suspend(void)
+void audio_icsd_adt_algom_suspend(void)
 {
-    adt_debug_log("%s", __func__);
-    struct speak_to_chat_t *hdl = speak_to_chat_hdl;
-    u8 data[4];
-    if (hdl && hdl->state) {
-        hdl->adt_suspend = 0;
-#if TCFG_USER_TWS_ENABLE
-        if (get_tws_sibling_connect_state()) {
-            data[0] = SYNC_ICSD_ADT_SUSPEND;
-            audio_icsd_adt_info_sync(data, 4);
-        } else {
-            audio_speak_to_char_suspend();
-        }
-#else
-        audio_speak_to_char_suspend();
-#endif/*TCFG_USER_TWS_ENABLE*/
-    }
-}
-
-//suspend  记录ANC的状态, 免摘进入通透  定时器相关处理
-void audio_anc_mode_switch_in_adt(u8 anc_mode)
-{
+    //可能其他线程调用
     struct speak_to_chat_t *hdl = speak_to_chat_hdl;
     if (hdl && hdl->state) {
         icsd_acoustic_detector_suspend();
-        if (anc_mode == ANC_TRANSPARENCY && hdl->adt_resume) {
-            /*说话触发的通透不记录*/
-            return;
-        }
-        hdl->busy = 1;
-        adt_debug_log("%s : %d", __func__, __LINE__);
-        /*每次切anc模式都在resume前更新参数*/
-        set_icsd_adt_param_updata();
-        /*进入免摘后，如果切换anc模式主动退出免摘*/
-        if (hdl->speak_to_chat_state == AUDIO_ADT_CHAT) {
-            /* hdl->adt_suspend = 0; */
-            /*删除定时器*/
-            if (hdl->timer) {
-                sys_s_hi_timeout_del(hdl->timer);
-                hdl->timer = 0;
-            }
-        }
-        if ((anc_mode == ANC_OFF) && (hdl->speak_to_chat_state != AUDIO_ADT_CLOSE)) {
-            //QHH: anc off开rtanc
-            //adt_open_in_anc = 1;
-        }
-        /*记录外部切换的anc模式*/
-        hdl->last_anc_state = anc_mode;
-        hdl->busy = 0;
-    }
-    //QHH: anc off开rtanc
-    //adt_open_in_anc = 1;
-}
-
-//触发免摘之后恢复至默认状态的定时器
-void audio_speak_to_chat_timer(void *p)
-{
-    struct speak_to_chat_t *hdl = speak_to_chat_hdl;
-    if (hdl && hdl->state) {
-        adt_debug_log("%s", __func__);
-        if (hdl->timer) {
-            sys_s_hi_timeout_del(hdl->timer);
-        }
-        hdl->timer = 0;
-        audio_speak_to_char_sync_suspend();
     }
 }
 
-/*切换anc 或者通透完成后，恢复免摘*/
-void audio_icsd_adt_resume_timer(void *p)
+void audio_icsd_adt_algom_resume(u8 anc_mode)
 {
-    struct speak_to_chat_t *hdl = speak_to_chat_hdl;
-    if (hdl && hdl->state) {
-        hdl->busy = 1;
-        adt_debug_log("%s : %d", __func__, __LINE__);
-        /*更新参数*/
-        if (hdl->adt_param_updata) {
-            hdl->adt_param_updata = 0;
-            audio_acoustic_detector_updata();
-        }
-        /*adt挂起完成，准备退出挂起*/
-        hdl->adt_suspend = 0;
-        if (hdl->adt_resume) {
-            /*智能免摘切换通透挂起恢复*/
-            if (anc_mode_get() == ANC_TRANSPARENCY) {
-                icsd_acoustic_detector_resume(RESUME_BYPASSMODE, ADT_ANC_OFF);
-            }
-            hdl->adt_resume = 0;
-        } else {
-            /*智能免摘定时结束触发的挂起恢复*/
-            if (anc_mode_get() == ANC_ON) {
-                icsd_acoustic_detector_resume(RESUME_ANCMODE, ADT_ANC_ON);
-            } else if (anc_mode_get() == ANC_TRANSPARENCY) {
-                icsd_acoustic_detector_resume(RESUME_BYPASSMODE, ADT_ANC_OFF);
-            } else { /*if (anc_mode_get() == ANC_OFF*/
-                icsd_acoustic_detector_resume(RESUME_ANCMODE, ADT_ANC_OFF);
-            }
-            hdl->speak_to_chat_state = AUDIO_ADT_OPEN;
-            adt_info.speak_to_chat_state = AUDIO_ADT_OPEN;
-        }
-        hdl->adt_resume_timer = 0;
-        hdl->busy = 0;
+    u8 mode = anc_mode - 1;	//ANC_OFF = 1
+    if (anc_mode >= ANC_OFF && anc_mode <= ANC_TRANSPARENCY) {
+        /* adt_log("%s, %d, %d\n", __func__, adt_resume_mode[mode][0], adt_resume_mode[mode][1]); */
+        icsd_acoustic_detector_resume(adt_resume_mode[mode][0], adt_resume_mode[mode][1]);
     }
-}
-
-//普通恢复行为
-void audio_icsd_adt_resume()
-{
-    struct speak_to_chat_t *hdl = speak_to_chat_hdl;
-    if (hdl && hdl->state) {
-        hdl->busy = 1;
-        adt_debug_log("%s : %d", __func__, __LINE__);
-        adt_open_in_anc = 0;
-        /*延时1s，等待ANC数据稳定在恢复*/
-        if (hdl->adt_resume_timer == 0) {
-            hdl->adt_resume_timer = sys_s_hi_timerout_add(NULL, audio_icsd_adt_resume_timer, 500);
-        }
-        if (hdl->adt_resume) {
-            /*智能免摘定时结束触发的挂起恢复*/
-            if (anc_mode_get() == ANC_TRANSPARENCY) {
-            }
-        } else {
-            if (hdl->anc_switch_flag) {
-#if SPEAK_TO_CHAT_PLAY_TONE_EN
-                /*免摘结束退出通透提示音*/
-                icsd_adt_tone_play(ICSD_ADT_TONE_NUM0);
-#endif /*SPEAK_TO_CHAT_PLAY_TONE_EN*/
-                hdl->anc_switch_flag = 0;
-            }
-        }
-        hdl->busy = 0;
-    }
-}
-
-u8 audio_speak_to_chat_is_running()
-{
-    return (speak_to_chat_hdl != NULL);
 }
 
 /*adt是否在跑*/
 u8 audio_icsd_adt_is_running()
 {
     return (speak_to_chat_hdl != NULL);
-}
-
-/*获取智能免摘的状态*/
-u8 get_speak_to_chat_state()
-{
-    struct speak_to_chat_t *hdl = speak_to_chat_hdl;
-    if (hdl) {
-        return hdl->speak_to_chat_state;
-    } else {
-        return 0;
-    }
 }
 
 /*获取adt的模式*/
@@ -1427,9 +1178,23 @@ u16 get_icsd_adt_mode()
     return adt_info.adt_mode;
 }
 
-void icsd_adt_rt_anc_mode_set(int mode)
+/*ADT TWS同步执行接口 - 关闭ADT*/
+static void audio_icsd_adt_state_sync_done(struct anc_tws_sync_info *info)
 {
-    adt_info.adt_mode |= mode;
+
+    adt_log("%s, adt_mode 0x%x, chat %d", __func__, info->app_adt_mode, info->vdt_state);
+    put_buf((u8 *)info, sizeof(struct anc_tws_sync_info));
+
+#if TCFG_AUDIO_SPEAK_TO_CHAT_ENABLE
+    audio_vdt_tws_trigger_set(info->vdt_state);
+#endif
+
+    adt_info.app_adt_mode = info->app_adt_mode;
+
+    if (anc_mode_sync(info)) {
+        //ANC相同模式无法切换，则在此处复位ADT
+        audio_icsd_adt_res_close(0, 0);
+    }
 }
 
 /*获取ADT模式切换是否繁忙*/
@@ -1438,83 +1203,30 @@ u8 get_icsd_adt_mode_switch_busy()
     return adt_info.mode_switch_busy;
 }
 
-/*获取进入免摘前anc的模式*/
-u8 get_icsd_adt_anc_mode()
-{
-    struct speak_to_chat_t *hdl = speak_to_chat_hdl;
-    if (hdl && hdl->state) {
-        return hdl->last_anc_state;
-    } else {
-        return anc_new_target_mode_get();
-    }
-}
-
-/*记录adt切换trans的状态*/
-u8 set_adt_switch_trans_state(u8 state)
-{
-    struct speak_to_chat_t *hdl = speak_to_chat_hdl;
-    if (hdl && hdl->state) {
-        hdl->adt_switch_trans_state = state;
-        return hdl->adt_switch_trans_state;
-    } else {
-        return 0;
-    }
-}
-
-/*获取adt切换trans的状态*/
-u8 get_adt_switch_trans_state()
-{
-    struct speak_to_chat_t *hdl = speak_to_chat_hdl;
-    if (hdl && hdl->state) {
-        return hdl->adt_switch_trans_state;
-    } else {
-        return 0;
-    }
-}
-
-/*同步前关闭ADT*/
-void audio_icsd_adt_state_sync_done(u16 adt_mode, u8 speak_to_chat_state)
-{
-
-    int close_adt = ADT_ALL_FUNCTION_ENABLE;
-    audio_icsd_adt_res_close(close_adt, 0);
-
-    adt_debug_log("%s, adt %d, chat %d", __func__, adt_mode, speak_to_chat_state);
-    struct speak_to_chat_t *hdl = speak_to_chat_hdl;
-    adt_info.speak_to_chat_state = speak_to_chat_state;
-    if (hdl && hdl->state) {
-        /*tws同步时重置记录的anc模式*/
-        hdl->last_anc_state = anc_mode_get();
-    }
-    // adt_info.adt_mode = adt_mode;
-    /*同步动作前已经关闭adt了，这里只需要判断打开，避免没有开adt在anc off里面开了anc*/
-    if (adt_info.adt_mode) {
-        /*在anc跑完后面执行同步adt状态*/
-        adt_open_in_anc = 1;
-    }
-}
-
+#if TCFG_USER_TWS_ENABLE
 /*同步tws配对时，同步adt的状态*/
-static u8 sync_data[5];
-void audio_anc_icsd_adt_state_sync(u8 *data)
+void audio_anc_icsd_adt_state_sync(struct anc_tws_sync_info *info)
 {
     adt_debug_log("audio_anc_icsd_adt_state_sync");
-    memcpy(sync_data, data, sizeof(sync_data));
+    int len = sizeof(struct anc_tws_sync_info);
+    struct anc_tws_sync_info *sync_data = anc_malloc("ICSD_ADT", len);
+    if (!sync_data) {
+        return;
+    }
+    memcpy(sync_data, info, len);
+    //put_buf((u8*)sync_data, len);
     int err = os_taskq_post_msg(SPEAK_TO_CHAT_TASK_NAME, 2, ICSD_ADT_STATE_SYNC, (int)sync_data);
     if (err != OS_NO_ERR) {
+        anc_free(sync_data);
         adt_log("audio_anc_icsd_adt_state_sync err %d", err);
     }
 }
+#endif
 
 //ADT 播放完提示音回调接口
 void icsd_adt_task_play_tone_cb(void *priv)
 {
-    struct speak_to_chat_t *hdl = speak_to_chat_hdl;
-    /*播放完提示音*/
-    if (hdl && hdl->state) {
-        //为啥要清0
-        hdl->adt_suspend = 0;
-    }
+    //To do
 }
 
 static void audio_icsd_adt_task(void *p)
@@ -1533,56 +1245,21 @@ static void audio_icsd_adt_task(void *p)
         if (res == OS_TASKQ) {
             switch (msg[1]) {
 #if TCFG_AUDIO_SPEAK_TO_CHAT_ENABLE
-            case ICSD_ADT_VOICE_STATE:
+            case ICSD_ADT_VDT_TIRRGER:
                 hdl = speak_to_chat_hdl;
                 if (hdl && hdl->state) {
-                    hdl->busy = 1;
-                    /* hdl->adt_resume == 0 ：上一次检测到语音，挂起切换通透还没完成恢复的时候，不能做下一次动作
-                     * hdl->adt_suspend == 0 : 结束定时挂起切换anc模式的时候，还没完成模式切换，不能做检测作动*/
-                    if (hdl->voice_state && (hdl->adt_resume == 0) && (hdl->adt_suspend == 0)) {
-                        if (hdl->speak_to_chat_state == AUDIO_ADT_CHAT) {
-                            adt_debug_log("hdl->speak_to_chat_state == AUDIO_ADT_CHAT)");
-                        } else {
-                            adt_debug_log("%s", __func__);
-                            /*检测到语音切换到通透*/
-                            if (anc_mode_get() != ANC_TRANSPARENCY) {
-                                hdl->adt_resume = 1;/*调用顺序不可改*/
-                                hdl->speak_to_chat_state = AUDIO_ADT_OPEN;
-                                adt_info.speak_to_chat_state = AUDIO_ADT_OPEN;
-                                icsd_acoustic_detector_suspend();
-                                set_adt_switch_trans_state(1);
-                                anc_mode_switch(ANC_TRANSPARENCY, 0);
-                            }
-
-                            /*如果在播歌暂停播歌*/
-                            if (bt_a2dp_get_status() == BT_MUSIC_STATUS_STARTING) {
-                                adt_debug_log("send PAUSE cmd");
-                                hdl->a2dp_state = 1;
-                                bt_cmd_prepare(USER_CTRL_AVCTP_OPID_PAUSE, 0, NULL);
-                            }
-#if SPEAK_TO_CHAT_PLAY_TONE_EN
-                            /*结束免摘后检测播放提示音*/
-                            icsd_adt_tone_play(ICSD_ADT_TONE_NORMAL);
-#endif /*SPEAK_TO_CHAT_PLAY_TONE_EN*/
-                            /* tone_play_index_with_callback(IDEX_TONE_NORMAL, 1, audio_adt_dac_mute_start, NULL); */
-                        }
-#if SPEAK_TO_CHAT_TEST_TONE_EN
-                        /*每次检测到说话都播放提示音*/
-                        icsd_adt_tone_play(ICSD_ADT_TONE_NORMAL);
-#endif /*SPEAK_TO_CHAT_TEST_TONE_EN*/
-
-                        /*重新定时*/
-                        if (hdl->timer) {
-                            sys_s_hi_timeout_del(hdl->timer);
-                            hdl->timer = 0;
-                        }
-                        hdl->timer = sys_s_hi_timerout_add(NULL, audio_speak_to_chat_timer, adt_info.speak_to_chat_end_time);
-                        hdl->speak_to_chat_state = AUDIO_ADT_CHAT;
-                        adt_info.speak_to_chat_state = AUDIO_ADT_CHAT;
-                        hdl->voice_state = 0;
-                    }
-                    hdl->busy = 0;
+                    audio_vdt_trigger_process(1);
                 }
+                break;
+            case ICSD_ADT_VDT_RESUME:
+                hdl = speak_to_chat_hdl;
+                if (hdl && hdl->state) {
+                    audio_vdt_resume_process();
+                }
+                break;
+            case ICSD_ADT_VDT_KEEP_STATE:
+                adt_log("ICSD_ADT_VDT_KEEP_STATE: %d\n", msg[2]);
+                audio_vdt_keep_state_set(msg[2]);
                 break;
 #endif /*TCFG_AUDIO_SPEAK_TO_CHAT_ENABLE*/
 #if TCFG_AUDIO_ANC_WIND_NOISE_DET_ENABLE
@@ -1708,10 +1385,6 @@ static void audio_icsd_adt_task(void *p)
                 /*播放提示音,定时器里面需要播放提示音时，可发消息到这里播放*/
                 u8 index = (u8)msg[2];
                 int err = icsd_adt_tone_play_callback(index, icsd_adt_task_play_tone_cb, NULL);
-                if (hdl && (err != 0)) {
-                    /*如果播放提示音失败，suspend提前置0*/
-                    hdl->adt_suspend = 0;
-                }
                 break;
             case SPEAK_TO_CHAT_TASK_KILL:
                 /*清掉队列消息*/
@@ -1720,7 +1393,7 @@ static void audio_icsd_adt_task(void *p)
                 break;
             case ICSD_ANC_MODE_SWITCH:
                 adt_log("ICSD_ANC_MODE_SWITCH");
-                anc_mode_switch((u8)msg[2], (u8)msg[3]);
+                anc_mode_switch_base((u8)msg[2], (u8)msg[3]);
                 break;
             case SYNC_ICSD_ADT_OPEN:
                 adt_log("SYNC_ICSD_ADT_OPEN");
@@ -1737,6 +1410,23 @@ static void audio_icsd_adt_task(void *p)
                     adt_log("close sem 0x%x\n", (int)(msg[5]));
                     os_sem_post((OS_SEM *)(msg[5]));
                 }
+                //还原当前用户模式
+                if (anc_real_mode_get() == ANC_EXT && (!audio_icsd_adt_scene_check(adt_info.adt_mode, 0))) {
+                    adt_log("ADT: anc mode change: ANC_EXT-> %d\n", anc_user_mode_get());
+                    anc_mode_switch_base(anc_user_mode_get(), 0);
+                }
+                break;
+            case ICSD_ADT_ANC_SWITCH_OPEN:
+                adt_log("ICSD_ADT_ANC_SWITCH_OPEN: %x\n", msg[2]);
+                adt_info.mode_switch_busy = 1;
+                audio_icsd_adt_open(msg[2]);
+                adt_info.mode_switch_busy = 0;
+                break;
+            case ICSD_ADT_ANC_SWITCH_CLOSE:
+                adt_log("ICSD_ADT_ANC_SWITCH_CLOSE: %x\n", msg[2]);
+                adt_info.mode_switch_busy = 1;
+                audio_icsd_adt_res_close(msg[2], msg[3]);
+                adt_info.mode_switch_busy = 0;
                 break;
             case SYNC_ICSD_ADT_SET_ANC_FADE_GAIN:
                 adt_log("adt_sync_mode %d sync_set  [anc_fade]: %d, fade_time : %d\n", msg[3], msg[2], msg[4]);
@@ -1752,13 +1442,15 @@ static void audio_icsd_adt_task(void *p)
                     icsd_anc_fade_set(msg[3], msg[2]);
                 }
                 break;
+#if TCFG_USER_TWS_ENABLE
             case ICSD_ADT_STATE_SYNC:
                 adt_log("ICSD_ADT_STATE_SYNC");
-                u8 *s_data = (u8 *)msg[2];
+                struct anc_tws_sync_info *info = (struct anc_tws_sync_info *)msg[2];
                 /*先关闭adt，同步adt状态，然后同步anc，在anc里面做判断开adt*/
-                audio_icsd_adt_state_sync_done(s_data[3], s_data[4]);
-                anc_mode_sync(s_data);
+                audio_icsd_adt_state_sync_done(info);
+                anc_free(info);
                 break;
+#endif
 #if ICSD_ADT_MIC_DATA_EXPORT_EN
             case ICSD_ADT_EXPORT_DATA_WRITE:
                 aec_uart_write();
@@ -1792,17 +1484,6 @@ int audio_icsd_adt_open_permit(u16 adt_mode)
         return 0;
     }
 #endif
-#if ((defined TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN) && TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN)
-    //自适应过程下不允许打开或者切换其他模式
-    if (anc_ear_adaptive_busy_get()) {
-        adt_debug_log("audio anc adaptive is running!!\n");
-        return 0;
-    }
-#endif
-    if (anc_mode_get() == ANC_EXT) {
-        adt_log("adt_open fail : mode = ANC_EXT\n");
-        return 0;
-    }
     return 1;
 }
 
@@ -1835,13 +1516,11 @@ int audio_icsd_adt_init()
         return -1;
     }
     hdl = speak_to_chat_hdl;
+    hdl->sync_cnt = anc_malloc("ICSD_ADT", ARRAY_SIZE(adt_tws_rt_sync_table));
     hdl->drc_gain[0] = 10000.0f;
     hdl->drc_gain[1] = 10000.0f;
     hdl->drc_gain[2] = 10000.0f;
     hdl->drc_gain[3] = 10000.0f;
-
-    hdl->last_anc_state = anc_mode_get();
-    adt_debug_log("last_anc_state %d", hdl->last_anc_state);
 
 #if ICSD_ADT_MIC_DATA_EXPORT_EN
     aec_uart_open(3, 512);
@@ -1857,7 +1536,7 @@ int audio_icsd_adt_init()
     return 0;
 }
 
-int audio_icsd_adt_scene_check(u16 adt_mode)
+int audio_icsd_adt_scene_check(u16 adt_mode, u8 skip_check)
 {
     int x, y;
     int scene_size = sizeof(anc_ext_support_scene) / sizeof(anc_ext_support_scene[0]);
@@ -1865,8 +1544,9 @@ int audio_icsd_adt_scene_check(u16 adt_mode)
     u16 tmp_mode, out_mode = 0;
 
     adt_info.record_adt_mode |= adt_mode;
-    //处理SDK强制互斥的场景
-    if (adt_info.scene & (ADT_SCENE_AFQ | ADT_SCENE_PRODUCTION)) {
+
+    //处理 SDK FIX SCENE, 与SDK强制互斥的场景
+    if (adt_info.scene >> ADT_FIX_MUTEX_SCENE_OFFSET) {
         goto __exit;
     }
     /* printf("scene_size %d, alogm_size %d\n", scene_size, alogm_size); */
@@ -1880,8 +1560,19 @@ int audio_icsd_adt_scene_check(u16 adt_mode)
         out_mode |= (tmp_mode << y);
     }
 
+    //用于特殊场景 事件处理
+    int arg[2] = {out_mode, skip_check};
+    out_mode = audio_anc_event_notify(ANC_EVENT_ADT_SCENE_CHECK, (int)(&arg));
+
+    if ((out_mode & (ADT_REAL_TIME_ADAPTIVE_ANC_MODE | ADT_REAL_TIME_ADAPTIVE_ANC_TIDY_MODE)) &&
+        (out_mode &	ADT_SPEAK_TO_CHAT_MODE)) {
+        //RTANC 与 智能免摘不共存
+        printf("adt_scene_check:ERR SPEAK_TO_CHAT & RTANC Non-coexistence\n");
+        return 0;
+    }
+
 __exit:
-    printf("adt_scenc_check: scene 0x%x, in 0x%x, re 0x%x; out 0x%x\n", adt_info.scene, adt_mode, adt_info.record_adt_mode, out_mode);
+    printf("adt_scene_check: scene 0x%x, in 0x%x, re 0x%x; out 0x%x\n", adt_info.scene, adt_mode, adt_info.record_adt_mode, out_mode);
 
     return out_mode;
 }
@@ -1890,7 +1581,7 @@ __exit:
 int audio_icsd_adt_open(u16 adt_mode)
 {
     //场景筛选出模式
-    int adt_check_mode = audio_icsd_adt_scene_check(adt_mode | adt_info.adt_mode);
+    int adt_check_mode = audio_icsd_adt_scene_check(adt_mode | adt_info.adt_mode, 0);
 
     //若符合场景的模式为0，直接退出
     if (!adt_check_mode) {
@@ -1901,6 +1592,12 @@ int audio_icsd_adt_open(u16 adt_mode)
     //算法限制检查
     if (audio_icsd_adt_open_permit(adt_mode) == 0) {
         return -1;
+    }
+
+    if (anc_real_mode_get() == ANC_OFF) {
+        adt_log("ADT_OPEN: anc mode change: ANC_OFF->ANC_EXT\n");
+        anc_mode_switch_base(ANC_EXT, 0);
+        return 0;
     }
 
     //重入判断, 当adt_mode = 0, 认为需要重启算法
@@ -1916,24 +1613,13 @@ int audio_icsd_adt_open(u16 adt_mode)
         audio_icsd_adt_res_close(0, 0);
         return 0;
     }
+
+    audio_anc_event_notify(ANC_EVENT_ADT_OPEN, adt_mode);
+
     adt_info.adt_mode = adt_check_mode;
 
-    if (anc_mode_get() == ANC_ON) {
-        adt_open_in_anc = 0;
-        audio_icsd_adt_init();
-    } else if (anc_mode_get() == ANC_OFF) {
-        //QHH: anc off开rtanc
-#if 1
-        adt_open_in_anc = 0;
-        audio_icsd_adt_init();
-#else
-        adt_open_in_anc = 1;
-        anc_mode_switch_in_anctask(ANC_OFF, 0);
-#endif
-    } else if (anc_mode_get() == ANC_TRANSPARENCY) {
-        adt_open_in_anc = 0;
-        audio_icsd_adt_init();
-    }
+    audio_icsd_adt_init();
+
     return 0;
 }
 
@@ -1956,11 +1642,10 @@ int audio_icsd_adt_sync_open(u16 adt_mode)
     /* uint32_t rets_addr; */
     /* __asm__ volatile("%0 = rets ;" : "=r"(rets_addr)); */
     /* adt_log("audio_icsd_adt_sync_open, mode=0x%x, rets=0x%x\n", adt_mode, rets_addr); */
-    adt_debug_log("%s", __func__);
+    adt_debug_log("%s, adt_mode 0x%x", __func__, adt_mode);
     u8 data[4] = {0};
     data[0] = SYNC_ICSD_ADT_OPEN;
-    data[1] = adt_mode & 0x00FF;
-    data[2] = (adt_mode >> 8) & 0x00FF;
+    memcpy(&(data[1]), &adt_mode, sizeof(u16));
 
     if (audio_icsd_adt_open_permit(adt_mode) == 0) {
         return -1;
@@ -1983,10 +1668,10 @@ int audio_icsd_adt_sync_open(u16 adt_mode)
  *ag: audio_icsd_adt_sync_close(ADT_SPEAK_TO_CHAT_MODE | ADT_WIDE_AREA_TAP_MODE | ADT_WIND_NOISE_DET_MODE) */
 int audio_icsd_adt_sync_close(u16 adt_mode, u8 suspend)
 {
+    adt_debug_log("%s, adt_mode 0x%x", __func__, adt_mode);
     u8 data[4] = {0};
     data[0] = SYNC_ICSD_ADT_CLOSE;
-    data[1] = adt_mode & 0x00FF;
-    data[2] = (adt_mode >> 8) & 0x00FF;
+    memcpy(&(data[1]), &adt_mode, sizeof(u16));
     data[3] = suspend;
 #if TCFG_USER_TWS_ENABLE
     if (get_tws_sibling_connect_state()) {
@@ -2002,31 +1687,6 @@ int audio_icsd_adt_sync_close(u16 adt_mode, u8 suspend)
     return 0;
 }
 
-/*获取是否需要先开anc再开免摘的状态*/
-u8 get_adt_open_in_anc_state()
-{
-    return adt_open_in_anc;
-}
-
-void adt_open_in_anc_set(u8 state)
-{
-    adt_open_in_anc = state;
-}
-
-//ANC_OFF  再ANC_MSG_RUN 初始化ADT
-int audio_speak_to_chat_open_in_anc_done()
-{
-    if (adt_open_in_anc) {
-        adt_open_in_anc = 0;
-        if (adt_info.adt_mode) {
-            audio_icsd_adt_init();
-        } else {
-            audio_icsd_adt_res_close(0, 0);
-        }
-    }
-    return 0;
-}
-
 int audio_icsd_adt_scene_set(enum ICSD_ADT_SCENE scene, u8 enable)
 {
     if (enable) {
@@ -2034,7 +1694,13 @@ int audio_icsd_adt_scene_set(enum ICSD_ADT_SCENE scene, u8 enable)
     } else {
         adt_info.scene &= ~scene;
     }
+    adt_log("audio_icsd_adt_scene_set 0x%x:%d, scene 0x%x\n", scene, enable, adt_info.scene);
     return 0;
+}
+
+enum ICSD_ADT_SCENE audio_icsd_adt_scene_get(void)
+{
+    return adt_info.scene;
 }
 
 /*
@@ -2064,6 +1730,29 @@ int audio_icsd_adt_close(u32 scene, u8 run_sync, u16 adt_mode, u8 suspend)
     return err;
 }
 
+//ANC模式切换时启动ADT
+int audio_icsd_anc_switch_open(u16 adt_mode)
+{
+    int err = 0;
+    err = os_taskq_post_msg(SPEAK_TO_CHAT_TASK_NAME, 2, ICSD_ADT_ANC_SWITCH_OPEN, adt_mode);
+    if (err != OS_NO_ERR) {
+        adt_log("audio_icsd_anc_switch_open err %d", err);
+    }
+    return err;
+}
+
+//ANC模式切换时关闭ADT
+int audio_icsd_anc_switch_close(u16 adt_mode)
+{
+    int err = 0;
+    err = os_taskq_post_msg(SPEAK_TO_CHAT_TASK_NAME,  5, ICSD_ADT_ANC_SWITCH_CLOSE, adt_mode, 0, 0, 0);
+    if (err != OS_NO_ERR) {
+        adt_log("audio_icsd_anc_switch_close err %d", err);
+    }
+    return err;
+}
+
+
 //总退出接口
 static int audio_icsd_adt_res_close(u16 adt_mode, u8 suspend)
 {
@@ -2089,6 +1778,8 @@ static int audio_icsd_adt_res_close(u16 adt_mode, u8 suspend)
         }
         audio_acoustic_detector_close();
 
+        audio_anc_event_notify(ANC_EVENT_ADT_CLOSE, adt_mode);
+
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
         if ((adt_info.adt_mode | adt_mode) & ADT_REAL_TIME_ADAPTIVE_ANC_MODE) {
             audio_rtanc_adaptive_exit();
@@ -2102,73 +1793,36 @@ static int audio_icsd_adt_res_close(u16 adt_mode, u8 suspend)
         }
 #endif
 
-        if (hdl->timer) {
-            sys_s_hi_timeout_del(hdl->timer);
-            hdl->timer = 0;
+#if TCFG_AUDIO_SPEAK_TO_CHAT_ENABLE
+        if ((adt_info.adt_mode | adt_mode) & ADT_SPEAK_TO_CHAT_MODE) {
+            audio_adt_vdt_ioctl(ICSD_ADT_IOC_EXIT, 0);
         }
-        hdl->speak_to_chat_state = AUDIO_ADT_CLOSE;
-        adt_info.speak_to_chat_state = AUDIO_ADT_CLOSE;
+#endif
 
 #if ICSD_ADT_MIC_DATA_EXPORT_EN
         aec_uart_close();
 #endif /*ICSD_ADT_MIC_DATA_EXPORT_EN*/
 
-#if SPEAK_TO_CHAT_AUTO_OPEN_IN_ANC
-        /*在anc off下自动关闭免摘时，只需要在关闭adt后再关闭anc*/
-        if ((!adt_info.adt_mode) && (anc_mode_get() == ANC_OFF)) {
-            adt_open_in_anc = 0;
-            //如果全部模式都关闭的时候，需要anc忽略相同模式的切换，关闭假anc off
-            anc_mode_switch(ANC_OFF, 0);
-        }
-#else
-        //QHH: anc off 开rtanc
-        if (0) {
-            //if (!suspend) {
-            /*恢复ANC状态*/
-            if (hdl->last_anc_state == ANC_ON) {
-                anc_mode_switch(ANC_ON, 0);
-            } else if (hdl->last_anc_state == ANC_TRANSPARENCY) {
-                anc_mode_switch(ANC_TRANSPARENCY, 0);
-            } else {
-                adt_open_in_anc = 0;
-                //如果全部模式都关闭的时候，需要anc忽略相同模式的切换，关闭假anc off
-                anc_mode_switch(ANC_OFF, 0);
-            }
-        }
-#endif
-
-        /*关闭dac mute*/
-        audio_adt_dac_mute_stop();
-
-        /*恢复播歌状态*/
-        if (hdl->a2dp_state && (bt_a2dp_get_status() != BT_MUSIC_STATUS_STARTING)) {
-            adt_debug_log("send PLAY cmd");
-            bt_cmd_prepare(USER_CTRL_AVCTP_OPID_PLAY, 0, NULL);
-        }
         /*打开蓝牙sniff*/
 #if TCFG_USER_TWS_ENABLE
         icsd_bt_sniff_set_enable(1);
 #endif
 
         //关闭风噪检测时恢复现场
-        if (adt_mode & ADT_WIND_NOISE_DET_MODE) {
-            //恢复风噪检测增益
-            /* if (hdl->adt_wind_gain_lvl != 16384) { */
-            icsd_anc_fade_set(ANC_FADE_MODE_WIND_NOISE, 16384);
 #if TCFG_AUDIO_ANC_WIND_NOISE_DET_ENABLE
+        if (adt_mode & ADT_WIND_NOISE_DET_MODE) {
+            icsd_anc_fade_set(ANC_FADE_MODE_WIND_NOISE, 16384);
             audio_anc_wind_noise_fade_param_reset();
-#endif
-            /* } */
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
             //恢复RT_ANC 相关标志/状态
             audio_anc_real_time_adaptive_resume("ANC_WIND_DET");
 #endif
         }
-        if (adt_mode & ADT_ENV_NOISE_DET_MODE) {
-            //恢复风噪检测增益
-            /* if (hdl->adt_wind_gain_lvl != 16384) { */
-            icsd_anc_fade_set(ANC_FADE_MODE_ENV_ADAPTIVE_GAIN, 16384);
+#endif
+
 #if TCFG_AUDIO_ANC_ENV_ADAPTIVE_GAIN_ENABLE
+        if (adt_mode & ADT_ENV_NOISE_DET_MODE) {
+            icsd_anc_fade_set(ANC_FADE_MODE_ENV_ADAPTIVE_GAIN, 16384);
             audio_anc_env_adaptive_fade_param_reset();
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
             if (anc_env_adaptive_gain_suspend) {
@@ -2176,10 +1830,10 @@ static int audio_icsd_adt_res_close(u16 adt_mode, u8 suspend)
                 audio_anc_real_time_adaptive_resume("ENV_ADAPTIVE");
             }
 #endif
-#endif
-            /* } */
         }
+#endif
 
+        anc_free(hdl->sync_cnt);
         anc_free(hdl);
         speak_to_chat_hdl = NULL;
         icsd_adt_clock_del();
@@ -2191,105 +1845,33 @@ static int audio_icsd_adt_res_close(u16 adt_mode, u8 suspend)
     /*如果adt没有全部关闭，需要重新打开
      *如果是通话时关闭的，直接关闭adt*/
     adt_debug_log("adt close: adt_mode 0x%x, adc run %d, suspend %d\n", adt_info.adt_mode, adc_file_is_runing(), suspend);
-    if (adt_info.adt_mode && !suspend) {
+    if (!suspend) {
         /* if (adt_info.adt_mode && !(esco_player_runing() || mic_effect_player_runing()) && !suspend) { */
         audio_icsd_adt_open(0);
     }
     return 0;
 }
 
+static int audio_icsd_adt_reset_base(u32 scene, u8 sync)
+{
+    audio_anc_event_notify(ANC_EVENT_ADT_RESET, scene);
+    u8 suspend = (scene >> ADT_FIX_MUTEX_SCENE_OFFSET) ? 1 : 0;
+    //固定互斥的场景 suspend = 1, 避免adt_open重复启用
+    audio_icsd_adt_close(0, sync, 0, suspend);
+    return 0;
+}
+
 /*阻塞性 重启ADT算法*/
 int audio_icsd_adt_reset(u32 scene)
 {
-    audio_anc_event_notify(ANC_EVENT_ADT_RESET, scene);
-    audio_icsd_adt_close(0, 1, 0, 0);
-    return 0;
+    return audio_icsd_adt_reset_base(scene, 1);
 }
 
-/*关闭所有模块*/
-int audio_icsd_adt_close_all()
+/*异步 重启ADT算法*/
+int audio_icsd_adt_async_reset(u32 scene)
 {
-    u16 adt_mode = ADT_ALL_FUNCTION_ENABLE;
-    audio_icsd_adt_close(0, 0, adt_mode, 0);
-    return 0;
+    return audio_icsd_adt_reset_base(scene, 0);
 }
-
-/*打开所有模块*/
-int audio_icsd_adt_open_all()
-{
-    u16 adt_mode = ADT_ALL_FUNCTION_ENABLE;
-    audio_icsd_adt_sync_open(adt_mode);
-    return 0;
-}
-
-/************************* start 智能免摘相关接口 ***********************/
-#if TCFG_AUDIO_SPEAK_TO_CHAT_ENABLE
-/*检测到讲话状态执行*/
-void set_speak_to_chat_voice_state(u8 state)
-{
-    struct speak_to_chat_t *hdl = speak_to_chat_hdl;
-    int err = 0;
-    if (hdl && hdl->state) {
-        hdl->voice_state = state;
-        hdl->tws_sync_state = 0;
-        adt_debug_log("%s", __func__);
-        err = os_taskq_post_msg(SPEAK_TO_CHAT_TASK_NAME, 2, ICSD_ADT_VOICE_STATE, (int)hdl);
-        if (err != OS_NO_ERR) {
-            adt_log("%s err %d", __func__, err);
-        }
-    }
-}
-
-/*检测到讲话状态TWS同步*/
-void audio_speak_to_chat_voice_state_sync(void)
-{
-    adt_debug_log("%s", __func__);
-    struct speak_to_chat_t *hdl = speak_to_chat_hdl;
-    u8 data[4] = {0};
-    if ((hdl->adt_resume == 0) && (hdl->adt_suspend == 0)) {
-#if TCFG_USER_TWS_ENABLE
-        if (get_tws_sibling_connect_state()) {
-            /*hdl->tws_sync_state == 0 : 保证上一次消息还没接收到，不发下一个消息*/
-            if (hdl->tws_sync_state == 0) {
-                hdl->tws_sync_state = 1;
-                data[0] = SYNC_ICSD_ADT_VOICE_STATE;
-                data[1] = 1;
-                audio_icsd_adt_info_sync(data, 4);
-            }
-        } else {
-            set_speak_to_chat_voice_state(1);
-        }
-#else
-        set_speak_to_chat_voice_state(1);
-#endif/*TCFG_USER_TWS_ENABLE*/
-    }
-}
-
-/*APP需求：设置免摘定时结束的时间，单位ms*/
-int audio_speak_to_char_end_time_set(u16 time)
-{
-    struct speak_to_chat_t *hdl = speak_to_chat_hdl;
-    if (hdl && (adt_info.adt_mode & ADT_SPEAK_TO_CHAT_MODE)) {
-        adt_info.speak_to_chat_end_time = time;
-        return 0;
-    } else {
-        return -1;
-    }
-}
-
-/*APP需求：设置智能免摘检测的灵敏度*/
-int audio_speak_to_chat_sensitivity_set(u8 sensitivity)
-{
-    struct speak_to_chat_t *hdl = speak_to_chat_hdl;
-    if (hdl && (adt_info.adt_mode & ADT_SPEAK_TO_CHAT_MODE)) {
-        return 0;
-    } else {
-        return -1;
-    }
-}
-
-#endif /*TCFG_AUDIO_SPEAK_TO_CHAT_ENABLE*/
-/************************* end 智能免摘相关接口 ***********************/
 
 /************************* start 广域点击相关接口 ***********************/
 #if TCFG_AUDIO_WIDE_AREA_TAP_ENABLE
@@ -2355,7 +1937,6 @@ int audio_wide_area_tap_ignore_flag_set(u8 ignore, u16 time)
 void audio_icsd_wind_detect_output_handle(u8 wind_lvl)
 {
     /* adt_debug_log("%s, wind_lvl:%d", __func__, wind_lvl); */
-    /* audio_acoustic_detector_output_hdl(0, wind_lvl, 0); */
     struct speak_to_chat_t *hdl = speak_to_chat_hdl;
     u8 data[4] = {SYNC_ICSD_ADT_WIND_LVL_CMP, wind_lvl, 0, 0};
     if (hdl && hdl->state) {
@@ -2909,6 +2490,40 @@ static int icsd_adt_debug_tool_function_get(void)
         ret |= TFUNCTION_WDT;
     }
     return ret;
+}
+
+int icsd_adt_a2dp_scene_set(u8 en)
+{
+    audio_icsd_adt_scene_set(ADT_SCENE_A2DP, en);
+
+    /* audio_icsd_adt_reset(ADT_SCENE_A2DP); */
+    if (adt_info.scene & ADT_SCENE_ANC_OFF) {
+        //非必要不复位
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE && TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
+        if (en) {
+            //用于启动ANC_OFF(RTAEQ)
+            if (audio_icsd_adt_scene_check(icsd_adt_app_mode_get(), 0) & ADT_REAL_TIME_ADAPTIVE_ANC_MODE) {
+                audio_icsd_adt_reset(ADT_SCENE_A2DP);
+            }
+        } else {
+            //用于关闭ANC_OFF(RTAEQ)
+            if (audio_anc_real_time_adaptive_state_get()) {
+                audio_icsd_adt_reset(ADT_SCENE_A2DP);
+            } else {
+                //删除ANC_OFF(RTAEQ定时器)
+                audio_rtaeq_in_ancoff_close();
+            }
+        }
+#endif
+    }
+    if (en) {
+#if (defined TCFG_AUDIO_SPEAK_TO_CHAT_ENABLE) && TCFG_AUDIO_SPEAK_TO_CHAT_ENABLE
+        if (audio_speak_to_chat_is_trigger()) {
+            audio_speak_to_chat_resume();
+        }
+#endif
+    }
+    return 0;
 }
 
 u32 icsd_adt_app_mode_get(void)

@@ -82,4 +82,5 @@ void icsd_afq_anctask_handler(void *param, int *msg);
 
 void icsd_afq_dsf8_data_debug(u8 belong, s16 *dsf_out_ch0, s16 *dsf_out_ch1, s16 *dsf_out_ch2, s16 *dsf_out_ch3);
 
+extern char lib_afq_version[];
 #endif

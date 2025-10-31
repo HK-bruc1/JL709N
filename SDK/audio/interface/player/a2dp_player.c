@@ -15,6 +15,7 @@
 #include "effects/audio_vbass.h"
 #include "audio_config_def.h"
 #include "scene_switch.h"
+#include "audio_general_config.h"
 
 #if TCFG_AUDIO_DUT_ENABLE
 #include "audio_dut_control.h"
@@ -23,7 +24,7 @@
 //tws音箱是否两个DAC通道都输出相同数据
 #define TCFG_TWS_DUAL_CHANNEL  0
 
-#if (defined TCFG_AUDIO_SPEAK_TO_CHAT_ENABLE) && TCFG_AUDIO_SPEAK_TO_CHAT_ENABLE
+#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
 #include "icsd_adt_app.h"
 #endif
 
@@ -34,10 +35,6 @@
 #if ((defined TCFG_AUDIO_SPATIAL_EFFECT_ENABLE) && TCFG_AUDIO_SPATIAL_EFFECT_ENABLE)
 #include "spatial_effects_process.h"
 #include "spatial_effect.h"
-#endif
-
-#if TCFG_AUDIO_ANC_ENABLE
-#include "audio_anc.h"
 #endif
 
 #if AUDIO_EQ_LINK_VOLUME
@@ -157,7 +154,11 @@ static void a2dp_player_callback(void *private_data, int event)
 
 static void a2dp_player_set_audio_channel(struct a2dp_player *player)
 {
+#if AUDIO_TWS_DUAL_DRIVER_ENABLE
+    int channel = AUDIO_CH_MIX;
+#else
     int channel = (TCFG_AUDIO_DAC_CONNECT_MODE == DAC_OUTPUT_LR) ? AUDIO_CH_LR : AUDIO_CH_MIX;
+#endif
     if (tws_api_get_tws_state() & TWS_STA_SIBLING_CONNECTED) {
         channel = tws_api_get_local_channel() == 'L' ? AUDIO_CH_L : AUDIO_CH_R;
     }
@@ -165,6 +166,7 @@ static void a2dp_player_set_audio_channel(struct a2dp_player *player)
     player->channel = channel;
 #if ((defined(TCFG_SPATIAL_ADV_NODE_ENABLE) && TCFG_SPATIAL_ADV_NODE_ENABLE) || \
     (defined(TCFG_SPATIAL_AUDIO_ENABLE) && TCFG_SPATIAL_AUDIO_ENABLE) || \
+    (defined(TCFG_VIRTUAL_SURROUND_HP_NODE_ENABLE) && TCFG_VIRTUAL_SURROUND_HP_NODE_ENABLE) || \
     (defined(TCFG_LHDC_X_NODE_ENABLE) && TCFG_LHDC_X_NODE_ENABLE))
     jlstream_ioctl(player->stream, NODE_IOC_SET_CHANNEL, AUDIO_CH_LR);
 #else
@@ -258,13 +260,6 @@ static void retry_start_a2dp_player(void *p)
 int a2dp_player_open(u8 *btaddr)
 {
     int err;
-
-#if (defined TCFG_AUDIO_SPEAK_TO_CHAT_ENABLE) && TCFG_AUDIO_SPEAK_TO_CHAT_ENABLE
-    if (get_speak_to_chat_state() == AUDIO_ADT_CHAT) {
-        audio_speak_to_char_sync_suspend();
-    }
-#endif
-
     err = a2dp_player_create(btaddr);
     if (err) {
         if (err == -EFAULT) {
@@ -272,6 +267,11 @@ int a2dp_player_open(u8 *btaddr)
         }
         return err;
     }
+
+#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
+    icsd_adt_a2dp_scene_set(1);
+#endif
+
     struct a2dp_player *player =  g_a2dp_player;
 
     player->a2dp_pitch_mode = PITCH_0; //默认打开是原声调
@@ -281,11 +281,19 @@ int a2dp_player_open(u8 *btaddr)
 
 #if ((defined(TCFG_SPATIAL_ADV_NODE_ENABLE) && TCFG_SPATIAL_ADV_NODE_ENABLE) || \
     (defined(TCFG_SPATIAL_AUDIO_ENABLE) && TCFG_SPATIAL_AUDIO_ENABLE) || \
+    (defined(TCFG_VIRTUAL_SURROUND_HP_NODE_ENABLE) && TCFG_VIRTUAL_SURROUND_HP_NODE_ENABLE) || \
     (defined(TCFG_LHDC_X_NODE_ENABLE) && TCFG_LHDC_X_NODE_ENABLE))
     //空间音效需要解码器输出真立体声
     jlstream_ioctl(player->stream, NODE_IOC_SET_CHANNEL, AUDIO_CH_LR);
 #else
     if (CONFIG_BTCTLER_TWS_ENABLE) {
+#if AUDIO_TWS_DUAL_DRIVER_ENABLE
+        if (tws_api_get_tws_state() & TWS_STA_SIBLING_CONNECTED) {
+            player->channel = tws_api_get_local_channel() == 'L' ? AUDIO_CH_L : AUDIO_CH_R;
+        } else {
+            player->channel = AUDIO_CH_MIX;
+        }
+#else
         if (tws_api_get_tws_state() & TWS_STA_SIBLING_CONNECTED) {
             if (TCFG_AUDIO_DAC_CONNECT_MODE == DAC_OUTPUT_LR) {	//如果dac配置的立体声，tws 连接上时解码也要配置输出立体声，由channel_adapter节点做tws 声道适配;
                 player->channel = AUDIO_CH_LR; 					// 避免断开tws 连接时，立体声输出无法声道分离
@@ -295,6 +303,7 @@ int a2dp_player_open(u8 *btaddr)
         } else {
             player->channel = (TCFG_AUDIO_DAC_CONNECT_MODE == DAC_OUTPUT_LR) ? AUDIO_CH_LR : AUDIO_CH_MIX;
         }
+#endif
         printf("a2dp player channel setup:0x%x", player->channel);
         jlstream_ioctl(player->stream, NODE_IOC_SET_CHANNEL, player->channel);
     }
@@ -429,6 +438,10 @@ void a2dp_player_close(u8 *btaddr)
 
 #if (TCFG_SMART_VOICE_ENABLE && TCFG_SMART_VOICE_USE_AEC)
     audio_smart_voice_aec_close();
+#endif
+
+#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
+    icsd_adt_a2dp_scene_set(0);
 #endif
 
 }

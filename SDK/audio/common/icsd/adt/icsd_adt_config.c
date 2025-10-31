@@ -75,6 +75,8 @@ const u8 tidy_avc_run_interval = 16;//实际运行间隔为  tidy_avc_run_interv
 const u8 icsd_ancdma_dac_debug = 0;
 const u8 adt_log_en = ICSD_ADT_LOG_EN;
 const u8 ICSD_AVC_DATAPATH  = 0;//0:ancdma_ref + dac 1:ref mic  2:talk mic
+
+const u16 ANC_DMA_POINTS = 512; //ANC DMA长度，支持配置为：512 1024 2048
 //==============================================//
 //    环境声参数配置
 //==============================================//

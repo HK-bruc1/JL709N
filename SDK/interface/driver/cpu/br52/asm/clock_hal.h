@@ -132,6 +132,9 @@ u32 get_btosc_info_for_update(void *info);
 void xosc_common_init(u32 lrc_clk, void(*udly)(u32));
 void xosc_set_sys_cfg(u32 sys_hcs, u32 sys_cls, u32 sys_crs);
 
+void xosc_ckain_schmitt_open(void);
+void xosc_ckain_schmitt_close(void);
+
 
 void clock_enter_sleep_prepare();
 void clock_exit_sleep_post();

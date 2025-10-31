@@ -148,5 +148,6 @@
 -Iaudio/effect/spatial_effect
 -Iaudio/effect/somatosensory
 -Iinterface/media/aispeech/enc
+-Iapps/common/device/sensor/hr_sensor
 -Iinterface/system/math/cpu/br52
 

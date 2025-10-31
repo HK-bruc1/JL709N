@@ -554,8 +554,11 @@ typedef struct {
     u8 sz_use_alogm;				//SZ当前使用的算法模式
 
     // fade_time = (1/fs) * (slow+1）* [16384 / (2^fast)]
-    u8 filter_fade_fast;		    //滤波器切换快步进, def 0
-    u8 filter_fade_slow;			//滤波器切换慢步进, def 3
+    u8 ff_filter_fade_fast;		    //滤波器切换快步进, def 0
+    u8 ff_filter_fade_slow;			//滤波器切换慢步进, def 3
+
+    u8 fb_filter_fade_fast;		    //滤波器切换快步进, def 0
+    u8 fb_filter_fade_slow;			//滤波器切换慢步进, def 3
 
     u8 howling_detect_toggle;		//ANC 啸叫检测使能控制，用于在线切换
     u8 howling_detect_ch;			//ANC 啸叫检测通道配置

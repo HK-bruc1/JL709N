@@ -114,6 +114,10 @@ static void audio_anc_fade_rtanc_resume_timeout(void *priv)
 
 static void audio_anc_fade_ctr_set_base(enum anc_fade_mode_t mode, u8 ch, u16 gain)
 {
+
+    u8 fade_fast = 1;
+    u8 fade_slow = 0;
+
     u16 lff_gain, lfb_gain, rff_gain, rfb_gain;
     struct anc_fade_context *ctx;
     u8 fade_en = anc_api_get_fade_en();
@@ -178,7 +182,7 @@ static void audio_anc_fade_ctr_set_base(enum anc_fade_mode_t mode, u8 ch, u16 ga
     /* audio_anc_fade_cfg_set(fade_en, 1, 0); */
     /* } */
 
-    audio_anc_fade_cfg_set(fade_en, 1, 0);
+    audio_anc_fade_cfg_set(fade_en, fade_fast, fade_slow);
 
     audio_anc_fade(AUDIO_ANC_FADE_CH_LFF, lff_gain);
     audio_anc_fade(AUDIO_ANC_FADE_CH_LFB, lfb_gain);
@@ -190,11 +194,12 @@ static void audio_anc_fade_ctr_set_base(enum anc_fade_mode_t mode, u8 ch, u16 ga
     if ((lff_gain == AUDIO_ANC_FADE_GAIN_DEFAULT && lfb_gain == AUDIO_ANC_FADE_GAIN_DEFAULT && \
          rff_gain == AUDIO_ANC_FADE_GAIN_DEFAULT && rfb_gain == AUDIO_ANC_FADE_GAIN_DEFAULT && \
          anc_fade_hdl->rtanc_suspend) || anc_mode_get() == ANC_OFF) {
+        anc_fade_hdl->rtanc_suspend = 0;
         if (anc_fade_hdl->rtanc_resume_id) {
             sys_timer_del(anc_fade_hdl->rtanc_resume_id);
             anc_fade_hdl->rtanc_resume_id = 0;
         }
-        anc_fade_hdl->rtanc_resume_id = sys_timeout_add(NULL, audio_anc_fade_rtanc_resume_timeout, 60);
+        anc_fade_hdl->rtanc_resume_id = sys_timeout_add(NULL, audio_anc_fade_rtanc_resume_timeout, (fade_slow + 1) * 53);
     }
 #endif
 }

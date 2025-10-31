@@ -8,6 +8,7 @@ c_SRC_FILES := \
 	apps/common/debug/debug_lite.c \
 	apps/common/debug/debug_uart_config.c \
 	apps/common/dev_manager/dev_manager.c \
+	apps/common/device/sensor/app_sensor.c \
 	apps/common/device/storage_device/norflash/norflash_sfc.c \
 	apps/common/fat_nor/virfat_flash.c \
 	apps/common/temp_trim/dtemp_pll_trim.c \
@@ -189,6 +190,7 @@ LFLAGS := \
 	cpu/br52/liba/lib_opus_stenc.a \
 	cpu/br52/liba/lib_ogg_opus_dec.a \
 	cpu/br52/liba/libjlsp.a \
+	cpu/br52/liba/lib_nn_v3.a \
 	cpu/br52/liba/libjlsp_kws.a \
 	cpu/br52/liba/libjlsp_kws_far_keyword.a \
 	cpu/br52/liba/libjlsp_kws_india_english.a \
@@ -217,6 +219,7 @@ LFLAGS := \
 	cpu/br52/liba/howling.a \
 	cpu/br52/liba/lib_HarmonicExciter.a \
 	cpu/br52/liba/libllns.a \
+	cpu/br52/liba/lib_llns_dns.a \
 	cpu/br52/liba/lib_icsd_common_v2.a \
 	cpu/br52/liba/lib_icsd_anc_v2.a \
 	cpu/br52/liba/lib_icsd_rt_anc.a \
@@ -258,12 +261,25 @@ LFLAGS := \
 	cpu/br52/liba/lib_frequency_compressor.a \
 	cpu/br52/liba/lib_gain_mix.a \
 	cpu/br52/liba/liblhdc_x_edge.a \
+	cpu/br52/liba/libStereoToLCR_pi32v2_OnChip.a \
+	cpu/br52/liba/sbsbrir.a \
+	cpu/br52/liba/spatial_brir.a \
+	apps/common/device/sensor/gSensor/sensor_algorithm_jl_motion.a \
+	apps/common/device/sensor/hr_sensor/hx3918/CodeBlocks_3605_spo2_20241021_v2.2.a \
+	apps/common/device/sensor/hr_sensor/hx3918/CodeBlocks_3918_hrs_bp_20250324_v2.2.a \
+	apps/common/device/sensor/hr_sensor/hx3918/CodeBlocks_3918_hrv_20241026_v2.2.a \
+	apps/common/device/sensor/hr_sensor/hx3011/CodeBlocks_3011_hrs_spo2_20250606_v2.2.a \
 	cpu/br52/liba/libFFT_pi32v2_OnChip.a \
 	cpu/br52/liba/lib_wtg_dec.a \
 	cpu/br52/liba/bfilterfun_lib.a \
 	cpu/br52/liba/lib_opusdec_rom_dec.a \
+	cpu/br52/liba/lib_bt_aac_dec_rom_ext.a \
 	cpu/br52/liba/crypto_toolbox_Osize.a \
+	apps/common/device/sensor/hr_sensor/hx3918/CodeBlocks_3605_spo2_20241021_v2.2.a  \
+	apps/common/device/sensor/hr_sensor/hx3918/CodeBlocks_3918_hrs_bp_20250324_v2.2.a  \
+	apps/common/device/sensor/hr_sensor/hx3918/CodeBlocks_3918_hrv_20241026_v2.2.a  \
 	cpu/br52/liba/lib_dns.a \
+	cpu/br52/liba/lib_dns_v3.a \
 	cpu/br52/liba/update.a \
 	cpu/br52/liba/cbuf.a \
 	cpu/br52/liba/lbuf.a \

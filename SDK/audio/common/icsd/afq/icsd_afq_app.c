@@ -201,9 +201,10 @@ static void audio_icsd_afq_mutex_suspend(ANC_mode_t exit_mode)
     if (afq_hdl) {
 #if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
         /*进入AFQ前关闭adt*/
+        audio_icsd_adt_scene_set(ADT_SCENE_AFQ, 1);
         afq_hdl->icsd_adt_suspend = audio_icsd_adt_is_running();
         if (afq_hdl->icsd_adt_suspend) {
-            audio_icsd_adt_close(0, 1, 0, 1);
+            audio_icsd_adt_reset(ADT_SCENE_AFQ);
         }
 #endif /*TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN*/
 

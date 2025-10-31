@@ -293,7 +293,7 @@ static u8 a2dp_rf_quality(struct a2dp_stream_control *ctrl)
     }
 
     ctrl->link_rssi = link_rssi;
-    if (CONFIG_BTCTLER_TWS_ENABLE) {
+    if (CONFIG_BTCTLER_TWS_ENABLE && (tws_api_get_tws_state() & TWS_STA_SIBLING_CONNECTED)) {
         if (tws_rssi <= RF_RSSI_BAD_LEVEL0) {
             quality -= 1;
         }
@@ -348,6 +348,9 @@ void a2dp_stream_bandwidth_detect_handler(void *_ctrl, int frame_len, int pcm_fr
 {
     struct a2dp_stream_control *ctrl = (struct a2dp_stream_control *)_ctrl;
     int max_latency = 0;
+    if (!ctrl) {
+        return;
+    }
 
     if (ctrl->low_latency) {
         return;

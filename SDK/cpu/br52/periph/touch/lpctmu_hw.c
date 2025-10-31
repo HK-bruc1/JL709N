@@ -42,6 +42,57 @@ extern u32 __get_lrc_hz();
 
 
 
+AT_VOLATILE_RAM_CODE_POWER
+void lpctmu_kistart(void)
+{
+    SFR(P11_LPCTM0->CON0, 0, 1, 1);      //模块总开关
+    SFR(P11_LPCTM0->WCON, 0, 1, 1);      //kistart
+}
+
+AT_VOLATILE_RAM_CODE_POWER
+void lpctmu_set_io_state(u32 ch, u32 state)
+{
+    if (ch >= LPCTMU_CHANNEL_SIZE) {
+        return;
+    }
+    SFR(P11_PORT->PB_SEL, ch, 1, 0);
+    JL_PORTB->DIE |=  BIT(ch);
+    JL_PORTB->PU0 &= ~BIT(ch);
+    JL_PORTB->PU1 &= ~BIT(ch);
+    JL_PORTB->PD0 &= ~BIT(ch);
+    JL_PORTB->PD1 &= ~BIT(ch);
+    switch (state) {
+    case PORT_OUTPUT_LOW:
+        JL_PORTB->OUT &= ~BIT(ch);
+        JL_PORTB->DIR &= ~BIT(ch);
+        break;
+    case PORT_OUTPUT_HIGH:
+        JL_PORTB->OUT |=  BIT(ch);
+        JL_PORTB->DIR &= ~BIT(ch);
+        break;
+    case PORT_INPUT_PULLUP_10K:
+        JL_PORTB->PU0 |=  BIT(ch);
+        JL_PORTB->DIR |=  BIT(ch);
+        break;
+    case PORT_INPUT_PULLUP_100K:
+        JL_PORTB->PU1 |=  BIT(ch);
+        JL_PORTB->DIR |=  BIT(ch);
+        break;
+    case PORT_INPUT_PULLDOWN_10K:
+        JL_PORTB->PD0 |=  BIT(ch);
+        JL_PORTB->DIR |=  BIT(ch);
+        break;
+    case PORT_INPUT_PULLDOWN_100K:
+        JL_PORTB->PD1 |=  BIT(ch);
+        JL_PORTB->DIR |=  BIT(ch);
+        break;
+    default:
+        JL_PORTB->DIE &= ~BIT(ch);
+        JL_PORTB->DIR |=  BIT(ch);
+        break;
+    }
+}
+
 void lpctmu_send_m2p_cmd(enum CTMU_M2P_CMD cmd)
 {
     P2M_CTMU_CMD_ACK = 0;
@@ -179,14 +230,15 @@ void lpctmu_isel_trim(u32 ch)
     } else if (__this->ch_fixed_isel[ch]) {
         aim_cur_level = __this->ch_fixed_isel[ch];
     } else {
+        u32 aim_khz = __this->pdata->aim_charge_khz;
         for (u8 cur_level = 0; cur_level < 8; cur_level ++) {
             SFR(P11_LPCTM0->ANA0, 1, 3, cur_level);
             lpctmu_set_ana_cur_level(ch, cur_level);
             u32 charge_clk = lpctmu_get_charge_clk();
-            if (charge_clk > __this->pdata->aim_charge_khz) {
-                diff = charge_clk - __this->pdata->aim_charge_khz;
+            if (charge_clk > aim_khz) {
+                diff = charge_clk - aim_khz;
             } else {
-                diff = __this->pdata->aim_charge_khz - charge_clk;
+                diff = aim_khz - charge_clk;
             }
             if (diff_min >= diff) {
                 diff_min = diff;
@@ -350,6 +402,11 @@ void lpctmu_disable(void)
 void lpctmu_enable(void)
 {
     lpctmu_lptimer_enable();
+}
+
+u32 lpctmu_is_working(void)
+{
+    return lpctmu_lptimer_is_working();
 }
 
 u32 lpctmu_is_sf_keep(void)

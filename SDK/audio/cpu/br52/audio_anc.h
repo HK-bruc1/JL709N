@@ -9,7 +9,6 @@
 #include "in_ear_detect/in_ear_manage.h"
 #include "audio_anc_common.h"
 #include "audio_config_def.h"
-#include "audio_anc_common.h"
 #if (TCFG_AUDIO_ANC_EAR_ADAPTIVE_VERSION == ANC_EXT_V2)
 #include "icsd_anc_v2_app.h"
 #endif
@@ -126,9 +125,6 @@
 //                 ICSD ADT 相关功能配置                                  //
 //************************************************************************//
 #define AUDIO_ANC_WIDE_AREA_TAP_EVENT_SYNC      1//广域点击左右耳同步使能
-
-/*支持开免摘的anc模式*/
-#define SPEAK_TO_CHAT_ANC_MODE_ENABLE			(ANC_OFF_BIT | ANC_ON_BIT | ANC_TRANS_BIT)
 
 //****************** ICSD ADT 相关功能配置 end ************************//
 //
@@ -286,17 +282,18 @@ u8 anc_status_get(void);
 
 u8 anc_mode_get(void);
 
+void anc_user_mode_set(u8 mode);
+
+u8 anc_user_mode_get(void);
+
+u8 anc_real_mode_get(void);
+
 u8 anc_mode_switch_lock_get(void);
 
 void anc_mode_switch_lock_clean(void);
 
 /*获取anc记录的最新的目标ANC模式*/
 u8 anc_new_target_mode_get(void);
-
-#define ANC_DAC_CH_L	0
-#define ANC_DAC_CH_R	1
-/*获取anc模式，dac左右声道的增益*/
-u8 anc_dac_gain_get(u8 ch);
 
 /*获取anc模式，ref_mic的增益*/
 u8 anc_mic_gain_get(void);
@@ -319,12 +316,11 @@ s8 audio_anc_mic_gain_get_dB(u8 mic_ch, u8 is_talk_mic);
 /*ANC模式切换(切换到指定模式)，并配置是否播放提示音*/
 int anc_mode_switch(u8 mode, u8 tone_play);
 
+int anc_mode_switch_base(u8 mode, u8 tone_play);
+
 /*在anc任务里面切换anc模式，
  *避免上一次切换没有完成，这次切换被忽略的情况*/
 void anc_mode_switch_in_anctask(u8 mode, u8 tone_play);
-
-/*ANC模式同步(tws模式)*/
-void anc_mode_sync(u8 *data);
 
 void anc_poweron(void);
 
@@ -429,6 +425,9 @@ u8 audio_anc_mult_scene_max_get(void);
 /*多滤波器-场景循环切换*/
 void audio_anc_mult_scene_switch(u8 tone_flag);
 
+/*多滤波器-场景ID TWS同步*/
+void audio_anc_mult_scene_id_sync(u16 scene_id);
+
 int audio_anc_db_cfg_read(void);
 
 void anc_mode_switch_deal(u8 mode);
@@ -480,6 +479,8 @@ void audio_ear_adaptive_train_app_suspend(void);
 void audio_anc_coeff_smooth_update(void);		//更新全部滤波器
 void audio_anc_coeff_ff_smooth_update(void);	//只更新FF滤波器
 void audio_anc_coeff_fb_smooth_update(void);	//只更新FB滤波器
+
+void audio_anc_coeff_fade_set(u8 coeff_type, u8 fade_fast, u8 fade_slow);
 
 /*
    ANC 驱动复位（包括滤波器），会淡出淡出

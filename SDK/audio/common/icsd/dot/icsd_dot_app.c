@@ -109,7 +109,7 @@ int audio_icsd_dot_open(enum audio_adaptive_fre_sel fre_sel, void (*result_cb)(i
 
     dot_log("===================icsd_dot_init===================\n");
 
-    dot_hdl = zalloc(sizeof(struct audio_dot_t));
+    dot_hdl = anc_malloc("ICSD_DOT", sizeof(struct audio_dot_t));
     dot_hdl->result_cb = result_cb;
 
     //1.保留现场及功能互斥
@@ -158,7 +158,7 @@ int audio_icsd_dot_close()
             }
 
             clock_free("ANC_DOT");
-            free(dot_hdl);
+            anc_free(dot_hdl);
             dot_hdl = NULL;
         }
     }
@@ -181,7 +181,8 @@ static void audio_icsd_dot_output_hdl(struct audio_afq_output *p)
     struct icsd_dot_libfmt libfmt;
     struct icsd_dot_infmt  infmt;
     icsd_dot_get_libfmt(&libfmt);
-    infmt.alloc_ptr = zalloc(libfmt.lib_alloc_size);
+    dot_log("dot lib_alloc_size %d\n", libfmt.lib_alloc_size);
+    infmt.alloc_ptr = anc_malloc("ICSD_DOT", libfmt.lib_alloc_size);
     if (!infmt.alloc_ptr) {
         return;
     }
@@ -208,7 +209,7 @@ static void audio_icsd_dot_output_hdl(struct audio_afq_output *p)
             dot_hdl->result = AUDIO_FIT_DET_RESULT_LOOSE;
         }
     }
-    free(infmt.alloc_ptr);
+    anc_free(infmt.alloc_ptr);
 
     audio_icsd_dot_close();
 }
@@ -221,7 +222,7 @@ float audio_icsd_dot_light_open(struct audio_afq_output *p)
     struct icsd_dot_libfmt libfmt;
     struct icsd_dot_infmt  infmt;
     icsd_dot_get_libfmt(&libfmt);
-    infmt.alloc_ptr = zalloc(libfmt.lib_alloc_size);
+    infmt.alloc_ptr = anc_malloc("ICSD_DOT", libfmt.lib_alloc_size);
     if (!infmt.alloc_ptr) {
         return -1;
     }
@@ -236,7 +237,7 @@ float audio_icsd_dot_light_open(struct audio_afq_output *p)
 #endif
     _dot_output *output = icsd_dot_run(p->sz_l.out, msc);
     dot_db = output->dot_db;
-    free(infmt.alloc_ptr);
+    anc_free(infmt.alloc_ptr);
     return dot_db;
 }
 

@@ -17,6 +17,7 @@
 #include "audio_config.h"
 #include "media/audio_def.h"
 #include "audio_config_def.h"
+#include "jlstream.h"
 
 
 /*
@@ -48,6 +49,7 @@ const int CONFIG_STREAM_BIN_ENC_ENABLE = 1;
 const int CONFIG_STREAM_BIN_ENC_ENABLE = 0;
 #endif
 
+const int CONFIG_JLSTREAM_SCENE_DEBUG = STREAM_SCENE_NONE;
 //音频流位宽配置
 #ifndef MEDIA_24BIT_ENABLE
 #define MEDIA_24BIT_ENABLE 		0
@@ -307,6 +309,11 @@ const int CONFIG_DEC_SUPPORT_SAMPLERATE = AUDIO_DEC_MAX_SAMPERATE; //  支持的
 
 const int CONFIG_DEC_SUPPORT_DAB_AAC = 0; //AAC 文件的dab+ 类 解码支持，每帧读960进行解码,使用m4a的解码库;
 
+const char config_bt_aac_dec_pcm24_enable = MEDIA_24BIT_ENABLE;
+//1:支持解码输出S24 PCM数据.    0:不支持解码输出S24 PCM数据,自动优化相关代码(大概200byte).  仅影响代码量,不影响ram大小. 目前仅非rom 代码配置使用
+const char config_bt_aac_dec_fifo_precision = 24;
+//16:内部overlap缓存使用short类型,运行空间少2*2*1024字节.  24 :内部overlap缓存使用int类型,质量更高.
+//配置内部计算数据精度,与输出位宽无关,配置16,可以省ram,但是计算精度差一些,如果解码输出24bit,建议使用24bit计算.  目前仅非rom 代码配置使用
 //***********************
 //*		MP3 Codec       *
 //***********************
@@ -417,10 +424,23 @@ const  int  silk_fsW_enable = 1;  //支持16-24k采样率
 //***********************
 //* 	LC3 Codec      *
 //***********************
-const int LC3_PLC_EN = 1;            			//0_fade,1_时域,2_频域,3静音;
+/*
+  0 : 仅淡入淡出
+  1 : 时域PLC
+  2 : 频域PLC  目前推荐使用，需要的资源相比APLC/NPLC 比较少, 修复效果也不错
+  3 : 仅补静音包
+  4 : APLC 需要官方授权（发邮件给[kurt.zou@iis-extern.fraunhofer.de] 或者访问官网[https://www.iis.fraunhofer.de/zh.html]获取联系方式）
+	  将下面的配置config_lib_lc3_enc_ltpf_idx_enable 使能，才能得到更好的体验，但是编码需要的mip会更多,
+      解码在丢包触发PLC时，需要的mips 也会增多(编解码都会增多1.5倍以上),如果未使能对应常量,则相当于频域PLC.
+  5 : NPLC 新一代自研PLC，修复效果接近于APLC，但是解码触发PLC的时候需要的mips 至少会翻倍。
+  注:4/5 的修复效果是最好的，但是需要增加30K~45K代码量,ram增大10K(立体声需要增大20K以上)以上，mips也需要的更多。建议在资源和效率允许的情况下在使用。
+ */
+const int LC3_PLC_EN = 2;
+const char config_lib_lc3_enc_ltpf_idx_enable = 0;   //是否编码ltpf参数,影响aplc效果. 速度要求比较高,编解码需要mips 都会增多,非APLC类型建议关掉
+
 const int LC3_PLC_FADE_OUT_START_POINT = 480;   //丢包后维持音量的点数.
-const int LC3_PLC_FADE_OUT_POINTS = 120 * 5;    //丢包维持指定点数后,淡出的速度,音量从满幅到0需要的点数.
-const int LC3_PLC_FADE_IN_POINTS = 120 * 5;     //丢包后收到正确包淡入,淡入的速度,音量从0到满幅需要的点数.
+const int LC3_PLC_FADE_OUT_POINTS = 1200;       //丢包维持指定点数后,淡出的速度,音量从满幅到0需要的点数.
+const int LC3_PLC_FADE_IN_POINTS = 1200;        //丢包后收到正确包淡入,淡入的速度,音量从0到满幅需要的点数.
 
 #if(HW_FFT_VERSION == FFT_EXT || HW_FFT_VERSION == FFT_EXT_V2) 			//支持非2的指数次幂点数的fft 时 置1
 const int LC3_HW_FFT = 1;
@@ -429,8 +449,9 @@ const int LC3_HW_FFT = 0;
 #endif
 
 //LC3帧长使能配置
-const char  LC3_FRAME_LEN_SUPPORT_25_DMS = 1;	  //2.5ms的帧长使能
-const char  LC3_FRAME_LEN_SUPPORT_50_DMS = 1; 	//5ms的帧长使能
+//2.5ms/5ms 属于LC3plus 需要授权使用
+const char  LC3_FRAME_LEN_SUPPORT_25_DMS = 0;	//2.5ms的帧长使能
+const char  LC3_FRAME_LEN_SUPPORT_50_DMS = 0; 	//5ms的帧长使能
 const char  LC3_FRAME_LEN_SUPPORT_75_DMS = 1; 	//7.5ms的帧长使能
 const char  LC3_FRAME_LEN_SUPPORT_100_DMS = 1; 	//10ms的帧长使能
 //LC3采样率使能配置
@@ -441,8 +462,14 @@ const char  LC3_SAMPLE_RATE_SUPPORT_32K = 1;  	//32K采样率使能
 const char  LC3_SAMPLE_RATE_SUPPORT_48K = 1;  	//48K/44.1K采样率使能
 
 //LC3 编解码  24bit使能控制常量:
-const int LC3_ENCODE_I24bit_ENABLE = 0;   //编码输入pcm数据位宽24比特,符号扩展到S32.   1使能，结合if_s24=1生效.
-const int LC3_DECODE_O24bit_ENABLE = 0;   //解码输出pcm数据位宽24比特,符号扩展到S32.   1使能，结合if_s24=1生效.
+const int LC3_ENCODE_I24bit_ENABLE = MEDIA_24BIT_ENABLE;   //编码输入pcm数据位宽24比特,符号扩展到S32.   1使能，结合if_s24=1生效.
+const int LC3_DECODE_O24bit_ENABLE = MEDIA_24BIT_ENABLE;   //解码输出pcm数据位宽24比特,符号扩展到S32.   1使能，结合if_s24=1生效.
+
+/*
+   debug打印信息配置: 1~4 打印信息越来越多， 3 以上需要更多的任务堆栈(125byte 以上);
+   0:无打印， 1：基础信息打印. 2：丢包次数统计. 3：带丢包序列打印. 4.增加读数据相关提示。
+ */
+const char config_lib_lc3_codec_debug_level = 0;   //调试等级,按照等级打印基本信息及调试信息.
 //***********************
 //* 	JLA Codec      *
 //***********************
@@ -660,8 +687,8 @@ const int lfaudio_plc_mode24bit_16bit_en = 1;
 -----------------------------------------------------------------------
  */
 
-const  int  ESCO_PLC_SUPPORT_24BIT_EN = MEDIA_24BIT_ENABLE;  //24bit开关
-
+//通话流程默认使用的是16bit ,如果通话使用24bit音频流需要打开plc24bit配置
+const  int  ESCO_PLC_SUPPORT_24BIT_EN = 0;//MEDIA_24BIT_ENABLE;  //24bit开关
 const  int  ESCO_PLC_FADE_OUT_START_POINT = 500;	//丢包后修复过程中，维持音量的点数.即修复这么多点后，开始淡出
 const  int  ESCO_PLC_FADE_OUT_POINTS = 2048; 		//丢包维持指定点数后,淡出的速度,音量从满幅到0需要的点数. 即淡出完需要的点数
 const  int  ESCO_PLC_FADE_IN_POINTS = 32; 			//丢包后收到正确包淡入,淡入的速度,音量从0到满幅需要的点数.即淡入完需要的点数
@@ -669,6 +696,19 @@ const  int  ESCO_PLC_FADE_IN_POINTS = 32; 			//丢包后收到正确包淡入,�
 //1:在配置的淡出点数结束之前，根据信号的特征如果认为已经修不好了，提前快速淡出，
 //0:按照实际配置的淡出点数淡出
 const  int  ESCO_PLC_ADV_ENABLE = 1;
+/*
+   不同配置的code/ram使用情况
+------------------------------------------------------------------------
+  ESCO_PLC_SUPPORT_24BIT_EN     |        0          |         1        |
+------------------------------------------------------------------------
+   ESCO_PLC_ADV_ENABLE          |   0     |    1    |    0    |   1    |
+------------------------------------------------------------------------
+        code(byte)              |   1.8K  |    6K   |   3.6k  |   11K  |
+------------------------------------------------------------------------
+        ram(byte)               |   1.3K  |   4.1K  |   2.4K  |   5.3K |
+------------------------------------------------------------------------
+ */
+
 
 //***********************
 //*   Howling Suppress  *
@@ -743,13 +783,20 @@ const int audio_effect_nsgate_pro_enable = 1;
 const int audio_effect_nsgate_pro_enable = 0;
 #endif
 
+//***********************
+//*   	LLNS DNS   *
+//***********************
+const u8 LLNS_DNS_AGC_EN = 0; //可以默认置1，由节点的配置判断是否使能agc
+const u32 LLNS_DNS_SUPPORT_SAMPLE_RATE = TCFG_AUDIO_GLOBAL_SAMPLE_RATE; //仅支持32k、48k采样率
+const u16 LLNS_DNS_PROCESS_FRAME_SIZE = (LLNS_DNS_SUPPORT_SAMPLE_RATE == 32000) ? 480 : 720; //降噪一次输出数据长度(点)，请在原厂指导下更改
+const u32 LLNS_DNS_TABLE_SELECT = (LLNS_DNS_SUPPORT_SAMPLE_RATE == 32000) ? BIT(0) : BIT(1);
 
 //***********************
 //*   	Others          *
 //***********************
 const  int RS_FAST_MODE_QUALITY = 2;	//软件变采样 滤波阶数配置，范围2到8， 8代表16阶的变采样模式 ,速度跟它的大小呈正相关
 
-const int TWS_TONE_PLAYER_REFERENCE_CLOCK = 0; // 0 - 默认使用经典蓝牙时钟，1 - 使用经典蓝牙网络转为本地参考时钟(避免时钟域的冲突)
+const int TWS_TONE_PLAYER_REFERENCE_CLOCK = 1; // 0 - 默认使用经典蓝牙时钟，1 - 使用经典蓝牙网络转为本地参考时钟(避免时钟域的冲突)
 /*
  *******************************************************************
  *						Audio Smart Voice Config

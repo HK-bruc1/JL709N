@@ -182,6 +182,12 @@ const int mp3encode_input_mode =  1 ;//0x01--short输入 0x02--float输入,使�
 /////////////////////mty codec/////////////////
 const int config_mty_repeat_enable = 1; //mty 支持循环播放
 
+/////////////////////aac codec/////////////////
+
+//sdk流程使用 0: 堆栈buf 在初始化的时候申请，close 的时候释放，
+//           1: 堆栈buf 在每一帧run的时候申请，run 结束后释放。
+//解码和能量检测共用配置
+const int AAC_DEC_STKBUF_RELEASE_ENABLE = 1;
 
 /*
  *******************************************************************
@@ -443,6 +449,8 @@ const int voicechanger_effect_v_config = (0
 
 /*mb drc/limiter 3带使能(1.2k) */
 const int audio_crossover_3band_enable       = 1;
+const int config_audio_limiter_xfade_enable = 0;
+const int config_audio_mblimiter_xfade_enable = 0;
 
 /*Vocal Remover Configs*/
 const int audio_vocal_remover_low_cut_enable = 1;
@@ -464,6 +472,17 @@ const int spatial_imp_active_ele_group = 0;
 /* 双耳压强差使能控制，关闭可节省代码量（关闭后可视化界面参数"ildenable"调试无效）。范围：0关，1开。*/
 const int spatial_imp_active_ild_group = 0;
 
+// Virtual Surround Headphone 2t4
+#ifdef TCFG_AUDIO_EFX_DCD4_RUN_MODE
+const int spatial_brir_run_mode = TCFG_AUDIO_EFX_DCD4_RUN_MODE;
+const int StereoToLCR_run_mode = TCFG_AUDIO_EFX_DCD4_RUN_MODE;
+#else
+const int spatial_brir_run_mode = EFx_BW_16t16 | EFx_BW_32t32;
+const int StereoToLCR_run_mode = EFx_BW_16t16 | EFx_BW_32t32;
+#endif
+const int virtual_surround_hp_run_points = 512; //运算点数
+const int StereoToLCR_24bit_sat = 1;             /* 跑24bit数据流是否对数据进行饱和处理 */
+const int spatial_brir_azimuth = -1;    /* -1加载所有brir，角度调试模式下使用 */
 /*
  *******************************************************************
  *						Audio Mic Capless Config

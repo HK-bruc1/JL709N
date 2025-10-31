@@ -202,6 +202,10 @@ typedef struct {
 
     adpt_anc_cfg adpt_cfg;
     adpt_anc_cfg adpt_cfg_r;
+
+    float *sz_angle_rangel;
+    float *sz_angle_rangeh;
+
 } __icsd_anc_config_data;
 extern __icsd_anc_config_data	*SD_CFG;       // ANC
 extern __icsd_anc_config_data	*RTANC_SD_CFG;

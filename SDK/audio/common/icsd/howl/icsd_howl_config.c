@@ -45,8 +45,8 @@ const struct howl_function HOWL_FUNC_t = {
 struct howl_function *HOWL_FUNC = (struct howl_function *)(&HOWL_FUNC_t);
 
 const u8 howl_log_en     = ICSD_HOWL_LOG_EN;
-const u8 icsd_howl_debug = 1;
-const u8 howl_debug_dlen = 10;//ramsize = (96 * howl_debug_dlen) byte
+const u8 icsd_howl_debug = 0;	//误触发调试: 啸叫之后会强行挂起ADT
+const u8 howl_debug_dlen = 10;	//ramsize = (96 * howl_debug_dlen) byte
 
-const u8 howl_ft_debug = 0;
+const u8 howl_ft_debug = 0;		//误触发原始数据调试
 #endif

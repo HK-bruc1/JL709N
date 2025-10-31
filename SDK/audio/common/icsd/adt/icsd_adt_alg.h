@@ -220,4 +220,6 @@ void icsd_adt_vdt_data_init(u8 _anc_mode_ind, float refl_mgain, float errl_mgain
 void icsd_adt_alg_rtanc_adjdcc_flag_set(u8 flag);
 u8 icsd_adt_alg_adjdcc_trigger_update(u8 env_level, float *table);
 u8 icsd_adt_alg_rtanc_adjdcc_flag_get();
+void icsd_adt_anc46k_outen_set(u8 en);
+
 #endif

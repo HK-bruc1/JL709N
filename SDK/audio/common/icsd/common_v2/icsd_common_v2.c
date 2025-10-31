@@ -185,15 +185,15 @@ void icsd_sde_free()
 #define	ICSD_COMMON_4CH_CIC8_DEBUG		0
 #if ICSD_COMMON_4CH_CIC8_DEBUG
 #define CIC8_DEBUG_LEN		(1024*4)
-#define ANC_DMA_POINTS		(1024*2)
+#define ANC_DMA_POINT		(1024*2)
 s16 wptr_dma1_h_debug[CIC8_DEBUG_LEN];
 s16 wptr_dma1_l_debug[CIC8_DEBUG_LEN];
 s16 wptr_dma2_h_debug[CIC8_DEBUG_LEN];
 s16 wptr_dma2_l_debug[CIC8_DEBUG_LEN];
-s16 wptr_dma1_h[ANC_DMA_POINTS / 8];
-s16 wptr_dma1_l[ANC_DMA_POINTS / 8];
-s16 wptr_dma2_h[ANC_DMA_POINTS / 8];
-s16 wptr_dma2_l[ANC_DMA_POINTS / 8];
+s16 wptr_dma1_h[ANC_DMA_POINT / 8];
+s16 wptr_dma1_l[ANC_DMA_POINT / 8];
+s16 wptr_dma2_h[ANC_DMA_POINT / 8];
+s16 wptr_dma2_l[ANC_DMA_POINT / 8];
 u16 cic8_wptr = 0;
 u8 cic8_debug_end = 0;
 void icsd_common_ancdma_4ch_cic8_demo(s32 *anc_dma_ppbuf, u8 anc_done_flag)
@@ -206,13 +206,13 @@ void icsd_common_ancdma_4ch_cic8_demo(s32 *anc_dma_ppbuf, u8 anc_done_flag)
         cnt++;
         return;
     }
-    int *r_ptr = anc_dma_ppbuf + (1 - anc_done_flag) * 2 * ANC_DMA_POINTS;
-    icsd_common_ancdma_4ch_cic8(r_ptr, wptr_dma1_h, wptr_dma1_l, wptr_dma2_h, wptr_dma2_l, ANC_DMA_POINTS);
-    memcpy(&wptr_dma1_h_debug[cic8_wptr], wptr_dma1_h, 2 * ANC_DMA_POINTS / 8);
-    memcpy(&wptr_dma1_l_debug[cic8_wptr], wptr_dma1_l, 2 * ANC_DMA_POINTS / 8);
-    memcpy(&wptr_dma2_h_debug[cic8_wptr], wptr_dma2_h, 2 * ANC_DMA_POINTS / 8);
-    memcpy(&wptr_dma2_l_debug[cic8_wptr], wptr_dma2_l, 2 * ANC_DMA_POINTS / 8);
-    cic8_wptr += ANC_DMA_POINTS / 8;
+    int *r_ptr = anc_dma_ppbuf + (1 - anc_done_flag) * 2 * ANC_DMA_POINT;
+    icsd_common_ancdma_4ch_cic8(r_ptr, wptr_dma1_h, wptr_dma1_l, wptr_dma2_h, wptr_dma2_l, ANC_DMA_POINT);
+    memcpy(&wptr_dma1_h_debug[cic8_wptr], wptr_dma1_h, 2 * ANC_DMA_POINT / 8);
+    memcpy(&wptr_dma1_l_debug[cic8_wptr], wptr_dma1_l, 2 * ANC_DMA_POINT / 8);
+    memcpy(&wptr_dma2_h_debug[cic8_wptr], wptr_dma2_h, 2 * ANC_DMA_POINT / 8);
+    memcpy(&wptr_dma2_l_debug[cic8_wptr], wptr_dma2_l, 2 * ANC_DMA_POINT / 8);
+    cic8_wptr += ANC_DMA_POINT / 8;
     if (cic8_wptr >= CIC8_DEBUG_LEN) {
         cic8_debug_end = 1;
         local_irq_disable();

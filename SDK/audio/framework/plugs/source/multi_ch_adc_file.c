@@ -542,15 +542,6 @@ static int adc_file_ioc_start(struct adc_file_hdl *hdl)
 #endif
 
         hdl->dump_cnt = 0;
-        //不启动ANC动态MIC增益时，由用户自己保证ANC与通话复用的ADC增益一致
-#if TCFG_AUDIO_ANC_ENABLE && TCFG_AUDIO_DYNAMIC_ADC_GAIN
-#if (!TCFG_AUDIO_DUAL_MIC_ENABLE && (TCFG_AUDIO_ADC_MIC_CHA & AUDIO_ADC_MIC_1)) || \
-		(TCFG_AUDIO_DUAL_MIC_ENABLE && (TCFG_AUDIO_DMS_MIC_MANAGE == DMS_MASTER_MIC0))
-        anc_dynamic_micgain_start(hdl->adc_f->cfg.param[1].mic_gain);
-#else
-        anc_dynamic_micgain_start(hdl->adc_f->cfg.param[0].mic_gain);
-#endif/*TCFG_AUDIO_DUAL_MIC_ENABLE*/
-#endif/*TCFG_AUDIO_ANC_ENABLE && TCFG_AUDIO_DYNAMIC_ADC_GAIN*/
 
         adc_file_cfg_mic_open(&hdl->mic_ch, hdl->adc_f->cfg.mic_en_map, (void *)hdl->adc_f);
 
@@ -606,10 +597,6 @@ static int adc_file_ioc_stop(struct adc_file_hdl *hdl)
         if (jl_call_kws_get_status() == BT_STATUS_PHONE_INCOME) {
             audio_phone_call_kws_start();
         }
-#endif
-
-#if TCFG_AUDIO_ANC_ENABLE && TCFG_AUDIO_DYNAMIC_ADC_GAIN
-        anc_dynamic_micgain_stop();
 #endif
 
 #ifdef CONFIG_CPU_BR36

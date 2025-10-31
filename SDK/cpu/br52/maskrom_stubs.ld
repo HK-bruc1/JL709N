@@ -153,7 +153,7 @@
   lock_vir_mem = ABSOLUTE(0xfff34);
   unlock_vir_mem = ABSOLUTE(0xfff38);
   hw_mmu_disable = ABSOLUTE(0xfff3c);
-  get_aac_ops = ABSOLUTE(0xfff40);
+  get_aacrom_ops = ABSOLUTE(0xfff40);
   bt_aac_eng_buf_size = ABSOLUTE(0xfff44);
   aac_decoder_run = ABSOLUTE(0xfff48);
   bt_aac_eng_run = ABSOLUTE(0xfff4c);

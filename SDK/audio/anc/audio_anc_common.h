@@ -6,12 +6,28 @@
 #include "app_config.h"
 #include "audio_config_def.h"
 
-extern const u8 anc_ext_support_scene[6][10];
+extern const u8 anc_ext_support_scene[7][10];
 
 enum anc_event {
-    ANC_EVENT_NONE,
+    ANC_EVENT_NONE = 0,
     ANC_EVENT_ADT_INIT,
     ANC_EVENT_ADT_RESET,
+    ANC_EVENT_FILTER_UPDATE_BEFORE,
+    ANC_EVENT_FILTER_UPDATE_AFTER,
+    ANC_EVENT_RESET_BEFORE,
+    ANC_EVENT_RESET_AFTER,
+    ANC_EVENT_ADT_OPEN,
+    ANC_EVENT_ADT_CLOSE,
+    ANC_EVENT_ADT_SCENE_CHECK,
+};
+
+struct anc_tws_sync_info {
+    u8 anc_mode; 			//当前ANC模式
+    u8 user_anc_mode;		//用户ANC模式
+    u8 ear_adaptive_seq;	//耳道自适应seq序号
+    u8 multi_scene_id;		//多滤波器场景ID
+    u8 vdt_state;			//智能免摘状态
+    u16 app_adt_mode;		//ADT APP模式
 };
 
 int audio_anc_event_notify(enum anc_event event, int arg);
@@ -30,6 +46,12 @@ int audio_anc_switch_adt_app_close(void);
 
 //检查通话和ANC复用MIC 模拟增益是否匹配
 int audio_anc_mic_gain_check(u8 is_phone_caller);
+
+//TWS 回连ANC信息同步发送API
+void bt_tws_sync_anc(void);
+
+//ANC基础-同步信息处理函数
+int anc_mode_sync(struct anc_tws_sync_info *info);
 
 //==============ANC 内存管理=================
 
@@ -63,16 +85,6 @@ void anc_mem_clear(void *pv);
 #if TCFG_AUDIO_FIT_DET_ENABLE && (TCFG_AUDIO_ANC_TRAIN_MODE == ANC_FF_EN)
 #error "贴合度检测，仅支持带ANC FB的方案"
 #endif/*TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN*/
-
-#if (TCFG_AUDIO_ANC_EXT_VERSION == ANC_EXT_V2) && \
-	(TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN 			|| \
-	 TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE 	|| \
-	 TCFG_AUDIO_ANC_HOWLING_DET_ENABLE 			|| \
-	 TCFG_AUDIO_ANC_WIND_NOISE_DET_ENABLE)
-#define TCFG_AUDIO_ANC_EXT_TOOL_ENABLE		1
-#else
-#define TCFG_AUDIO_ANC_EXT_TOOL_ENABLE		0
-#endif
 
 #if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE || TCFG_AUDIO_FIT_DET_ENABLE
 //AUDIO(ANC)频响获取使能 - AFQ

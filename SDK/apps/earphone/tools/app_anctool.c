@@ -185,6 +185,9 @@ struct _anctool_info {
     /* u8 fz_mute_pow; */
     u8 mic_pow_type;
     u8 anc_designer;
+#if TCFG_AUDIO_ANC_BASE_DEBUG_ENABLE
+    u16 w_file_timer;
+#endif
     u8 *file_hdl;
     u32 file_len;
     u32 file_id;
@@ -609,6 +612,15 @@ static void anctool_ack_read_file_data(u32 offset, u32 data_len)
     anctool_api_write(cmd, data_len + 1);
 }
 
+#if TCFG_AUDIO_ANC_BASE_DEBUG_ENABLE
+void anctool_write_file_timeout(void *priv)
+{
+    anctool_printf("anctool_write_file:resume timeout\n");
+    audio_anc_debug_spp_suspend(0);
+    __this->w_file_timer = 0;
+}
+#endif
+
 static void anctool_ack_write_file_start(u32 id, u32 data_len)
 {
     __this->file_id = id;
@@ -836,12 +848,6 @@ static void app_anctool_module_deal(u8 *data, u16 len)
     anctool_printf("recv packet:\n");
     anctool_put_buf(data, len);
     __this->connected_flag = 1;
-#if 0//TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
-    /*关闭所有模块*/
-    if (audio_icsd_adt_is_running()) {
-        audio_icsd_adt_close_all();
-    }
-#endif
     switch (cmd) {
     case CMD_GET_VERSION:
         anctool_printf("CMD_GET_VERSION\n");
@@ -941,6 +947,14 @@ static void app_anctool_module_deal(u8 *data, u16 len)
         anctool_printf("CMD_WRITE_FILE_START\n");
         memcpy((u8 *)&id, &data[1], 4);
         memcpy((u8 *)&data_len, &data[5], 4);
+#if TCFG_AUDIO_ANC_BASE_DEBUG_ENABLE
+        audio_anc_debug_spp_suspend(1);
+        if (__this->w_file_timer) {
+            sys_timer_modify(__this->w_file_timer, 5000);
+        } else {
+            __this->w_file_timer = sys_timeout_add(NULL, anctool_write_file_timeout, 5000);
+        }
+#endif
         anctool_ack_write_file_start(id, data_len);
         break;
     case CMD_WRITE_FILE_DATA:
@@ -951,6 +965,13 @@ static void app_anctool_module_deal(u8 *data, u16 len)
     case CMD_WRITE_FILE_END:
         anctool_printf("CMD_WRITE_FILE_END\n");
         anctool_ack_write_file_end();
+#if TCFG_AUDIO_ANC_BASE_DEBUG_ENABLE
+        audio_anc_debug_spp_suspend(0);
+        if (__this->w_file_timer) {
+            sys_timer_del(__this->w_file_timer);
+            __this->w_file_timer = 0;
+        }
+#endif
         break;
     case CMD_GET_CHIP_VERSION:
         app_anctool_ack_get_chip_version();

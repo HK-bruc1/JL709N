@@ -209,6 +209,9 @@ const struct task_info task_info_table[] = {
 #endif
     {"aud_adc_demo",        1,     0,  512,   128 },
     {"aud_dac_demo",        1,     0,  512,   128 },
+#if (TCFG_HRSENSOR_ENABLE || TCFG_GSENSOR_ENABLE)
+    {"app_sensor",         1,     0,  512,   128 },
+#endif
     {0, 0},
 };
 
@@ -289,6 +292,7 @@ __INITCALL_BANK_CODE
 void check_power_on_key(void)
 {
     u32 delay_10ms_cnt = 0;
+    int key_ng_cnt = 0;
 
     while (1) {
         wdt_clear();
@@ -297,6 +301,7 @@ void check_power_on_key(void)
         if (get_power_on_status()) {
             putchar('+');
             delay_10ms_cnt++;
+            key_ng_cnt = 0;
             if (delay_10ms_cnt > 70) {
                 app_var.poweron_reason = SYS_POWERON_BY_KEY;
                 return;
@@ -304,8 +309,11 @@ void check_power_on_key(void)
         } else {
             log_info("enter softpoweroff\n");
             delay_10ms_cnt = 0;
-            app_var.poweroff_reason = SYS_POWEROFF_BY_KEY;
-            power_set_soft_poweroff();
+            key_ng_cnt++;
+            if (key_ng_cnt > 10) {
+                app_var.poweroff_reason = SYS_POWEROFF_BY_KEY;
+                power_set_soft_poweroff();
+            }
         }
     }
 }

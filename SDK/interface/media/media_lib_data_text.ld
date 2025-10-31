@@ -81,6 +81,7 @@
     *(.llns_dns.code)
     *(.conv_params)
     *(.seq_params)
+    *(.seq2_params)
 #endif
 
 #if (AFx_SPATIAL_EFFECT_AT_RAM)
@@ -217,19 +218,22 @@
 #endif
 
 #if AUDIO_LC3_CODEC_AT_RAM ||  AUDIO_JLA_CODEC_AT_RAM
-			*(.jl_codec_c_const) 
-		*(.jl_codec_c_code)  
-		*(.jl_codec_ari_c_const)
-		*(.jl_codec_ari_c_code)
-		*(.jl_codec_c_sparse_code)
-		*(.jl_codec_d_code)
-		*(.jl_codec_e_code)
-		*(.jl_codec_t8k_code)
-		*(.jl_codec_t16k_code)
-		*(.jl_codec_t24k_code)
-		*(.jl_codec_t32k_code)
-		*(.jl_codec_t441k_code)
-		*(.jl_codec_const) 
+
+	*(.jl_codec_c_const) 
+	*(.jl_codec_c_code)  
+	*(.jl_codec_ari_c_const)
+	*(.jl_codec_ari_c_code)
+	*(.jl_codec_c_sparse_code)
+	*(.jl_codec_d_code)
+	*(.jl_codec_e_code)
+	*(.jl_codec_const) 
+	*(.jl_plc_c_code) 
+	*(.jl_plc_c_const) 
+	*(.jl_codec_t8k_code)
+	*(.jl_codec_t16k_code)
+	*(.jl_codec_t24k_code)
+	*(.jl_codec_t32k_code)
+	*(.jl_codec_t441k_code)
 #endif
 
 #if AUDIO_JLA_V2_CODEC_AT_RAM
@@ -385,6 +389,11 @@
 	*(.dac.text.cache.L2)
 	*(.convert.text.cache.L2.code)
 	*(.VocalRemove.text.cache.L2.code)
+
+#if AFx_STEREO_TO_LCR_AT_RAM
+    *(.StereoToLCR.text.cache.L2.const.cpp)
+    *(.StereoToLCR.text.cache.L2.code.cpp)
+#endif
 
     . = ALIGN(4);
     media_data_code_end = .;

@@ -25,7 +25,7 @@
 #include "asm/dac.h"
 #include "aec_uart_debug.h"
 #include "Resample_api.h"
-#include "asm/audio_src.h"
+#include "audio_src.h"
 #include "icsd_common_v2.h"
 #include "generic/circular_buf.h"
 #include "clock_manager/clock_manager.h"

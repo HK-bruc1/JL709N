@@ -84,23 +84,26 @@ int audio_mic_en(u8 en, audio_mic_param_t *mic_param,
         }
         user_log("adc irq points %d, adc_buf_size : %d", mic_param->adc_irq_points, adc_buf_size);
         /* audio_mic->adc_buf = esco_adc_buf; */
-        audio_mic->adc_buf = anc_malloc("ICSD_ADC", adc_buf_size);
-        if (audio_mic->adc_buf == NULL) {
-            printf("audio->adc_buf mic zalloc failed\n");
-            audio_mic_pwr_ctl(MIC_PWR_OFF);
-            anc_free(audio_mic);
-            audio_mic = NULL;
-            return -1;
+        audio_adc_mic_set_sample_rate(&audio_mic->mic_ch, sr);
+
+        if (!adc_hdl.hw_buf) {
+            audio_mic->adc_buf = anc_malloc("ICSD_ADC", adc_buf_size);
+            if (audio_mic->adc_buf == NULL) {
+                printf("audio->adc_buf mic zalloc failed\n");
+                audio_mic_pwr_ctl(MIC_PWR_OFF);
+                anc_free(audio_mic);
+                audio_mic = NULL;
+                return -1;
+            }
+            int err = audio_adc_mic_set_buffs(&audio_mic->mic_ch, audio_mic->adc_buf,
+                                              mic_param->adc_irq_points * 2, mic_param->adc_buf_num);
+            if (err) {
+                anc_free(audio_mic->adc_buf);
+                audio_mic->adc_buf = NULL;
+            }
         }
 
-        audio_adc_mic_set_sample_rate(&audio_mic->mic_ch, sr);
         /* audio_adc_fixed_digital_set_buffs(); */
-        int err = audio_adc_mic_set_buffs(&audio_mic->mic_ch, audio_mic->adc_buf,
-                                          mic_param->adc_irq_points * 2, mic_param->adc_buf_num);
-        if (err) {
-            anc_free(audio_mic->adc_buf);
-            audio_mic->adc_buf = NULL;
-        }
         audio_mic->adc_output.handler = data_handler;
         audio_adc_add_output_handler(&adc_hdl, &audio_mic->adc_output);
         audio_adc_mic_start(&audio_mic->mic_ch);

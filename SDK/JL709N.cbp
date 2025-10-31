@@ -249,6 +249,7 @@
 <Add directory="audio/effect/spatial_effect" />
 <Add directory="audio/effect/somatosensory" />
 <Add directory="interface/media/aispeech/enc" />
+<Add directory="apps/common/device/sensor/hr_sensor" />
 <Add directory="interface/system/math/cpu/br52" />
 </Compiler>
 <Linker>
@@ -323,6 +324,7 @@
 <Add option="cpu/br52/liba/lib_opus_stenc.a" />
 <Add option="cpu/br52/liba/lib_ogg_opus_dec.a" />
 <Add option="cpu/br52/liba/libjlsp.a" />
+<Add option="cpu/br52/liba/lib_nn_v3.a" />
 <Add option="cpu/br52/liba/libjlsp_kws.a" />
 <Add option="cpu/br52/liba/libjlsp_kws_far_keyword.a" />
 <Add option="cpu/br52/liba/libjlsp_kws_india_english.a" />
@@ -351,6 +353,7 @@
 <Add option="cpu/br52/liba/howling.a" />
 <Add option="cpu/br52/liba/lib_HarmonicExciter.a" />
 <Add option="cpu/br52/liba/libllns.a" />
+<Add option="cpu/br52/liba/lib_llns_dns.a" />
 <Add option="cpu/br52/liba/lib_icsd_common_v2.a" />
 <Add option="cpu/br52/liba/lib_icsd_anc_v2.a" />
 <Add option="cpu/br52/liba/lib_icsd_rt_anc.a" />
@@ -392,12 +395,25 @@
 <Add option="cpu/br52/liba/lib_frequency_compressor.a" />
 <Add option="cpu/br52/liba/lib_gain_mix.a" />
 <Add option="cpu/br52/liba/liblhdc_x_edge.a" />
+<Add option="cpu/br52/liba/libStereoToLCR_pi32v2_OnChip.a" />
+<Add option="cpu/br52/liba/sbsbrir.a" />
+<Add option="cpu/br52/liba/spatial_brir.a" />
+<Add option="apps/common/device/sensor/gSensor/sensor_algorithm_jl_motion.a" />
+<Add option="apps/common/device/sensor/hr_sensor/hx3918/CodeBlocks_3605_spo2_20241021_v2.2.a" />
+<Add option="apps/common/device/sensor/hr_sensor/hx3918/CodeBlocks_3918_hrs_bp_20250324_v2.2.a" />
+<Add option="apps/common/device/sensor/hr_sensor/hx3918/CodeBlocks_3918_hrv_20241026_v2.2.a" />
+<Add option="apps/common/device/sensor/hr_sensor/hx3011/CodeBlocks_3011_hrs_spo2_20250606_v2.2.a" />
 <Add option="cpu/br52/liba/libFFT_pi32v2_OnChip.a" />
 <Add option="cpu/br52/liba/lib_wtg_dec.a" />
 <Add option="cpu/br52/liba/bfilterfun_lib.a" />
 <Add option="cpu/br52/liba/lib_opusdec_rom_dec.a" />
+<Add option="cpu/br52/liba/lib_bt_aac_dec_rom_ext.a" />
 <Add option="cpu/br52/liba/crypto_toolbox_Osize.a" />
+<Add option="apps/common/device/sensor/hr_sensor/hx3918/CodeBlocks_3605_spo2_20241021_v2.2.a " />
+<Add option="apps/common/device/sensor/hr_sensor/hx3918/CodeBlocks_3918_hrs_bp_20250324_v2.2.a " />
+<Add option="apps/common/device/sensor/hr_sensor/hx3918/CodeBlocks_3918_hrv_20241026_v2.2.a " />
 <Add option="cpu/br52/liba/lib_dns.a" />
+<Add option="cpu/br52/liba/lib_dns_v3.a" />
 <Add option="cpu/br52/liba/update.a" />
 <Add option="cpu/br52/liba/cbuf.a" />
 <Add option="cpu/br52/liba/lbuf.a" />
@@ -486,7 +502,43 @@
 <Unit filename="apps/common/device/key/touch_key.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/device/key/touch_key.h" />
 <Unit filename="apps/common/device/key/uart_key.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/device/sensor/app_sensor.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/device/sensor/gSensor/SC7A20.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/device/sensor/gSensor/SC7A20.h" />
+<Unit filename="apps/common/device/sensor/gSensor/bma580.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/device/sensor/gSensor/gSensor_manage.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/device/sensor/gSensor/gSensor_manage.h" />
+<Unit filename="apps/common/device/sensor/gSensor/p33_algo_motion.h" />
+<Unit filename="apps/common/device/sensor/gSensor/stk832x.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/device/sensor/hr_sensor/hrSensor_manage.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/device/sensor/hr_sensor/hrSensor_manage.h" />
+<Unit filename="apps/common/device/sensor/hr_sensor/hx3011/hx3011.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/device/sensor/hr_sensor/hx3011/hx3011.h" />
+<Unit filename="apps/common/device/sensor/hr_sensor/hx3011/hx3011_check_touch.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/device/sensor/hr_sensor/hx3011/hx3011_check_touch.h" />
+<Unit filename="apps/common/device/sensor/hr_sensor/hx3011/hx3011_factory_test.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/device/sensor/hr_sensor/hx3011/hx3011_factory_test.h" />
+<Unit filename="apps/common/device/sensor/hr_sensor/hx3011/hx3011_hrs_agc.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/device/sensor/hr_sensor/hx3011/hx3011_hrs_agc.h" />
+<Unit filename="apps/common/device/sensor/hr_sensor/hx3011/hx3011_spo2_agc.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/device/sensor/hr_sensor/hx3011/hx3011_spo2_agc.h" />
+<Unit filename="apps/common/device/sensor/hr_sensor/hx3011/tyhx_hrs_alg.h" />
+<Unit filename="apps/common/device/sensor/hr_sensor/hx3011/tyhx_spo2_alg.h" />
+<Unit filename="apps/common/device/sensor/hr_sensor/hx3918/hx3918.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/device/sensor/hr_sensor/hx3918/hx3918.h" />
+<Unit filename="apps/common/device/sensor/hr_sensor/hx3918/hx3918_check_touch.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/device/sensor/hr_sensor/hx3918/hx3918_check_touch.h" />
+<Unit filename="apps/common/device/sensor/hr_sensor/hx3918/hx3918_factory_test.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/device/sensor/hr_sensor/hx3918/hx3918_factory_test.h" />
+<Unit filename="apps/common/device/sensor/hr_sensor/hx3918/hx3918_hrs_agc.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/device/sensor/hr_sensor/hx3918/hx3918_hrs_agc.h" />
+<Unit filename="apps/common/device/sensor/hr_sensor/hx3918/hx3918_hrv_agc.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/device/sensor/hr_sensor/hx3918/hx3918_hrv_agc.h" />
+<Unit filename="apps/common/device/sensor/hr_sensor/hx3918/hx3918_spo2_agc.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="apps/common/device/sensor/hr_sensor/hx3918/hx3918_spo2_agc.h" />
+<Unit filename="apps/common/device/sensor/hr_sensor/hx3918/tyhx_hrs_alg.h" />
+<Unit filename="apps/common/device/sensor/hr_sensor/hx3918/tyhx_hrv_alg.h" />
+<Unit filename="apps/common/device/sensor/hr_sensor/hx3918/tyhx_spo2_alg.h" />
 <Unit filename="apps/common/device/sensor/imu_sensor/icm_42670p/InvError.h" />
 <Unit filename="apps/common/device/sensor/imu_sensor/icm_42670p/icm_42670p.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="apps/common/device/sensor/imu_sensor/icm_42670p/icm_42670p.h" />
@@ -1154,6 +1206,7 @@
 <Unit filename="audio/CVP/audio_cvp_online.h" />
 <Unit filename="audio/CVP/audio_cvp_ref_task.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/CVP/audio_cvp_sync.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="audio/CVP/audio_cvp_v3.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/anc/anc_memory.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/anc/audio_anc_common.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/anc/audio_anc_common.h" />
@@ -1162,6 +1215,7 @@
 <Unit filename="audio/anc/audio_anc_debug_tool.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/anc/audio_anc_debug_tool.h" />
 <Unit filename="audio/anc/audio_anc_develop.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="audio/anc/audio_anc_develop.h" />
 <Unit filename="audio/anc/audio_anc_fade_ctr.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/anc/audio_anc_fade_ctr.h" />
 <Unit filename="audio/anc/audio_anc_hw_src.c"><Option compilerVer="CC"/></Unit>
@@ -1179,6 +1233,7 @@
 <Unit filename="audio/common/audio_event_handler.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/audio_export_demo.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/audio_general.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="audio/common/audio_general_config.h" />
 <Unit filename="audio/common/audio_iis_lrclk_capture.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/common/audio_iis_lrclk_capture.h" />
 <Unit filename="audio/common/audio_node_config.c"><Option compilerVer="CC"/></Unit>
@@ -1370,6 +1425,7 @@
 <Unit filename="audio/framework/nodes/cvp_develop_node.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/framework/nodes/cvp_dms_node.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/framework/nodes/cvp_sms_node.c"><Option compilerVer="CC"/></Unit>
+<Unit filename="audio/framework/nodes/cvp_v3_node.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/framework/nodes/data_export_node.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/framework/nodes/dns_node.c"><Option compilerVer="CC"/></Unit>
 <Unit filename="audio/framework/nodes/effect_dev0_node.c"><Option compilerVer="CC"/></Unit>
@@ -1722,13 +1778,17 @@
 <Unit filename="interface/media/cvp/cvp_ns.h" />
 <Unit filename="interface/media/cvp/cvp_sms.h" />
 <Unit filename="interface/media/cvp/cvp_tms.h" />
+<Unit filename="interface/media/cvp/cvp_v3.h" />
+<Unit filename="interface/media/cvp/lib_h/jlsp_DualMicSystem_Hybrid.h" />
 <Unit filename="interface/media/cvp/lib_h/jlsp_ns.h" />
+<Unit filename="interface/media/cvp/lib_h/jlsp_v3_ns.h" />
 <Unit filename="interface/media/effects/AudioEffect_DataType.h" />
 <Unit filename="interface/media/effects/DynamicEQPro_api.h" />
 <Unit filename="interface/media/effects/DynamicEQ_Detection_api.h" />
 <Unit filename="interface/media/effects/DynamicEQ_api.h" />
 <Unit filename="interface/media/effects/Effect_delay_api.h" />
 <Unit filename="interface/media/effects/HowlingGate_api.h" />
+<Unit filename="interface/media/effects/StereoToLCR_Lib.h" />
 <Unit filename="interface/media/effects/UpmixSystem.h" />
 <Unit filename="interface/media/effects/VirtualBass_api.h" />
 <Unit filename="interface/media/effects/audio_autoduck.h" />
@@ -1771,6 +1831,7 @@
 <Unit filename="interface/media/effects/audio_vbass.h" />
 <Unit filename="interface/media/effects/audio_virtual_bass_classic.h" />
 <Unit filename="interface/media/effects/audio_virtual_bass_pro.h" />
+<Unit filename="interface/media/effects/audio_virtual_surround_hp.h" />
 <Unit filename="interface/media/effects/audio_virtual_surround_pro.h" />
 <Unit filename="interface/media/effects/audio_vocal_remove.h" />
 <Unit filename="interface/media/effects/audio_voice_changer.h" />
@@ -1809,6 +1870,7 @@
 <Unit filename="interface/media/effects/reverb_api.h" />
 <Unit filename="interface/media/effects/reverb_v2_api.h" />
 <Unit filename="interface/media/effects/spatial_adv_api.h" />
+<Unit filename="interface/media/effects/spatial_brir_ctrl.h" />
 <Unit filename="interface/media/effects/spectrum/SpectrumShow_api.h" />
 <Unit filename="interface/media/effects/spectrum/spectrum_api.h" />
 <Unit filename="interface/media/effects/spectrum/spectrum_eq.h" />
