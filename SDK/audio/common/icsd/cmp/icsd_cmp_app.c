@@ -86,15 +86,10 @@ static int anc_ear_adaptive_cmp_run_ch(struct icsd_cmp_param *p, float *sz, int 
 #if ANC_ADAPTIVE_CMP_RUN_TIME_DEBUG
         u32 last = jiffies_usec();
 #endif
-        //CMP 算法要求输入SZ的符号必须为正，因此需要单独备份SZ的数据，以便修改
+        //icsd_cmp_run 会修改SZ数据，需要备份
         sz_tmp = (float *)anc_malloc("ICSD_CMP", sz_len * sizeof(float));
         memcpy((u8 *)sz_tmp, (u8 *)sz, sz_len * sizeof(float));
-        //CMP来自实时自适应时，SZ符合一定为正，不需要翻转符号
-        if ((sz_sign == -1) && (cmp_hdl->data_from == CMP_FROM_ANC_EAR_ADAPTIVE)) {
-            for (int j = 0; j < sz_len; j++) {
-                sz_tmp[j] = 0 -  sz_tmp[j];
-            }
-        }
+        //CMP来自耳道/实时自适应时，SZ符号一定为正
         output = icsd_cmp_run(sz_tmp, cmp_cfg);
 
         cmp_log("ANC_ADAPTIVE_CMP_OUTPUT_SIZE %lu\n", ANC_ADAPTIVE_CMP_OUTPUT_SIZE);

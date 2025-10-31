@@ -56,7 +56,7 @@ struct adc_file_hdl {
     struct adc_file_common *adc_f;
     int force_dump;
     int value;
-    u16 sample_rate;
+    u32 sample_rate;
     u16 irq_points;
     u8 adc_seq;
     u8 channel_mode;
@@ -610,6 +610,7 @@ static void adc_ioc_get_fmt(struct adc_file_hdl *hdl, struct stream_fmt *fmt)
 static int adc_ioc_set_fmt(struct adc_file_hdl *hdl, struct stream_fmt *fmt)
 {
     hdl->sample_rate = fmt->sample_rate;
+    printf("adc_ioc_set_fmt,Fs = %d", hdl->sample_rate);
     return 0;
 }
 
