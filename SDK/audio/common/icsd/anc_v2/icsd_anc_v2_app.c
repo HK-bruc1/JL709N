@@ -22,7 +22,7 @@
 #define icsd_board_log(...)
 #endif/*log_en*/
 
-#if TCFG_AUDIO_ANC_CH == (ANC_L_CH | ANC_R_CH)	/*头戴式*/
+#if AUDIO_ANC_STEREO_ENABLE	/*头戴式*/
 
 #if ANC_CHIP_VERSION == ANC_VERSION_BR28
 const u8 ICSD_ANC_V2_MODE = HEADSET_2CH_TONE_BYPASS_PZ; //HEADSET_TONES_MODE;//训练模式

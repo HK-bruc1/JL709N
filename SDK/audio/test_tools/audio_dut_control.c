@@ -409,6 +409,9 @@ __again:
             reset_flag = 1;		//模式被修改，则复位通话
         }
         if (reset_flag) {
+#if ANC_MIC_REUSE_ENABLE
+            audio_adc_user_cfg_change(audio_dut_hdl->mode == CVP_DUT_MODE_BYPASS);
+#endif
             audio_dut_hdl->reset_flag = 1;
             esco_recoder_reset();
             audio_dut_hdl->reset_flag = 0;

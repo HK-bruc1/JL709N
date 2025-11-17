@@ -38,4 +38,11 @@ u8 audio_max_adc_ch_num_get();
 /*判断adc 节点是否再跑*/
 u8 adc_file_is_runing(void);
 
+/*
+   修改通话ADC节点 对应通道的硬件配置
+	param: mic_num  MIC通道
+           cfg      目标硬件配置
+*/
+void audio_adc_platform_cfg_change(u8 mic_num, const struct adc_platform_cfg *cfg);
+
 #endif // #ifndef _ADC_FILE_H_

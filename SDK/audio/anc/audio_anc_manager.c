@@ -47,8 +47,6 @@
 /* #define LOG_CLI_ENABLE */
 #include "debug.h"
 
-
-#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
 /*
    配置不同业务场景下支持ANC_EXT 算法功能
    1、ANC模式、IDLE场景默认全支持
@@ -104,11 +102,11 @@ int audio_anc_app_adt_mode_init(u8 enable)
     adt_mode |= ADT_SPEAK_TO_CHAT_MODE;
 #endif
     log_info("audio_anc_app_adt_mode_init 0x%x, en %d\n", adt_mode, enable);
+#if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
     icsd_adt_app_mode_set(adt_mode, enable);
+#endif
     return 0;
 }
-
-#endif
 
 static int audio_anc_event_adt_reset(int arg)
 {
@@ -248,9 +246,6 @@ int audio_anc_event_notify(enum anc_event event, int arg)
     int ret = 0;
     switch (event) {
 #if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
-    case ANC_EVENT_ADT_INIT:
-        audio_anc_app_adt_mode_init(1);
-        break;
     case ANC_EVENT_ADT_RESET:
         audio_anc_event_adt_reset(arg);
         break;

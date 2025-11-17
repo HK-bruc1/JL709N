@@ -563,6 +563,8 @@ typedef struct {
     u8 howling_detect_toggle;		//ANC 啸叫检测使能控制，用于在线切换
     u8 howling_detect_ch;			//ANC 啸叫检测通道配置
 
+    u8 stereo_to_mono_mix;			//ANC 双->单声道控制
+
     u16 anc_fade_gain;				//ANC淡入淡出增益
     u16 drc_fade_gain;				//DRC淡出增益
     u16 drc_time_id;				//DRCtimeout定时器ID

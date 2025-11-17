@@ -98,7 +98,7 @@ struct audio_rt_anc_output {
     double *lff_coeff;
     double *lcmp_coeff;
 
-#if ANC_CONFIG_RFB_EN
+#if ANC_CONFIG_RFB_EN && AUDIO_ANC_STEREO_ENABLE
     float rff_gain;
     float rfb_gain;
     float rcmp_gain;
@@ -131,6 +131,10 @@ struct audio_rt_anc_hdl {
     float *sz_cmp;
     float *sz_angle_rangel;
     float *sz_angle_rangeh;
+    float *pz_cmp_r;
+    float *sz_cmp_r;
+    float *sz_angle_rangel_r;
+    float *sz_angle_rangeh_r;
 #if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
     u8 *cmp_tool_data;							//CMP工具数据缓存
     int cmp_tool_data_len;
@@ -257,7 +261,7 @@ static void rt_anc_get_param(__rt_anc_param *rt_param_l, __rt_anc_param *rt_para
         /* put_buf((u8*)rt_param_l->cmp_coeff, rt_param_l->cmp_yorder * yorder_size); */
     }
 
-#if ANC_CONFIG_RFB_EN
+#if ANC_CONFIG_RFB_EN && AUDIO_ANC_STEREO_ENABLE
     if (rt_param_r) { //右声道未完善
         if (anc_mode_get() == ANC_TRANSPARENCY) {
 
@@ -489,6 +493,7 @@ int audio_adt_rtanc_set_infmt(void *rtanc_tool)
 #endif
 
     infmt.var_buf = &hdl->var_cache_buff;
+    infmt.var_buf_r = infmt.var_buf;
     if (hdl->sz_sel.state & RTANC_SZ_STA_INIT) {
         hdl->sz_sel.state |= RTANC_SZ_STA_START;
         rtanc_log("RTANC_STATE_SZ:START\n");
@@ -514,7 +519,7 @@ int audio_adt_rtanc_set_infmt(void *rtanc_tool)
     struct __anc_ext_rtanc_adaptive_cfg *rtanc_tool_cfg = anc_ext_rtanc_adaptive_cfg_get();
     struct __anc_ext_dynamic_cfg *dynamic_cfg = anc_ext_dynamic_cfg_get();
 
-    rt_anc_set_init(&infmt, rtanc_tool_cfg, dynamic_cfg);
+    rt_anc_set_init(&infmt, rtanc_tool_cfg, rtanc_tool_cfg, dynamic_cfg, dynamic_cfg);
 
     if (infmt.anc_param_l) {
         anc_free(infmt.anc_param_l);
@@ -560,7 +565,7 @@ static void audio_rt_anc_param_updata(void *rt_param_l, void *rt_param_r)
     cmp_eq_updat |= anc_param->cmp_eq_updat;
 
     //param->lfb_coeff = &anc_param->lfb_coeff[0];
-#if ANC_CONFIG_RFB_EN
+#if ANC_CONFIG_RFB_EN && AUDIO_ANC_STEREO_ENABLE
     if (rt_param_r) {
         __rt_anc_param *anc_param_r = (__rt_anc_param *)rt_param_r;
         if (hdl->out.rff_coeff) {
@@ -607,7 +612,7 @@ void audio_rtanc_cmp_update(void)
     hdl->out.lcmp_coeff = anc_malloc("ICSD_RTANC", ANC_ADAPTIVE_CMP_ORDER * AUDIO_RTANC_COEFF_SIZE);
     cmp_p.l_coeff = hdl->out.lcmp_coeff;
 
-#if ANC_CONFIG_RFB_EN
+#if ANC_CONFIG_RFB_EN && AUDIO_ANC_STEREO_ENABLE
     if (hdl->out.rcmp_coeff) {
         anc_free(hdl->out.lcmp_coeff);
     }
@@ -626,7 +631,7 @@ void audio_rtanc_cmp_update(void)
         param->lcmp_coeff = cmp_p.l_coeff;
     }
 
-#if ANC_CONFIG_RFB_EN
+#if ANC_CONFIG_RFB_EN && AUDIO_ANC_STEREO_ENABLE
     param->gains.r_cmpgain = cmp_p.r_gain;
     param->rcmp_coeff = cmp_p.r_coeff;
 #endif
@@ -1041,7 +1046,7 @@ static void audio_anc_real_time_adaptive_data_packet(struct icsd_rtanc_tool_data
                               (0 - rtanc_tool->ff_fgq_l[0]) : rtanc_tool->ff_fgq_l[0];
     audio_anc_fr_format(ff_dat, rtanc_tool->ff_fgq_l, ff_yorder, hdl->lff_iir_type);
 #endif/*ANC_CONFIG_LFF_EN*/
-#if ANC_CONFIG_RFF_EN
+#if ANC_CONFIG_RFF_EN && AUDIO_ANC_STEREO_ENABLE
     rff_dat = anc_malloc("ICSD_RTANC", ff_dat_len);
     //RTANC 增益没有输出符号，需要对齐工具符号
     rtanc_tool->ff_fgq_r[0] = (hdl->param->gains.gain_sign & ANCR_FF_SIGN) ? \
@@ -1061,7 +1066,10 @@ static void audio_anc_real_time_adaptive_data_packet(struct icsd_rtanc_tool_data
             rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)rtanc_tool->h_freq, len * 4, ANC_R_ADAP_FRE, 0);
             rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)rtanc_tool->sz_out_l, len * 8, ANC_R_ADAP_SZPZ, 0);
             rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)rtanc_tool->pz_out_l, len * 8, ANC_R_ADAP_PZ, 0);
+#if !AUDIO_ANC_ADAPTIVE_CMP_SZ_FACTOR
+            //双FB 方案复用耳道target线作为SZ补偿曲线显示
             rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)rtanc_tool->target_out_l, len * 8, ANC_R_ADAP_TARGET, 0);
+#endif
             rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)rtanc_tool->target_out_cmp_l, len * 8, ANC_R_ADAP_TARGET_CMP, 0);
         }
         rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)ff_dat, ff_dat_len, ANC_R_FF_IIR, 0);  //R_ff
@@ -1088,7 +1096,10 @@ static void audio_anc_real_time_adaptive_data_packet(struct icsd_rtanc_tool_data
             rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)rtanc_tool->h_freq, len * 4, ANC_L_ADAP_FRE, 0);
             rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)rtanc_tool->sz_out_l, len * 8, ANC_L_ADAP_SZPZ, 0);
             rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)rtanc_tool->pz_out_l, len * 8, ANC_L_ADAP_PZ, 0);
+#if !AUDIO_ANC_ADAPTIVE_CMP_SZ_FACTOR
+            //双FB 方案复用耳道target线作为SZ补偿曲线显示
             rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)rtanc_tool->target_out_l, len * 8, ANC_L_ADAP_TARGET, 0);
+#endif
             rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)rtanc_tool->target_out_cmp_l, len * 8, ANC_L_ADAP_TARGET_CMP, 0);
         }
         rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)ff_dat, ff_dat_len, ANC_L_FF_IIR, 0);  //R_ff
@@ -1100,7 +1111,7 @@ static void audio_anc_real_time_adaptive_data_packet(struct icsd_rtanc_tool_data
 #if ANC_CONFIG_LFF_EN
     anc_free(ff_dat);
 #endif/*ANC_CONFIG_LFF_EN*/
-#if ANC_CONFIG_RFF_EN
+#if ANC_CONFIG_RFF_EN && AUDIO_ANC_STEREO_ENABLE
     anc_free(rff_dat);
 #endif/*ANC_CONFIG_RFF_EN*/
 
@@ -1113,22 +1124,37 @@ static void audio_rtanc_cmp_tool_data_catch(u8 *data, int len)
     if (!data) {
         return;
     }
+    float *sz_cmp, *sz_temp;
+    u8 target_id, iir_id;
 #if TCFG_USER_TWS_ENABLE
     if (bt_tws_get_local_channel() == 'R') {
         rtanc_log("cmp export send tool_data, ch:R\n");
-#if ANC_CONFIG_LFB_EN
-        rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)data, len, ANC_R_CMP_IIR, 0);  //R_cmp
-#endif
+        target_id = ANC_R_ADAP_TARGET;
+        iir_id = ANC_R_CMP_IIR;
     } else
 #endif/*TCFG_USER_TWS_ENABLE*/
     {
         rtanc_debug_log("cmp export send tool_data, ch:L\n");
-
-        /* put_buf((u8 *)cmp_dat, cmp_dat_len);  //R_cmp */
-#if ANC_CONFIG_LFB_EN
-        rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)data, len, ANC_L_CMP_IIR, 0);  //R_cmp
-#endif
+        target_id = ANC_L_ADAP_TARGET;
+        iir_id = ANC_L_CMP_IIR;
     }
+#if AUDIO_ANC_ADAPTIVE_CMP_SZ_FACTOR
+    //双FB 方案复用耳道target线作为SZ补偿曲线显示
+    sz_cmp = audio_anc_ear_adaptive_cmp_sz_cmp_get(ANC_EAR_ADAPTIVE_CMP_CH_L);
+    if (sz_cmp) {
+        //60点->25点
+        /* sz_temp = anc_malloc("ICSD_CMP", test_num); */
+        sz_temp = anc_malloc("ICSD_CMP", 25 * 2 * sizeof(float));
+        for (int i = 0; i < 25; i++) {
+            sz_temp[2 * i] = sz_cmp[2 * mem_list[i]];
+            sz_temp[2 * i + 1] = sz_cmp[2 * mem_list[i] + 1];
+        }
+        rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)sz_temp, 25 * 8, target_id, 0);
+        anc_free(sz_temp);
+        /* rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)sz_cmp, 60 * 8, target_id, 0); */
+    }
+#endif
+    rtanc_tool_data = anc_data_catch(rtanc_tool_data, (u8 *)data, len, iir_id, 0);  //R_cmp
 }
 
 void audio_rtanc_cmp_data_clear(void)
@@ -1157,7 +1183,7 @@ void audio_rtanc_cmp_data_packet(void)
     audio_anc_fr_format(cmp_dat, lcmp_output, cmp_yorder, lcmp_type);
 #endif
 
-#if ANC_CONFIG_RFB_EN
+#if ANC_CONFIG_RFB_EN && AUDIO_ANC_STEREO_ENABLE
     float *rcmp_output = audio_anc_ear_adaptive_cmp_output_get(ANC_EAR_ADAPTIVE_CMP_CH_R);
     u8 *rcmp_type = audio_anc_ear_adaptive_cmp_type_get(ANC_EAR_ADAPTIVE_CMP_CH_R);
     u8 *rcmp_dat = anc_malloc("ICSD_RTANC", cmp_dat_len);
@@ -1179,7 +1205,7 @@ void audio_rtanc_cmp_data_packet(void)
     anc_free(cmp_dat);
 #endif
 
-#if ANC_CONFIG_RFB_EN
+#if ANC_CONFIG_RFB_EN && AUDIO_ANC_STEREO_ENABLE
     anc_free(rcmp_dat);
 #endif
 
@@ -1271,23 +1297,22 @@ REGISTER_LP_TARGET(RTANC_lp_target) = {
 static void audio_rtanc_sz_pz_cmp_process(void)
 {
     struct sz_pz_cmp_cal_param p;
+    p.spk_eq_tab = NULL;
+    p.ff_gain = 1.0f;
+    p.fb_gain = 1.0f;
 
-#if TCFG_SPEAKER_EQ_NODE_ENABLE
+#if 0//TCFG_SPEAKER_EQ_NODE_ENABLE
+//FF FB已包含SPK信息，不需要单独spk的数据
     hdl->spk_eq_tab_l.global_gain = spk_eq_read_global_gain(0);
     hdl->spk_eq_tab_l.global_gain = eq_db2mag(hdl->spk_eq_tab_l.global_gain);
     hdl->spk_eq_tab_l.seg_num = spk_eq_read_seg_l((u8 **)&hdl->spk_eq_tab_l.seg) / sizeof(struct eq_seg_info);
+    p.spk_eq_tab = &hdl->spk_eq_tab_l;
 #endif
 
 #if ANC_DUT_MIC_CMP_GAIN_ENABLE
     hdl->mic_cmp = &hdl->param->mic_cmp;
 #endif
 
-//FF FB已包含SPK信息，不需要单独spk的数据
-#if 0//TCFG_SPEAKER_EQ_NODE_ENABLE
-    p.spk_eq_tab = &hdl->spk_eq_tab_l;
-#else
-    p.spk_eq_tab = NULL;
-#endif
     p.pz_cmp_out = hdl->pz_cmp;
     p.sz_cmp_out = hdl->sz_cmp;
 #if ANC_DUT_MIC_CMP_GAIN_ENABLE
@@ -1315,35 +1340,35 @@ void audio_rtanc_dut_mode_set(u8 mode)
     }
 }
 
-float *audio_rtanc_pz_cmp_get(void)
+float *audio_rtanc_pz_cmp_get(u8 ch)
 {
     if (hdl) {
-        return hdl->pz_cmp;
+        return ch ? hdl->pz_cmp_r : hdl->pz_cmp;
     }
     return NULL;
 }
 
-float *audio_rtanc_sz_cmp_get(void)
+float *audio_rtanc_sz_cmp_get(u8 ch)
 {
     if (hdl) {
-        return hdl->sz_cmp;
+        return ch ? hdl->sz_cmp_r : hdl->sz_cmp;
     }
     return NULL;
 }
 #endif
 
-float *audio_rtanc_sz_angle_rangel_get(void)
+float *audio_rtanc_sz_angle_rangel_get(u8 ch)
 {
     if (hdl) {
-        return hdl->sz_angle_rangel;
+        return ch ? hdl->sz_angle_rangel_r : hdl->sz_angle_rangel;
     }
     return NULL;
 }
 
-float *audio_rtanc_sz_angle_rangeh_get(void)
+float *audio_rtanc_sz_angle_rangeh_get(u8 ch)
 {
     if (hdl) {
-        return hdl->sz_angle_rangeh;
+        return ch ? hdl->sz_angle_rangeh_r : hdl->sz_angle_rangeh;
     }
     return NULL;
 }

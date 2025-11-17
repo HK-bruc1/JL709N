@@ -307,6 +307,34 @@ void audio_input_initcall(void)
 #endif/*TCFG_AUDIO_LINEIN_ENABLE*/
 }
 
+#if ANC_MIC_REUSE_ENABLE
+const struct adc_platform_cfg adc_user_cfg = {
+    .mic_mode           = 1,	//模式
+    .mic_ain_sel        = 1,	//输入端口
+    .mic_bias_sel       = 32,	//供电端口
+    .mic_bias_rsel      = 3,	//上拉电阻位
+    .power_io           = 0,	//IO供电选择
+    .mic_dcc_en         = 1,	//DCC使能
+    .mic_dcc            = 1,	//DCC截止频率
+};
+
+/*
+   ANC 复用MIC 硬件配置切换
+   param: user 0: 使用可视化工具-音频配置;  1 使用adc_user_cfg 配置
+*/
+void audio_adc_user_cfg_change(u8 user)
+{
+    printf("%s, user %d\n", __func__, user);
+    if (user) {
+        //MIC0 硬件切换到自定义配置
+        audio_adc_platform_cfg_change(ANC_MIC_REUSE_NUM, &adc_user_cfg);
+    } else {
+        //MIC0 硬件切换到可视化配置
+        audio_adc_platform_cfg_change(ANC_MIC_REUSE_NUM, &adc_platform_cfg_table[ANC_MIC_REUSE_NUM]);
+    }
+}
+#endif
+
 #ifndef TCFG_AUDIO_DAC_LDO_VOLT_HIGH
 #define TCFG_AUDIO_DAC_LDO_VOLT_HIGH 0
 #endif

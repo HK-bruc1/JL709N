@@ -70,13 +70,13 @@ int audio_anc_real_time_adaptive_tool_data_get(u8 **buf, u32 *len);
 
 int audio_anc_real_time_adaptive_suspend_get(void);
 
-float *audio_rtanc_pz_cmp_get(void);
+float *audio_rtanc_pz_cmp_get(u8 ch);
 
-float *audio_rtanc_sz_cmp_get(void);
+float *audio_rtanc_sz_cmp_get(u8 ch);
 
-float *audio_rtanc_sz_angle_rangel_get(void);
+float *audio_rtanc_sz_angle_rangel_get(u8 ch);
 
-float *audio_rtanc_sz_angle_rangeh_get(void);
+float *audio_rtanc_sz_angle_rangeh_get(u8 ch);
 
 void audio_rtanc_self_talk_output(u8 flag);
 

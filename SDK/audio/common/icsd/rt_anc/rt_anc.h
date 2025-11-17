@@ -173,6 +173,7 @@ struct rt_anc_infmt {
     __rt_anc_param *anc_param_l;
     __rt_anc_param *anc_param_r;
     __rtanc_var_buffer *var_buf;
+    __rtanc_var_buffer *var_buf_r;
     u8  id;
     struct icsd_rtanc_tool_data *rtanc_tool;
 };
@@ -267,6 +268,7 @@ struct icsd_rtanc_libfmt {
 };
 
 typedef struct {
+    u8  part1_ch;
     u8  dma_ch;
     u8  part1_cnt;
     u8  dac_flag_iszero;
@@ -284,6 +286,7 @@ typedef struct {
 typedef struct {
     u8  dma_ch;
     u8  dac_flag_iszero;
+    u8  LR_FLAG;
     float *out0_sum;
     float *out1_sum;
     float *out2_sum;
@@ -311,12 +314,19 @@ struct rtanc_param {
 void icsd_rtanc_get_libfmt(struct icsd_rtanc_libfmt *libfmt);
 void icsd_rtanc_set_infmt(struct icsd_rtanc_infmt *fmt);
 void icsd_alg_rtanc_run_part1(__icsd_rtanc_part1_parm *part1_parm);
-u8   icsd_alg_rtanc_run_part2(__icsd_rtanc_part2_parm *part2_parm);
-void icsd_alg_rtanc_offline_printf();
-void icsd_alg_rtanc_part2_parm_init();
+u8   icsd_alg_rtanc_run_part2_merge(__icsd_rtanc_part2_parm *part2_parm);
+void icsd_alg_rtanc_offline_printf(__icsd_rtanc_part2_parm *part2_parm);
+// void icsd_alg_rtanc_offline_printf_r();
+//void icsd_alg_rtanc_part2_parm_init();
+void icsd_alg_rtanc_part2_parm_init(__icsd_rtanc_part2_parm *part2_parm);
+//void icsd_alg_rtanc_part2_parm_init_r();
+void icsd_alg_rtanc_set_part1_ch_lr(u8 ch, u8 part2_stop);
+u8   icsd_alg_rtanc_get_part1_ch();
+void icsd_alg_rtanc_set_part1_ch();
+void icsd_alg_rtanc_set_part1_ch_all0();
 void rt_anc_time_out_del();
-void rt_anc_set_init(struct rt_anc_infmt *fmt, struct __anc_ext_rtanc_adaptive_cfg *rtanc_tool_cfg, struct __anc_ext_dynamic_cfg *dynamic_cfg);
-void rt_anc_init(struct rt_anc_infmt *fmt, struct __anc_ext_rtanc_adaptive_cfg *rtanc_tool_cfg, struct __anc_ext_dynamic_cfg *dynamic_cfg);
+void rt_anc_set_init(struct rt_anc_infmt *fmt, struct __anc_ext_rtanc_adaptive_cfg *rtanc_tool_cfg, struct __anc_ext_rtanc_adaptive_cfg *rtanc_tool_cfg_r, struct __anc_ext_dynamic_cfg *dynamic_cfg, struct __anc_ext_dynamic_cfg *dynamic_cfg_r);
+void rt_anc_init(struct rt_anc_infmt *fmt, struct __anc_ext_rtanc_adaptive_cfg *rtanc_tool_cfg, struct __anc_ext_rtanc_adaptive_cfg *rtanc_tool_cfg_r, struct __anc_ext_dynamic_cfg *dynamic_cfg, struct __anc_ext_dynamic_cfg *dynamic_cfg_r);
 void rt_anc_param_updata_cmd(void *param_l, void *param_r);
 void rt_anc_part1_reset();
 void icsd_rtanc_alg_get_sz(float *sz_out, u8 ch);
@@ -325,7 +335,7 @@ void icsd_alg_rtanc_filter_update(struct rtanc_param *param);
 void icsd_post_rtanctask_msg(u8 cmd);
 void icsd_post_detask_msg(u8 cmd);
 void rtanc_adjdcc_flag_set(u8 flag);
-void rtanc_cal_and_update_filter_l_task();
+void rtanc_cal_and_update_filter_task(u8 ch);
 u8 adjdcc_trigger_update(u8 env_level, float *table);
 u8 rtanc_adjdcc_flag_get();
 

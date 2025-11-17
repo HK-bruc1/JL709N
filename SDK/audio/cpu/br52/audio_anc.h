@@ -42,6 +42,18 @@
 #endif
 
 /*
+   ANC 多MIC阵列配置(仅支持TWS)
+ */
+#define AUDIO_ANC_MIC_ARRAY_ENABLE	 0	/*ANC 多MIC阵列使能*/
+
+//ANC MIC阵列数量配置：TWS单边(如左耳)MIC数量
+#define AUDIO_ANC_MIC_ARRAY_FF_NUM	 1	/*FF MIC数量 range [1,2]*/
+#define AUDIO_ANC_MIC_ARRAY_FB_NUM	 2  /*FB MIC数量 range [1,2]*/
+
+//CMP SZ补偿使能
+#define AUDIO_ANC_ADAPTIVE_CMP_SZ_FACTOR   (AUDIO_ANC_MIC_ARRAY_ENABLE && (AUDIO_ANC_MIC_ARRAY_FB_NUM == 2))
+
+/*
    ANC多场景滤波器配置
  */
 #define ANC_MULT_ORDER_ENABLE				TCFG_AUDIO_ANC_MULT_ORDER_ENABLE	/*ANC多滤波器使能*/
@@ -134,6 +146,12 @@
 
 /*******************ANC User Config End*******************/
 
+#define AUDIO_ANC_STEREO_ENABLE	(TCFG_AUDIO_DAC_CONNECT_MODE == DAC_OUTPUT_LR)
+
+#if AUDIO_ANC_MIC_ARRAY_ENABLE
+#define TCFG_AUDIO_ANC_CH 	(ANC_L_CH | ANC_R_CH)
+
+#else
 #if TCFG_AUDIO_DAC_CONNECT_MODE == DAC_OUTPUT_MONO_L
 #define TCFG_AUDIO_ANC_CH 	ANC_L_CH
 #elif TCFG_AUDIO_DAC_CONNECT_MODE == DAC_OUTPUT_MONO_R
@@ -141,6 +159,8 @@
 #else
 #define TCFG_AUDIO_ANC_CH 	(ANC_L_CH | ANC_R_CH)
 #endif/*TCFG_AUDIO_DAC_CONNECT_MODE == DAC_OUTPUT_MONO_L*/
+
+#endif
 
 #define  TCFG_AUDIO_ANC_MAX_ORDER 	10	//最大滤波器个数
 
@@ -232,7 +252,7 @@ typedef struct {
 #if (TCFG_AUDIO_ANC_CH & ANC_L_CH)
     float l_target[TARLEN2 + TARLEN2_L];
 #endif
-#if (TCFG_AUDIO_ANC_CH & ANC_R_CH)
+#if AUDIO_ANC_STEREO_ENABLE
     float r_target[TARLEN2 + TARLEN2_L];
 #endif
     u8 result;
@@ -248,11 +268,11 @@ typedef struct {
     anc_fr_t lcmp[ANC_ADAPTIVE_CMP_ORDER];
 #endif/*ANC_EAR_ADAPTIVE_CMP_EN*/
 #endif/*ANC_CONFIG_LFB_EN*/
-#if ANC_CONFIG_RFF_EN
+#if ANC_CONFIG_RFF_EN && AUDIO_ANC_STEREO_ENABLE
     float rff_gain;
     anc_fr_t rff[ANC_ADAPTIVE_FF_ORDER];
 #endif/*ANC_CONFIG_RFF_EN*/
-#if ANC_CONFIG_RFB_EN
+#if ANC_CONFIG_RFB_EN && AUDIO_ANC_STEREO_ENABLE
     float rfb_gain;
     anc_fr_t rfb[ANC_ADAPTIVE_FB_ORDER];
 #if ANC_EAR_ADAPTIVE_CMP_EN
@@ -445,6 +465,9 @@ u32 get_anc_gains_trans_alogm();
 void *get_anc_lfb_coeff();
 float get_anc_gains_l_fbgain();
 u8 get_anc_l_fbyorder();
+void *get_anc_rfb_coeff();
+float get_anc_gains_r_fbgain();
+u8 get_anc_r_fbyorder();
 void *get_anc_lff_coeff();
 float get_anc_gains_l_ffgain();
 u8 get_anc_l_ffyorder();
@@ -503,4 +526,9 @@ void audio_anc_tone_adaptive_disable(u8 device);
 void audio_anc_tone_adaptive_enable(u8 device);
 
 void audio_anc_drc_toggle_set(u8 toggle);
+
+void audio_anc_stereo_mix_set(u8 en);
+
+u8 audio_anc_stereo_mix_get(void);
+
 #endif/*AUDIO_ANC_H*/

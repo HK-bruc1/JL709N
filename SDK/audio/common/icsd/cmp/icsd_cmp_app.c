@@ -44,6 +44,7 @@ struct icsd_cmp_param {
     float gain;								//增益
     anc_fr_t fr[ANC_ADAPTIVE_CMP_ORDER];	//输出整理
     double *coeff;							//IIR_COEFF
+    float *sz_cmp;							//双FB方案, sz补偿
 };
 
 struct icsd_cmp_hdl {
@@ -53,7 +54,7 @@ struct icsd_cmp_hdl {
     void *lib_alloc_ptr;
 
     struct icsd_cmp_param l_param;
-#if ANC_CONFIG_RFB_EN
+#if ANC_CONFIG_RFB_EN && AUDIO_ANC_STEREO_ENABLE
     struct icsd_cmp_param r_param;
 #endif
 };
@@ -70,6 +71,18 @@ void icsd_cmp_force_exit(void)
         DeAlorithm_disable();
     }
 }
+
+#if 0
+static const float sz_cmp_factor_local[] = {  // 60*2
+    0.963793, 0.000000, 0.986749, 0.014526, 1.003910, 0.012926, 1.026123, 0.011642, 1.033021, -0.003880, 1.030658, -0.007711, 1.040935, -0.001288, 1.052287, -0.003880, 1.082905, -0.001467, 1.081072, -0.014716,
+    1.137425, -0.022067, 1.168316, -0.050960, 1.219801, -0.082931, 1.203713, -0.220755, 1.204439, -0.216236, 1.201030, -0.293226, 1.180225, -0.360809, 1.125884, -0.479319, 0.931298, -0.480807, 0.941836, -0.467514,
+    0.899464, -0.472681, 0.829148, -0.447897, 0.771591, -0.411462, 0.777075, -0.374702, 0.742858, -0.386555, 0.726220, -0.346913, 0.712452, -0.353743, 0.673371, -0.351083, 0.647078, -0.331966, 0.611047, -0.287191,
+    0.626269, -0.260849, 0.614002, -0.245480, 0.605257, -0.230781, 0.600403, -0.203312, 0.594758, -0.188350, 0.591445, -0.158516, 0.608727, -0.143485, 0.607351, -0.129028, 0.613200, -0.117099, 0.621101, -0.101453,
+    0.633386, -0.093033, 0.639954, -0.090755, 0.638554, -0.085074, 0.646624, -0.077382, 0.648430, -0.074510, 0.652886, -0.066783, 0.659506, -0.063976, 0.663030, -0.062161, 0.664012, -0.059119, 0.667434, -0.053777,
+    0.669919, -0.050635, 0.675036, -0.048427, 0.677023, -0.046558, 0.681144, -0.043662, 0.684940, -0.043610, 0.685590, -0.042749, 0.685522, -0.041096, 0.689335, -0.038630, 0.690117, -0.037390, 0.693586, -0.036743,
+};
+#endif
+
 
 static int anc_ear_adaptive_cmp_run_ch(struct icsd_cmp_param *p, float *sz, int sz_len, u8 ch)
 {
@@ -88,7 +101,32 @@ static int anc_ear_adaptive_cmp_run_ch(struct icsd_cmp_param *p, float *sz, int 
 #endif
         //icsd_cmp_run 会修改SZ数据，需要备份
         sz_tmp = (float *)anc_malloc("ICSD_CMP", sz_len * sizeof(float));
-        memcpy((u8 *)sz_tmp, (u8 *)sz, sz_len * sizeof(float));
+
+#if AUDIO_ANC_ADAPTIVE_CMP_SZ_FACTOR
+        //双FB 方案需做SZ补偿
+        if (audio_anc_stereo_mix_get()) {
+            cmp_log("ICSD_CMP_STATE: SZ_CMP RUN\n");
+            u8 l_num = get_anc_l_fbyorder();
+            u8 r_num = get_anc_r_fbyorder();
+            float l_gain = get_anc_gains_l_fbgain();
+            float r_gain = get_anc_gains_r_fbgain();
+            double *l_coeff = (double *)get_anc_lfb_coeff();
+            double *r_coeff = (double *)get_anc_rfb_coeff();
+            fbx2_szcmp_cal(l_coeff, l_gain, l_num, r_coeff, r_gain, r_num, sz, (float *)ext_cfg->cmp_sz_factor, sz_tmp);
+
+            if (anc_ext_tool_online_get()) {
+                if (p->sz_cmp) {
+                    anc_free(p->sz_cmp);
+                }
+                p->sz_cmp = anc_malloc("ICSD_CMP_APP", sz_len * sizeof(float));
+                memcpy((u8 *)p->sz_cmp, (u8 *)sz_tmp, sz_len * sizeof(float));
+            }
+        } else
+#endif
+        {
+            memcpy((u8 *)sz_tmp, (u8 *)sz, sz_len * sizeof(float));
+        }
+
         //CMP来自耳道/实时自适应时，SZ符号一定为正
         output = icsd_cmp_run(sz_tmp, cmp_cfg);
 
@@ -174,8 +212,8 @@ int audio_anc_ear_adaptive_cmp_run(void *output)
         struct audio_afq_output *p = (struct audio_afq_output *)output;
         l_state = anc_ear_adaptive_cmp_run_ch(&cmp_hdl->l_param, p->sz_l.out, p->sz_l.len, 0);
 
-#if ANC_CONFIG_RFB_EN
-        r_state = anc_ear_adaptive_cmp_run_ch(&cmp_hdl->r_param, p->sz_r.out, p->sz_r.len,, 1);
+#if ANC_CONFIG_RFB_EN && AUDIO_ANC_STEREO_ENABLE
+        r_state = anc_ear_adaptive_cmp_run_ch(&cmp_hdl->r_param, p->sz_r.out, p->sz_r.len, 1);
 #endif
     } else {
         __afq_output *p2 = (__afq_output *)output;
@@ -183,7 +221,7 @@ int audio_anc_ear_adaptive_cmp_run(void *output)
             l_state = anc_ear_adaptive_cmp_run_ch(&cmp_hdl->l_param, p2->sz_l->out, p2->sz_l->len, 0);
         }
 
-#if ANC_CONFIG_RFB_EN
+#if ANC_CONFIG_RFB_EN && AUDIO_ANC_STEREO_ENABLE
         if (p2->sz_r) {
             r_state = anc_ear_adaptive_cmp_run_ch(&cmp_hdl->r_param, p2->sz_r->out, p2->sz_r->len, 1);
         }
@@ -263,7 +301,7 @@ static void audio_anc_ear_adaptive_cmp_afq_output_hdl(struct audio_afq_output *p
         } else {
             //异常处理
             cmp_hdl->l_param.output->state = -1;
-#if ANC_CONFIG_RFB_EN
+#if ANC_CONFIG_RFB_EN && AUDIO_ANC_STEREO_ENABLE
             cmp_hdl->r_param.output->state = -1;
 #endif
         }
@@ -290,7 +328,7 @@ int audio_anc_ear_adaptive_cmp_open(u8 data_from)
     cmp_hdl->l_param.output->fgq = anc_malloc("ICSD_CMP_APP", ANC_ADAPTIVE_CMP_OUTPUT_SIZE);
     cmp_log("%p %p\n", cmp_hdl->l_param.output, cmp_hdl->l_param.output->fgq);
 
-#if ANC_CONFIG_RFB_EN
+#if ANC_CONFIG_RFB_EN && AUDIO_ANC_STEREO_ENABLE
     cmp_hdl->r_param.output = anc_malloc("ICSD_CMP_APP", sizeof(_cmp_output));
     cmp_hdl->r_param.output->fgq = anc_malloc("ICSD_CMP_APP", ANC_ADAPTIVE_CMP_OUTPUT_SIZE);
 #endif
@@ -299,6 +337,20 @@ int audio_anc_ear_adaptive_cmp_open(u8 data_from)
         audio_afq_common_add_output_handler("ANC_CMP", fre_sel, audio_anc_ear_adaptive_cmp_afq_output_hdl);
     }
     return 0;
+}
+
+static void anc_ear_adaptive_cmp_param_free(struct icsd_cmp_param *p)
+{
+    if (p->coeff) {
+        anc_free(p->coeff);
+    }
+    if (p->output) {
+        anc_free(p->output->fgq);
+        anc_free(p->output);
+    }
+    if (p->sz_cmp) {
+        anc_free(p->sz_cmp);
+    }
 }
 
 int audio_anc_ear_adaptive_cmp_close(void)
@@ -316,21 +368,9 @@ int audio_anc_ear_adaptive_cmp_close(void)
         if (cmp_hdl->data_from == CMP_FROM_RTANC) {
             audio_afq_common_del_output_handler("ANC_CMP");
         }
-        if (cmp_hdl->l_param.coeff) {
-            anc_free(cmp_hdl->l_param.coeff);
-        }
-        if (cmp_hdl->l_param.output) {
-            anc_free(cmp_hdl->l_param.output->fgq);
-            anc_free(cmp_hdl->l_param.output);
-        }
-#if ANC_CONFIG_RFB_EN
-        if (cmp_hdl->r_param.coeff) {
-            anc_free(cmp_hdl->r_param.coeff);
-        }
-        if (cmp_hdl->r_param.output) {
-            anc_free(cmp_hdl->r_param.output->fgq);
-            anc_free(cmp_hdl->r_param.output);
-        }
+        anc_ear_adaptive_cmp_param_free(&cmp_hdl->l_param);
+#if ANC_CONFIG_RFB_EN && AUDIO_ANC_STEREO_ENABLE
+        anc_ear_adaptive_cmp_param_free(&cmp_hdl->r_param);
 #endif
         anc_free(cmp_hdl);
         cmp_hdl = NULL;
@@ -355,10 +395,27 @@ float *audio_anc_ear_adaptive_cmp_output_get(enum ANC_EAR_ADAPTIVE_CMP_CH ch)
             }
             break;
         case ANC_EAR_ADAPTIVE_CMP_CH_R:
-#if ANC_CONFIG_RFB_EN
+#if ANC_CONFIG_RFB_EN && AUDIO_ANC_STEREO_ENABLE
             if (cmp_hdl->r_param.output) {
                 return cmp_hdl->r_param.output->fgq;
             }
+#endif
+            break;
+        }
+    }
+    return NULL;
+}
+
+//获取算法输出SZ CMP
+float *audio_anc_ear_adaptive_cmp_sz_cmp_get(enum ANC_EAR_ADAPTIVE_CMP_CH ch)
+{
+    if (cmp_hdl) {
+        switch (ch) {
+        case ANC_EAR_ADAPTIVE_CMP_CH_L:
+            return cmp_hdl->l_param.sz_cmp;
+        case ANC_EAR_ADAPTIVE_CMP_CH_R:
+#if ANC_CONFIG_RFB_EN && AUDIO_ANC_STEREO_ENABLE
+            return cmp_hdl->r_param.sz_cmp;
 #endif
             break;
         }
@@ -373,7 +430,7 @@ u8 *audio_anc_ear_adaptive_cmp_type_get(enum ANC_EAR_ADAPTIVE_CMP_CH ch)
         case ANC_EAR_ADAPTIVE_CMP_CH_L:
             return cmp_hdl->l_param.type;
         case ANC_EAR_ADAPTIVE_CMP_CH_R:
-#if ANC_CONFIG_RFB_EN
+#if ANC_CONFIG_RFB_EN && AUDIO_ANC_STEREO_ENABLE
             return cmp_hdl->r_param.type;
 #endif
             break;
@@ -400,7 +457,7 @@ int audio_rtanc_adaptive_cmp_output_get(struct anc_cmp_param_output *output)
         audio_rtanc_adaptive_cmp_data_format(&cmp_hdl->l_param, output->l_coeff);
         output->l_gain = (cmp_hdl->l_param.gain < 0) ? (0 - cmp_hdl->l_param.gain) : cmp_hdl->l_param.gain;
         /* output->l_coeff = cmp_hdl->l_param.coeff; */
-#if ANC_CONFIG_RFB_EN
+#if ANC_CONFIG_RFB_EN && AUDIO_ANC_STEREO_ENABLE
         audio_rtanc_adaptive_cmp_data_format(&cmp_hdl->r_param, output->r_coeff);
         output->r_gain = (cmp_hdl->r_param.gain < 0) ? (0 - cmp_hdl->r_param.gain) : cmp_hdl->r_param.gain;
         /* output->r_coeff = cmp_hdl->r_param.coeff; */
@@ -416,7 +473,7 @@ u8 audio_anc_ear_adaptive_cmp_result_get(void)
         if (!cmp_hdl->l_param.output->state) {
             result |= ANC_ADAPTIVE_RESULT_LCMP;
         }
-#if ANC_CONFIG_RFB_EN
+#if ANC_CONFIG_RFB_EN && AUDIO_ANC_STEREO_ENABLE
         if (!cmp_hdl->r_param.output->state) {
             result |= ANC_ADAPTIVE_RESULT_RCMP;
         }

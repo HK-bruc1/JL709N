@@ -158,7 +158,7 @@ static void icsd_anc_v2_open(void *_param, struct anc_ext_ear_adaptive_param *ex
         infmt.target_out_l = anc_iir->l_target;
     }
 #endif
-#if (TCFG_AUDIO_ANC_CH & ANC_R_CH)
+#if AUDIO_ANC_STEREO_ENABLE
     if (anc_iir->result & ANC_ADAPTIVE_RESULT_RFF) {
         ICSD_REG->rff_fgq_last = (float *)anc_malloc("ICSD_ANC", ((ANC_MAX_ORDER * 3) + 1) * sizeof(float));
         for (int i = 0; i < ANC_ADAPTIVE_FF_ORDER; i++) {

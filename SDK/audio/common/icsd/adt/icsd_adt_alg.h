@@ -54,6 +54,7 @@ void icsd_adt_tidy_avc_alg_run();
 void icsd_adt_adc_avc_run();
 //==========RTANC========================
 typedef struct {
+    u8  part1_ch;
     u8  dma_ch;
     u8  part1_cnt;
     u8  dac_flag_iszero;
@@ -71,6 +72,7 @@ typedef struct {
 typedef struct {
     u8  dma_ch;
     u8  dac_flag_iszero;
+    u8  LR_FLAG;
     float *out0_sum;
     float *out1_sum;
     float *out2_sum;
@@ -80,11 +82,43 @@ typedef struct {
     float *szpz_out;
 } __adt_rtanc_part2_parm;
 
+typedef struct {
+    u8  dma_ch;
+    u8  dac_flag_iszero;
+    float out0_sum[50];
+    float out1_sum[50];
+    float out2_sum[50];
+    float sz_out0_sum[50];
+    float sz_out1_sum[50];
+    float sz_out2_sum[50];
+    float szpz_out[50];
+} __adt_rtanc_part2_parm_r;
+
+
+typedef struct {
+    u8  dma_ch;
+    u8  dac_flag_iszero;
+    float out0_sum[50];
+    float out1_sum[50];
+    float out2_sum[50];
+    float sz_out0_sum[50];
+    float sz_out1_sum[50];
+    float sz_out2_sum[50];
+    float szpz_out[50];
+} __adt_rtanc_part2_parm_debug;
+
+
 int  icsd_adt_rtanc_get_libfmt(u8 rtanc_type);
 int  icsd_adt_rtanc_set_infmt(int _ram_addr, void *rtanc_tool, u8 rtanc_type, int TOOL_FUNCTION, u8 part1_times);
 void icsd_adt_alg_rtanc_run_part1(__adt_anc_part1_parm *_part1_parm);
 void icsd_adt_alg_rtanc_part2_parm_init();
+//void icsd_adt_alg_rtanc_part2_parm_init_l();
+void icsd_adt_alg_rtanc_part2_parm_init(__adt_rtanc_part2_parm *_part2_parm);
+void icsd_adt_alg_rtanc_part2_parm_init_r();
+u8   icsd_adt_get_rtanc_part1_ch();
 u8   icsd_adt_alg_rtanc_run_part2(__adt_rtanc_part2_parm *_part2_parm);
+void icsd_adt_set_rtanc_part1_ch();
+void icsd_adt_rtanc_set_part1_all0();
 u8 	 icsd_adt_alg_rtanc_get_wind_lvl();
 float icsd_adt_alg_rtanc_get_avc_spldb_iir();
 u8   icsd_adt_alg_rtanc_get_wind_angle();
@@ -215,6 +249,7 @@ typedef struct {
 int  icsd_adt_vdt_get_libfmt();
 int  icsd_adt_vdt_set_infmt(int _ram_addr);
 void icsd_adt_alg_rtanc_de_run_l();
+void icsd_adt_alg_rtanc_de_run_r();
 void icsd_adt_alg_vdt_run(__adt_vdt_run_parm *_run_parm, __adt_vdt_output *_output);
 void icsd_adt_vdt_data_init(u8 _anc_mode_ind, float refl_mgain, float errl_mgain, float refr_mgain, float errr_mgain, float tlk_mgain);
 void icsd_adt_alg_rtanc_adjdcc_flag_set(u8 flag);

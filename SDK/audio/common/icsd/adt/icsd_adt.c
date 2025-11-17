@@ -461,6 +461,7 @@ const struct adt_function ADT_FUNC_t = {
     .icsd_adt_tws_state = icsd_adt_tws_state,
     .anc_dma_done_ppflag = anc_dma_done_ppflag,
     .anc_dma_on_double = anc_dma_on_double,
+    .anc_dma_off = anc_dma_off,
     .icsd_adt_hw_suspend = icsd_adt_hw_suspend,
     .icsd_adt_hw_resume = icsd_adt_hw_resume,
     .icsd_adt_anc46k_out_reset = icsd_adt_anc46k_out_reset,

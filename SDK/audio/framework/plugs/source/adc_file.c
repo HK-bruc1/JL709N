@@ -214,6 +214,24 @@ void audio_all_adc_file_init(void)
 #endif
 }
 
+/*
+   修改通话ADC节点 对应通道的硬件配置
+	param: mic_num  MIC通道
+           cfg      目标硬件配置
+*/
+void audio_adc_platform_cfg_change(u8 mic_num, const struct adc_platform_cfg *cfg)
+{
+    int cfg_len = sizeof(struct adc_platform_cfg);
+    if (!esco_adc_f.read_flag) {
+        audio_adc_file_init();
+    }
+    printf("%s, mic_num = %d, before\n", __func__, mic_num);
+    put_buf(((u8 *)&esco_adc_f.platform_cfg) + (mic_num * cfg_len), cfg_len);
+    memcpy(((u8 *)&esco_adc_f.platform_cfg) + (mic_num * cfg_len), cfg, cfg_len);
+    printf("%s, after\n", __func__);
+    put_buf((u8 *)(&esco_adc_f.platform_cfg) + (mic_num * cfg_len), cfg_len);
+}
+
 __AUDIO_INIT_BANK_CODE
 void audio_adc_file_init(void)  //通话的ADC节点配置
 {

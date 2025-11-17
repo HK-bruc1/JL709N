@@ -112,18 +112,23 @@ struct icsd_anc_v2_tool_data {
 // anc tool buffer
 typedef struct {
     // target配置
-    int   cmp_en;
-    int   target_cmp_num;
-    u8    pnc_times;
-
+    u8   pnc_times;
+    u8	 high_fgq_fix;
+    u8   de_alg_sel;
+    u8   test_mode;
+    u8   biquad_type[10];
+    u8   fb_biquad_type[10];
+    u8   mem_curve_nums;
+    u8   cmp_biquad_type[10];
+    int  cmp_en;
+    int  target_cmp_num;
+    int  IIR_NUM_FLEX;
+    int  IIR_NUM_FIX;
     float  pz_gain;
     float *target_sv;
     float *target_cmp_dat;
 
     // 算法配置
-    u8    biquad_type[10];
-    u8    fb_biquad_type[10];
-    u8    cmp_biquad_type[10];
     float Vrange_H[62];
     float Vrange_M[62];
     float Vrange_L[62];
@@ -144,11 +149,8 @@ typedef struct {
     float total_gain_adj_begin;
     float total_gain_adj_end;
     float gain_limit_all;
-    int   IIR_NUM_FLEX;
-    int   IIR_NUM_FIX;
 
     // 耳道记忆曲线配置
-    u8    mem_curve_nums;
     float *pz_table;
     float *sz_table;
     float *pz_coef_table;
@@ -157,16 +159,17 @@ typedef struct {
     float *sz_table_cmp;
     float *ff_filter;
 
-    u8 high_fgq_fix;
-    u8 de_alg_sel;
-
     // 产测相关
-    u8 test_mode;
     float *vrange_gold;
     float *biquad_gold;
     float *weight_gold;
     float *mse_gold;
     float *degree_set_gold;
+    float *sz_angle_rangel;
+    float *sz_angle_rangeh;
+    float *gfq_default;
+
+
 } adpt_anc_cfg;
 
 
@@ -202,9 +205,6 @@ typedef struct {
 
     adpt_anc_cfg adpt_cfg;
     adpt_anc_cfg adpt_cfg_r;
-
-    float *sz_angle_rangel;
-    float *sz_angle_rangeh;
 
 } __icsd_anc_config_data;
 extern __icsd_anc_config_data	*SD_CFG;       // ANC

@@ -276,6 +276,7 @@ int audio_anc_debug_user_cmd_process(u8 *data, int len)
     int data_len = len - 1;	//目标数据长度
     u8 *data_p = data + 1;	//目标数据地址
     float f_param = 0.0f;
+    audio_anc_t *anc_param;
 
     if (data_len == 4) {
         memcpy((u8 *)&f_param, data_p, 4);
@@ -298,7 +299,6 @@ int audio_anc_debug_user_cmd_process(u8 *data, int len)
 #endif
 #if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
     case 2:
-        int audio_anc_app_adt_mode_init(u8 enable);
         audio_anc_app_adt_mode_init(data[1]);
         break;
 #endif
@@ -329,6 +329,12 @@ int audio_anc_debug_user_cmd_process(u8 *data, int len)
         break;
 #endif
 
+#if TCFG_AUDIO_ANC_ENV_NOISE_DET_ENABLE
+    case 10:
+        extern float avc_alpha_db;
+        avc_alpha_db = f_param;
+        break;
+#endif
 #if ANC_HOWLING_DETECT_EN
     case 11:
         //开关啸叫检测
@@ -353,10 +359,40 @@ int audio_anc_debug_user_cmd_process(u8 *data, int len)
         }
         break;
 #endif
-#if TCFG_AUDIO_ANC_ENV_NOISE_DET_ENABLE
+#if AUDIO_ANC_MIC_ARRAY_ENABLE
     case 14:
-        extern float avc_alpha_db;
-        avc_alpha_db = f_param;
+        //对调主副的FF mic
+        printf("ANC_STEREO_MIX: swap ff mic ch\n");
+        anc_param = audio_anc_param_get();
+        if (data[1]) {
+            anc_param->mic_type[0] = TCFG_AUDIO_ANCR_FF_MIC;
+            anc_param->mic_type[2] = TCFG_AUDIO_ANCL_FF_MIC;
+        } else {
+            anc_param->mic_type[0] = TCFG_AUDIO_ANCL_FF_MIC;
+            anc_param->mic_type[2] = TCFG_AUDIO_ANCR_FF_MIC;
+        }
+        put_buf(anc_param->mic_type, 4);
+        break;
+    case 15:
+        //对调主副的FB mic
+        printf("ANC_STEREO_MIX: swap fb mic ch\n");
+        anc_param = audio_anc_param_get();
+        if (data[1]) {
+            anc_param->mic_type[1] = TCFG_AUDIO_ANCR_FB_MIC;
+            anc_param->mic_type[3] = TCFG_AUDIO_ANCL_FB_MIC;
+        } else {
+            anc_param->mic_type[1] = TCFG_AUDIO_ANCL_FB_MIC;
+            anc_param->mic_type[3] = TCFG_AUDIO_ANCR_FB_MIC;
+        }
+        put_buf(anc_param->mic_type, 4);
+        break;
+    case 16:
+        /*
+         	0：关闭多MIC阵列，FF/FB_NUM = 1
+        	1：打开多MIC阵列，FF/FB NUM > 1
+         */
+        printf("ANC_STEREO_MIX: en %d\n", data[1]);
+        audio_anc_stereo_mix_set(data[1]);
         break;
 #endif
     default:

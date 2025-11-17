@@ -715,7 +715,7 @@ static int audio_anc_coeff_adaptive_set_base(u32 mode, u8 tone_play, u8 ignore_b
 #endif/*ANC_EAR_ADAPTIVE_CMP_EN*/
 #endif/*TCFG_AUDIO_ANC_CH*/
 
-#if TCFG_AUDIO_ANC_CH & ANC_R_CH
+#if AUDIO_ANC_STEREO_ENABLE
         if (result & ANC_ADAPTIVE_RESULT_RFF) {
             anc_log("adaptive coeff set rff\n");
             hdl->param->gains.r_ffgain = (hdl->adaptive_iir.rff_gain < 0) ? (0 - hdl->adaptive_iir.rff_gain) : hdl->adaptive_iir.rff_gain;
@@ -736,7 +736,7 @@ static int audio_anc_coeff_adaptive_set_base(u32 mode, u8 tone_play, u8 ignore_b
             hdl->param->rcmp_coeff = hdl->param->adaptive->rcmp_coeff;
         }
 #endif/*ANC_EAR_ADAPTIVE_CMP_EN*/
-#endif/*TCFG_AUDIO_ANC_CH*/
+#endif/*AUDIO_ANC_STEREO_ENABLE*/
 
         break;
     default:
@@ -775,13 +775,13 @@ static void audio_anc_adaptive_data_format(anc_adaptive_iir_t *iir)
 #endif/*ANC_EAR_ADAPTIVE_CMP_EN*/
         }
 #endif/*ANC_CONFIG_LFB_EN*/
-#if ANC_CONFIG_RFF_EN
+#if ANC_CONFIG_RFF_EN && AUDIO_ANC_STEREO_ENABLE
         if (hdl->param->rff_en && (result & ANC_ADAPTIVE_RESULT_RFF)) {
             hdl->param->adaptive->rff_coeff = anc_malloc("ICSD_ANC_APP", ANC_ADAPTIVE_FF_ORDER * sizeof(double) * 5);
             iir_lib.rff = hdl->adaptive_iir.rff;
         }
 #endif/*ANC_CONFIG_RFF_EN*/
-#if ANC_CONFIG_RFB_EN
+#if ANC_CONFIG_RFB_EN && AUDIO_ANC_STEREO_ENABLE
         if (hdl->param->rfb_en) {
             if (result & ANC_ADAPTIVE_RESULT_RFB) {
                 hdl->param->adaptive->rfb_coeff = anc_malloc("ICSD_ANC_APP", ANC_ADAPTIVE_FB_ORDER * sizeof(double) * 5);
@@ -949,7 +949,7 @@ void audio_anc_adaptive_data_packet(struct icsd_anc_v2_tool_data *TOOL_DATA)
     audio_anc_adaptive_fr_fail_fill(cmp_dat, cmp_yorder, (result & ANC_ADAPTIVE_RESULT_LCMP));
 #endif/*ANC_EAR_ADAPTIVE_CMP_EN*/
 #endif/*ANC_CONFIG_LFB_EN*/
-#if ANC_CONFIG_RFF_EN
+#if ANC_CONFIG_RFF_EN && AUDIO_ANC_STEREO_ENABLE
     rff_dat = (u8 *)&iir->rff_gain;
     if (!ANC_CONFIG_LFF_EN) { 	//TWS 单R声道使用
         ff_dat = rff_dat;
@@ -960,7 +960,7 @@ void audio_anc_adaptive_data_packet(struct icsd_anc_v2_tool_data *TOOL_DATA)
         audio_anc_adaptive_fr_fail_fill(rff_dat, ff_yorder, (result & ANC_ADAPTIVE_RESULT_RFF));
     }
 #endif/*ANC_CONFIG_RFF_EN*/
-#if ANC_CONFIG_RFB_EN
+#if ANC_CONFIG_RFB_EN && AUDIO_ANC_STEREO_ENABLE
     rfb_dat = (u8 *)&iir->rfb_gain;
     if (!ANC_CONFIG_LFB_EN) {	//TWS 单R声道使用
         fb_dat = rfb_dat;
@@ -986,7 +986,7 @@ void audio_anc_adaptive_data_packet(struct icsd_anc_v2_tool_data *TOOL_DATA)
 #if (TCFG_AUDIO_ANC_CH & ANC_L_CH)
     memcpy(iir->l_target, TOOL_DATA->data_out3, len * 8);
 #endif
-#if (TCFG_AUDIO_ANC_CH & ANC_R_CH)
+#if (TCFG_AUDIO_ANC_CH & ANC_R_CH) && AUDIO_ANC_STEREO_ENABLE
     memcpy(iir->r_target, TOOL_DATA->data_out8, len * 8);
 #endif
 
@@ -1000,7 +1000,7 @@ void audio_anc_adaptive_data_packet(struct icsd_anc_v2_tool_data *TOOL_DATA)
         /* 先统一申请空间，因为下面不知道什么情况下调用函数 anc_data_catch 时令参数 init_flag 为1 */
         anc_adaptive_data = anc_data_catch(anc_adaptive_data, NULL, 0, 0, 1);
 
-#if (TCFG_AUDIO_ANC_CH == (ANC_L_CH | ANC_R_CH))	//头戴式
+#if AUDIO_ANC_STEREO_ENABLE	//头戴式
         r_printf("ANC ear-adaptive send data\n");
         anc_adaptive_data = anc_data_catch(anc_adaptive_data, (u8 *)TOOL_DATA->h_freq, len * 4, ANC_R_ADAP_FRE, 0);
         anc_adaptive_data = anc_data_catch(anc_adaptive_data, (u8 *)TOOL_DATA->data_out6, len * 8, ANC_R_ADAP_SZPZ, 0);
@@ -1034,7 +1034,15 @@ void audio_anc_adaptive_data_packet(struct icsd_anc_v2_tool_data *TOOL_DATA)
             anc_adaptive_data = anc_data_catch(anc_adaptive_data, (u8 *)TOOL_DATA->h_freq, len * 4, ANC_R_ADAP_FRE, 0);
             anc_adaptive_data = anc_data_catch(anc_adaptive_data, (u8 *)TOOL_DATA->data_out1, len * 8, ANC_R_ADAP_SZPZ, 0);
             anc_adaptive_data = anc_data_catch(anc_adaptive_data, (u8 *)TOOL_DATA->data_out2, len * 8, ANC_R_ADAP_PZ, 0);
+#if AUDIO_ANC_ADAPTIVE_CMP_SZ_FACTOR
+            //双FB 方案复用耳道target线作为SZ补偿曲线显示
+            float *sz_cmp_r = audio_anc_ear_adaptive_cmp_sz_cmp_get(ANC_EAR_ADAPTIVE_CMP_CH_L);
+            if (sz_cmp_r) {
+                anc_adaptive_data = anc_data_catch(anc_adaptive_data, (u8 *)sz_cmp_r, len * 8, ANC_R_ADAP_TARGET, 0);
+            }
+#else
             anc_adaptive_data = anc_data_catch(anc_adaptive_data, (u8 *)TOOL_DATA->data_out3, len * 8, ANC_R_ADAP_TARGET, 0);
+#endif
             anc_adaptive_data = anc_data_catch(anc_adaptive_data, (u8 *)TOOL_DATA->data_out13, len * 8, ANC_R_ADAP_TARGET_CMP, 0);
             anc_adaptive_data = anc_data_catch(anc_adaptive_data, (u8 *)TOOL_DATA->target_before_cmp_l, len * 8, ANC_R_ADAP_TARGET_BEFORE_CMP, 0);
             anc_adaptive_data = anc_data_catch(anc_adaptive_data, (u8 *)TOOL_DATA->cmp_form_anc_train_l, len * 8, ANC_R_ADAP_CMP_FORM_TRAIN, 0);
@@ -1052,7 +1060,15 @@ void audio_anc_adaptive_data_packet(struct icsd_anc_v2_tool_data *TOOL_DATA)
             anc_adaptive_data = anc_data_catch(anc_adaptive_data, (u8 *)TOOL_DATA->h_freq, len * 4, ANC_L_ADAP_FRE, 0);
             anc_adaptive_data = anc_data_catch(anc_adaptive_data, (u8 *)TOOL_DATA->data_out1, len * 8, ANC_L_ADAP_SZPZ, 0);
             anc_adaptive_data = anc_data_catch(anc_adaptive_data, (u8 *)TOOL_DATA->data_out2, len * 8, ANC_L_ADAP_PZ, 0);
+#if AUDIO_ANC_ADAPTIVE_CMP_SZ_FACTOR
+            //双FB 方案复用耳道target线作为SZ补偿曲线显示
+            float *sz_cmp_l = audio_anc_ear_adaptive_cmp_sz_cmp_get(ANC_EAR_ADAPTIVE_CMP_CH_L);
+            if (sz_cmp_l) {
+                anc_adaptive_data = anc_data_catch(anc_adaptive_data, (u8 *)sz_cmp_l, len * 8, ANC_L_ADAP_TARGET, 0);
+            }
+#else
             anc_adaptive_data = anc_data_catch(anc_adaptive_data, (u8 *)TOOL_DATA->data_out3, len * 8, ANC_L_ADAP_TARGET, 0);
+#endif
             anc_adaptive_data = anc_data_catch(anc_adaptive_data, (u8 *)TOOL_DATA->data_out13, len * 8, ANC_L_ADAP_TARGET_CMP, 0);
             anc_adaptive_data = anc_data_catch(anc_adaptive_data, (u8 *)TOOL_DATA->target_before_cmp_l, len * 8, ANC_L_ADAP_TARGET_BEFORE_CMP, 0);
             anc_adaptive_data = anc_data_catch(anc_adaptive_data, (u8 *)TOOL_DATA->cmp_form_anc_train_l, len * 8, ANC_L_ADAP_CMP_FORM_TRAIN, 0);
@@ -1107,13 +1123,13 @@ static void audio_anc_adaptive_poweron_catch_data(anc_adaptive_iir_t *iir)
         cmp_dat = (u8 *)&iir->lcmp_gain;
 #endif/*ANC_EAR_ADAPTIVE_CMP_EN*/
 #endif/*ANC_CONFIG_LFB_EN*/
-#if ANC_CONFIG_RFF_EN
+#if ANC_CONFIG_RFF_EN && AUDIO_ANC_STEREO_ENABLE
         rff_dat = (u8 *)&iir->rff_gain;
         if (ff_dat == NULL) { //TWS ANC_R_CH使用
             ff_dat = rff_dat;
         }
 #endif/*ANC_CONFIG_RFF_EN*/
-#if ANC_CONFIG_RFB_EN
+#if ANC_CONFIG_RFB_EN && AUDIO_ANC_STEREO_ENABLE
         rfb_dat = (u8 *)&iir->rfb_gain;
         if (fb_dat == NULL) {	//TWS ANC_R_CH使用
             fb_dat = rfb_dat;
@@ -1128,7 +1144,7 @@ static void audio_anc_adaptive_poweron_catch_data(anc_adaptive_iir_t *iir)
 
         /* 先统一申请空间，因为下面不知道什么情况下调用函数 anc_data_catch 时令参数 init_flag 为1 */
         anc_adaptive_data = anc_data_catch(anc_adaptive_data, NULL, 0, 0, 1);
-#if (TCFG_AUDIO_ANC_CH == (ANC_L_CH | ANC_R_CH))	//头戴式的耳机
+#if AUDIO_ANC_STEREO_ENABLE	//头戴式的耳机
         r_printf("ANC ear-adaptive send data\n");
         if (param->lff_en && param->rff_en) {
             anc_adaptive_data = anc_data_catch(anc_adaptive_data, (u8 *)ff_dat, ff_dat_len, ANC_L_FF_IIR, 0);  //L_ff
@@ -1176,7 +1192,7 @@ static void audio_anc_adaptive_poweron_catch_data(anc_adaptive_iir_t *iir)
 /* TWS 左右参数初始化 - 耳道自适应工具打开时调用 */
 void audio_anc_param_map_init(void)
 {
-#if TCFG_USER_TWS_ENABLE && (TCFG_AUDIO_ANC_CH != (ANC_L_CH | ANC_R_CH))
+#if TCFG_USER_TWS_ENABLE && (!AUDIO_ANC_MIC_ARRAY_ENABLE)
     if (hdl) {
         if (hdl->param->developer_mode || anc_ext_tool_online_get()) {
             anc_gain_t *cfg = anc_malloc("ICSD_ANC_APP", sizeof(anc_gain_t));
@@ -1207,7 +1223,7 @@ void audio_anc_param_map_init(void)
 /* TWS 左右参数映射 */
 void audio_anc_param_map(u8 coeff_en, u8 gain_en)
 {
-#if TCFG_USER_TWS_ENABLE && (TCFG_AUDIO_ANC_CH != (ANC_L_CH | ANC_R_CH))
+#if TCFG_USER_TWS_ENABLE && (!AUDIO_ANC_MIC_ARRAY_ENABLE)
     //开发者模式 or ANC_EXT调试模式，左右耳均区分使用参数
     if (hdl->param->developer_mode || anc_ext_tool_online_get()) {
         if (coeff_en && (!hdl->param->lff_coeff || !hdl->param->rff_coeff || \

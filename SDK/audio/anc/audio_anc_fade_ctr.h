@@ -30,6 +30,7 @@ enum anc_fade_mode_t {
     ANC_FADE_MODE_EXT,              //ANC(扩展数据流)使用
     ANC_FADE_MODE_DCC_TRIM,         //DCC 校准
     ANC_FADE_MODE_ADAPTIVE_TONE,	//入耳自适应同步处理
+    ANC_FADE_MODE_REUSE_MIC,		//TALK/ANC MIC硬件不同且复用ADC通道
 
     //======用户可再此继续添加模式使用=========
     ANC_FADE_MODE_USER,				//用户模式

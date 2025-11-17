@@ -144,6 +144,7 @@ static void audio_anc_sz_fft_dac_check_slience_cb(void *buf, int len);
 void audio_anc_post_msg_sz_fft_run(void);
 
 void audio_anc_howldet_fade_set(u16 gain);
+static void audio_anc_stereo_mix_ctr(void);
 
 static void audio_anc_switch_rtanc_resume_timeout(void *priv);
 
@@ -175,6 +176,7 @@ typedef struct {
     u8 switch_latch_flag;           /*切模式 锁存标志*/
     u8 switch_latch_mode;           /*切模式 锁存模式*/
     u8 adt_open;
+    u8 stereo_to_mono_mix;			//ANC 双->单声道控制
     float drc_ratio;				/*动态MIC增益，对应DRC增益比例*/
     volatile u8 state;				/*ANC状态*/
     volatile u8 mode_switch_lock;	/*切模式锁存，1表示正在切ANC模式*/
@@ -286,6 +288,33 @@ u8 get_anc_l_fbyorder()
 {
     if (anc_hdl) {
         return anc_hdl->param.lfb_yorder;
+    } else {
+        return 0;
+    }
+}
+
+void *get_anc_rfb_coeff()
+{
+    if (anc_hdl) {
+        return anc_hdl->param.rfb_coeff;
+    } else {
+        return NULL;
+    }
+}
+
+float get_anc_gains_r_fbgain()
+{
+    if (anc_hdl) {
+        return anc_hdl->param.gains.r_fbgain;
+    } else {
+        return 0;
+    }
+}
+
+u8 get_anc_r_fbyorder()
+{
+    if (anc_hdl) {
+        return anc_hdl->param.rfb_yorder;
     } else {
         return 0;
     }
@@ -410,6 +439,9 @@ static void anc_task(void *p)
 
                 //检查通话和ANC MIC增益是否一致，不一致则报错
                 audio_anc_mic_gain_check(0);
+#if AUDIO_ANC_MIC_ARRAY_ENABLE
+                audio_anc_stereo_mix_ctr();
+#endif
 
                 if (cur_anc_mode == ANC_EXT) {
                     audio_anc_fade_ctr_set(ANC_FADE_MODE_EXT, AUDIO_ANC_FDAE_CH_ALL, 0);
@@ -1009,10 +1041,18 @@ void anc_init(void)
     anc_hdl->param.mic_type[2] = (ANC_CONFIG_RFF_EN) ? TCFG_AUDIO_ANCR_FF_MIC : MIC_NULL;
     anc_hdl->param.mic_type[3] = (ANC_CONFIG_RFB_EN) ? TCFG_AUDIO_ANCR_FB_MIC : MIC_NULL;
 
+#if AUDIO_ANC_MIC_ARRAY_ENABLE
+    anc_hdl->stereo_to_mono_mix = 1;
+    anc_hdl->param.lff_en = ANC_CONFIG_LFF_EN;
+    anc_hdl->param.lfb_en = ANC_CONFIG_LFB_EN;
+    anc_hdl->param.rff_en = (AUDIO_ANC_MIC_ARRAY_FF_NUM == 2) ? ANC_CONFIG_RFF_EN : 0;
+    anc_hdl->param.rfb_en = (AUDIO_ANC_MIC_ARRAY_FB_NUM == 2) ? ANC_CONFIG_RFB_EN : 0;
+#else
     anc_hdl->param.lff_en = ANC_CONFIG_LFF_EN;
     anc_hdl->param.lfb_en = ANC_CONFIG_LFB_EN;
     anc_hdl->param.rff_en = ANC_CONFIG_RFF_EN;
     anc_hdl->param.rfb_en = ANC_CONFIG_RFB_EN;
+#endif
     anc_hdl->param.debug_sel = 0;
 
     anc_hdl->param.trans_fb_en = (ANC_MULT_TRANS_FB_ENABLE | TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN);
@@ -1231,6 +1271,9 @@ void anc_init(void)
     anc_adt_init();
     audio_icsd_adt_scene_set(ADT_SCENE_ANC_OFF, 1);	//默认为ANC_OFF场景
 #endif /*TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN*/
+
+    //初始化 ANC_EXT相关算法使能
+    audio_anc_app_adt_mode_init(1);
 
     user_anc_log("anc_init ok");
 }
@@ -2681,6 +2724,15 @@ void audio_anc_adc_ch_set(void)
         anc_hdl->param.mic_param[i].mic_p.mic_dcc_en    = platform_cfg[i].mic_dcc_en;
         anc_hdl->param.mic_param[i].pre_gain    		= cfg->param[i].mic_pre_gain;
     }
+#if ANC_MIC_REUSE_ENABLE
+    extern const struct adc_platform_cfg adc_user_cfg;
+    anc_hdl->param.mic_param[ANC_MIC_REUSE_NUM].mic_p.mic_mode      = adc_user_cfg.mic_mode;
+    anc_hdl->param.mic_param[ANC_MIC_REUSE_NUM].mic_p.mic_ain_sel   = adc_user_cfg.mic_ain_sel;
+    anc_hdl->param.mic_param[ANC_MIC_REUSE_NUM].mic_p.mic_bias_sel  = adc_user_cfg.mic_bias_sel;
+    anc_hdl->param.mic_param[ANC_MIC_REUSE_NUM].mic_p.mic_bias_rsel = adc_user_cfg.mic_bias_rsel;
+    anc_hdl->param.mic_param[ANC_MIC_REUSE_NUM].mic_p.mic_dcc       = adc_user_cfg.mic_dcc;
+    anc_hdl->param.mic_param[ANC_MIC_REUSE_NUM].mic_p.mic_dcc_en    = adc_user_cfg.mic_dcc_en;
+#endif
 }
 
 /*
@@ -3071,6 +3123,27 @@ static void audio_anc_switch_rtanc_resume_timeout(void *priv)
 {
     anc_hdl->switch_rtanc_resume_id = 0;
     audio_anc_real_time_adaptive_resume("MODE_SWITCH");
+}
+#endif
+
+#if AUDIO_ANC_MIC_ARRAY_ENABLE
+void audio_anc_stereo_mix_set(u8 en)
+{
+    anc_hdl->stereo_to_mono_mix = en;
+}
+
+u8 audio_anc_stereo_mix_get(void)
+{
+    return anc_hdl->param.stereo_to_mono_mix;
+}
+
+static void audio_anc_stereo_mix_ctr(void)
+{
+    if (anc_hdl->stereo_to_mono_mix && (anc_mode_get() == ANC_ON)) {
+        anc_hdl->param.stereo_to_mono_mix = 1;
+    } else {
+        anc_hdl->param.stereo_to_mono_mix = 0;
+    }
 }
 #endif
 

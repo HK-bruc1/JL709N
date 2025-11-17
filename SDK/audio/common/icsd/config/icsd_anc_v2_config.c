@@ -293,6 +293,33 @@ static const float weight_gold[] = {
 
 static const float degree_set_gold[] = {11, 30, 50, 2700, 50, 2700, 5};
 
+float gfq_default[] = { // TODO
+    0.354,
+    -15, 22000, 1,
+    -21,  6000, 1.5,
+    -15, 12000, 3,
+    -6,     46, 1,
+    0,     64, 1,
+    -4,    120, 0.54,
+    -2.4,   600, 0.3,
+    0,    900, 0.9,
+    1,   1800, 1,
+    8.3, 2510, 1,
+};
+
+float gfq_default_r[] = { // TODO
+    0.354,
+    -15, 22000, 1,
+    -21,  6000, 1.5,
+    -15, 12000, 3,
+    -6,     46, 1,
+    0,     64, 1,
+    -4,    120, 0.54,
+    -2.4,   600, 0.3,
+    0,    900, 0.9,
+    1,   1800, 1,
+    8.3, 2510, 1,
+};
 
 void icsd_sd_cfg_set(__icsd_anc_config_data *SD_CFG, void *_ext_cfg)
 {
@@ -458,8 +485,8 @@ void icsd_sd_cfg_set(__icsd_anc_config_data *SD_CFG, void *_ext_cfg)
 
         // 耳道记忆曲线配置
 #if AUDIO_RT_ANC_SZ_PZ_CMP_EN
-        SD_CFG->adpt_cfg.pz_table_cmp = audio_rtanc_pz_cmp_get();
-        SD_CFG->adpt_cfg.sz_table_cmp = audio_rtanc_sz_cmp_get();
+        SD_CFG->adpt_cfg.pz_table_cmp = audio_rtanc_pz_cmp_get(0);
+        SD_CFG->adpt_cfg.sz_table_cmp = audio_rtanc_sz_cmp_get(0);
 #else
         SD_CFG->adpt_cfg.pz_table_cmp = NULL;
         SD_CFG->adpt_cfg.sz_table_cmp = NULL;
@@ -487,20 +514,22 @@ void icsd_sd_cfg_set(__icsd_anc_config_data *SD_CFG, void *_ext_cfg)
         float *sz_sel1 = &SD_CFG->adpt_cfg.sz_table[59 * 50];
 
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
-        SD_CFG->sz_angle_rangel = audio_rtanc_sz_angle_rangel_get();
-        SD_CFG->sz_angle_rangeh = audio_rtanc_sz_angle_rangeh_get();
-        if (SD_CFG->sz_angle_rangel && SD_CFG->sz_angle_rangeh) {
+        SD_CFG->adpt_cfg.sz_angle_rangel = audio_rtanc_sz_angle_rangel_get(0);
+        SD_CFG->adpt_cfg.sz_angle_rangeh = audio_rtanc_sz_angle_rangeh_get(0);
+        if (SD_CFG->adpt_cfg.sz_angle_rangel && SD_CFG->adpt_cfg.sz_angle_rangeh) {
             for (int i = 0; i < MEMLEN / 2; i++) {
-                SD_CFG->sz_angle_rangel[i] = angle_float(sz_sel0[2 * i + 0], sz_sel0[2 * i + 1]) * 180 - 30;
-                SD_CFG->sz_angle_rangeh[i] = angle_float(sz_sel1[2 * i + 0], sz_sel1[2 * i + 1]) * 180 + 30;
-                printf("angle : %d, %d\n", (int)(SD_CFG->sz_angle_rangel[i]), (int)(SD_CFG->sz_angle_rangeh[i]));
+                SD_CFG->adpt_cfg.sz_angle_rangel[i] = angle_float(sz_sel0[2 * i + 0], sz_sel0[2 * i + 1]) * 180 - 30;
+                SD_CFG->adpt_cfg.sz_angle_rangeh[i] = angle_float(sz_sel1[2 * i + 0], sz_sel1[2 * i + 1]) * 180 + 30;
+                printf("angle : %d, %d\n", (int)(SD_CFG->adpt_cfg.sz_angle_rangel[i]), (int)(SD_CFG->adpt_cfg.sz_angle_rangeh[i]));
             }
         } else {
             printf("[ICSD] adaptive anc sz angle range is empty\n");
         }
+        SD_CFG->adpt_cfg.gfq_default = gfq_default;   // TODO 从多组滤波器转化得到
 #else
-        SD_CFG->sz_angle_rangel = NULL;
-        SD_CFG->sz_angle_rangeh = NULL;
+        SD_CFG->adpt_cfg.sz_angle_rangel = NULL;
+        SD_CFG->adpt_cfg.sz_angle_rangeh = NULL;
+        SD_CFG->adpt_cfg.gfq_default = NULL;
 #endif
 
         // 预置FF滤波器
@@ -544,7 +573,7 @@ void icsd_sd_cfg_set(__icsd_anc_config_data *SD_CFG, void *_ext_cfg)
         de_biquad_printf(SD_CFG->adpt_cfg.Biquad_init_L, SD_CFG->adpt_cfg.IIR_NUM_FLEX + SD_CFG->adpt_cfg.IIR_NUM_FIX);
 #endif
 
-#if TCFG_AUDIO_ANC_CH == (ANC_L_CH | ANC_R_CH)
+#if AUDIO_ANC_STEREO_ENABLE
         /***************************************************/
         /*************** right channel config **************/
         /***************************************************/
@@ -659,23 +688,89 @@ void icsd_sd_cfg_set(__icsd_anc_config_data *SD_CFG, void *_ext_cfg)
         SD_CFG->adpt_cfg_r.gain_limit_all = ext_cfg->rff_iir_general->total_gain_limit;
 
         // 耳道记忆曲线配置
+#if AUDIO_RT_ANC_SZ_PZ_CMP_EN
+        SD_CFG->adpt_cfg_r.pz_table_cmp = audio_rtanc_pz_cmp_get(1);
+        SD_CFG->adpt_cfg_r.sz_table_cmp = audio_rtanc_sz_cmp_get(1);
+#else
+        SD_CFG->adpt_cfg_r.pz_table_cmp = NULL;
+        SD_CFG->adpt_cfg_r.sz_table_cmp = NULL;
+#endif
         SD_CFG->adpt_cfg_r.mem_curve_nums = ext_cfg->rff_ear_mem_param->mem_curve_nums;
         SD_CFG->adpt_cfg_r.sz_table = ext_cfg->rff_ear_mem_sz->data;
         SD_CFG->adpt_cfg_r.pz_table = ext_cfg->rff_ear_mem_pz->data;
-        SD_CFG->adpt_cfg_r.pz_table_cmp = NULL;
-        SD_CFG->adpt_cfg_r.sz_table_cmp = NULL;
-#if EXT_PRINTF_DEBUG
-        for (int i = 0; i < 60; i++) {
-            printf("idx=%d, mse=%d, weight=%d\n", i, (int)SD_CFG->adpt_cfg.Gold_csv_H[i], (int)SD_CFG->adpt_cfg.Weight_H[i]);
+
+        /* extern const float pz_coef_table[]; */
+        /* extern const float sz_coef_table[]; */
+        /* SD_CFG->adpt_cfg.pz_coef_table = (float *)pz_coef_table; */
+        /* SD_CFG->adpt_cfg.sz_coef_table = (float *)sz_coef_table; */
+        if (ext_cfg->rff_ear_mem_pz_coeff) {
+            SD_CFG->adpt_cfg_r.pz_coef_table = ext_cfg->rff_ear_mem_pz_coeff->data;
+        } else {
+            SD_CFG->adpt_cfg_r.pz_coef_table = NULL;
+        }
+        if (ext_cfg->rff_ear_mem_sz_coeff) {
+            SD_CFG->adpt_cfg_r.sz_coef_table = ext_cfg->rff_ear_mem_sz_coeff->data;
+        } else {
+            SD_CFG->adpt_cfg_r.sz_coef_table = NULL;
         }
 
-        de_vrange_printf(SD_CFG->adpt_cfg.Vrange_H, SD_CFG->adpt_cfg.IIR_NUM_FLEX + SD_CFG->adpt_cfg.IIR_NUM_FIX);
-        de_vrange_printf(SD_CFG->adpt_cfg.Vrange_M, SD_CFG->adpt_cfg.IIR_NUM_FLEX + SD_CFG->adpt_cfg.IIR_NUM_FIX);
-        de_vrange_printf(SD_CFG->adpt_cfg.Vrange_L, SD_CFG->adpt_cfg.IIR_NUM_FLEX + SD_CFG->adpt_cfg.IIR_NUM_FIX);
+        sz_sel0 = &SD_CFG->adpt_cfg_r.sz_table[0];
+        sz_sel1 = &SD_CFG->adpt_cfg_r.sz_table[59 * 50];
 
-        de_biquad_printf(SD_CFG->adpt_cfg.Biquad_init_H, SD_CFG->adpt_cfg.IIR_NUM_FLEX + SD_CFG->adpt_cfg.IIR_NUM_FIX);
-        de_biquad_printf(SD_CFG->adpt_cfg.Biquad_init_M, SD_CFG->adpt_cfg.IIR_NUM_FLEX + SD_CFG->adpt_cfg.IIR_NUM_FIX);
-        de_biquad_printf(SD_CFG->adpt_cfg.Biquad_init_L, SD_CFG->adpt_cfg.IIR_NUM_FLEX + SD_CFG->adpt_cfg.IIR_NUM_FIX);
+#if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
+        SD_CFG->adpt_cfg_r.sz_angle_rangel = audio_rtanc_sz_angle_rangel_get(1);
+        SD_CFG->adpt_cfg_r.sz_angle_rangeh = audio_rtanc_sz_angle_rangeh_get(1);
+        if (SD_CFG->adpt_cfg_r.sz_angle_rangel && SD_CFG->adpt_cfg_r.sz_angle_rangeh) {
+            for (int i = 0; i < MEMLEN / 2; i++) {
+                SD_CFG->adpt_cfg_r.sz_angle_rangel[i] = angle_float(sz_sel0[2 * i + 0], sz_sel0[2 * i + 1]) * 180 - 30;
+                SD_CFG->adpt_cfg_r.sz_angle_rangeh[i] = angle_float(sz_sel1[2 * i + 0], sz_sel1[2 * i + 1]) * 180 + 30;
+                printf("angle : %d, %d\n", (int)(SD_CFG->adpt_cfg_r.sz_angle_rangel[i]), (int)(SD_CFG->adpt_cfg_r.sz_angle_rangeh[i]));
+            }
+        } else {
+            printf("[ICSD] adaptive anc sz angle range is empty\n");
+        }
+        SD_CFG->adpt_cfg_r.gfq_default = gfq_default_r;   // TODO 从多组滤波器转化得到
+#else
+        SD_CFG->adpt_cfg_r.sz_angle_rangel = NULL;
+        SD_CFG->adpt_cfg_r.sz_angle_rangeh = NULL;
+        SD_CFG->adpt_cfg_r.gfq_default = NULL;
+#endif
+
+        // 预置FF滤波器
+        SD_CFG->adpt_cfg_r.ff_filter = (float *)ff_filter;
+
+        // 产测相关
+        SD_CFG->adpt_cfg_r.test_mode = ext_cfg->dut_mode;
+        if (SD_CFG->adpt_cfg_r.test_mode == 1) {
+            SD_CFG->adpt_cfg_r.IIR_NUM_FLEX = 7;
+            SD_CFG->adpt_cfg_r.IIR_NUM_FIX = 3;
+            SD_CFG->adpt_cfg_r.total_gain_adj_begin = 300;
+            SD_CFG->adpt_cfg_r.total_gain_adj_end = 600;
+            SD_CFG->adpt_cfg_r.gain_limit_all = 50;
+            for (int i = 0; i < 10; i++) {
+                SD_CFG->adpt_cfg_r.biquad_type[i] = biquad_type_gold[i];
+            }
+        }
+        SD_CFG->adpt_cfg_r.vrange_gold = (float *)vrange_gold;
+        SD_CFG->adpt_cfg_r.biquad_gold = (float *)biquad_gold;
+        SD_CFG->adpt_cfg_r.weight_gold = (float *)weight_gold;
+        SD_CFG->adpt_cfg_r.mse_gold = (float *)mse_gold;
+        SD_CFG->adpt_cfg_r.degree_set_gold = (float *)degree_set_gold;
+
+
+
+#if EXT_PRINTF_DEBUG
+        for (int i = 0; i < 60; i++) {
+            printf("idx=%d, mse=%d, weight=%d\n", i, (int)SD_CFG->adpt_cfg_r.Gold_csv_H[i], (int)SD_CFG->adpt_cfg_r.Weight_H[i]);
+        }
+
+        de_vrange_printf(SD_CFG->adpt_cfg_r.Vrange_H, SD_CFG->adpt_cfg_r.IIR_NUM_FLEX + SD_CFG->adpt_cfg_r.IIR_NUM_FIX);
+        de_vrange_printf(SD_CFG->adpt_cfg_r.Vrange_M, SD_CFG->adpt_cfg_r.IIR_NUM_FLEX + SD_CFG->adpt_cfg_r.IIR_NUM_FIX);
+        de_vrange_printf(SD_CFG->adpt_cfg_r.Vrange_L, SD_CFG->adpt_cfg_r.IIR_NUM_FLEX + SD_CFG->adpt_cfg_r.IIR_NUM_FIX);
+
+        de_biquad_printf(SD_CFG->adpt_cfg_r.Biquad_init_H, SD_CFG->adpt_cfg_r.IIR_NUM_FLEX + SD_CFG->adpt_cfg_r.IIR_NUM_FIX);
+        de_biquad_printf(SD_CFG->adpt_cfg_r.Biquad_init_M, SD_CFG->adpt_cfg_r.IIR_NUM_FLEX + SD_CFG->adpt_cfg_r.IIR_NUM_FIX);
+        de_biquad_printf(SD_CFG->adpt_cfg_r.Biquad_init_L, SD_CFG->adpt_cfg_r.IIR_NUM_FLEX + SD_CFG->adpt_cfg_r.IIR_NUM_FIX);
 #endif
 
 #endif
@@ -713,7 +808,7 @@ int icsd_anc_sz_select_from_memory(float *out_iir, float *sz, float *msc, int sz
     hdl->msc_idx0 = 2;
     hdl->msc_idx1 = 7;
 #if AUDIO_RT_ANC_SZ_PZ_CMP_EN
-    hdl->sz_table_cmp = audio_rtanc_sz_cmp_get();
+    hdl->sz_table_cmp = audio_rtanc_sz_cmp_get(0);
 #else
     hdl->sz_table_cmp = NULL;
 #endif

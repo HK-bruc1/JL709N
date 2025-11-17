@@ -273,4 +273,6 @@ void audio_linein_param_fill(struct linein_open_param *linein_param, const struc
 
 void audio_fast_mode_test();
 
+void audio_adc_user_cfg_change(u8 user);
+
 #endif/*_APP_AUDIO_H_*/

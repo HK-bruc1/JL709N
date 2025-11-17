@@ -315,6 +315,7 @@ void icsd_adt_alg_rtanc_run_part1(__adt_anc_part1_parm *_part1_parm)
 {
 #if ICSD_RTANC_LIB
     __icsd_rtanc_part1_parm part1_parm;
+    part1_parm.part1_ch   = _part1_parm->part1_ch;
     part1_parm.dma_ch   = _part1_parm->dma_ch;
     part1_parm.part1_cnt = _part1_parm->part1_cnt;
     part1_parm.inptr_h  = _part1_parm->inptr_h;
@@ -343,10 +344,10 @@ u8 icsd_adt_alg_rtanc_run_part2(__adt_rtanc_part2_parm *_part2_parm)
     part2_parm.sz_out2_sum = _part2_parm->sz_out2_sum;
     part2_parm.szpz_out = _part2_parm->szpz_out;
     part2_parm.dac_flag_iszero  = _part2_parm->dac_flag_iszero;
-
-    u8 de_task = icsd_alg_rtanc_run_part2(&part2_parm);
+    part2_parm.LR_FLAG = _part2_parm->LR_FLAG;
+    u8 de_task = icsd_alg_rtanc_run_part2_merge(&part2_parm);
 #if ICSD_ADT_RTANC_OFFLINE_PRINTF
-    icsd_alg_rtanc_offline_printf();
+    icsd_alg_rtanc_offline_printf(&part2_parm);
 #endif
     return de_task;
 #else
@@ -354,13 +355,35 @@ u8 icsd_adt_alg_rtanc_run_part2(__adt_rtanc_part2_parm *_part2_parm)
 #endif
 }
 
-void icsd_adt_alg_rtanc_part2_parm_init()
+void icsd_adt_alg_rtanc_part2_parm_init(__adt_rtanc_part2_parm *_part2_parm)
 {
 #if ICSD_RTANC_LIB
-    icsd_alg_rtanc_part2_parm_init();
+    __icsd_rtanc_part2_parm part2_parm;
+    part2_parm.LR_FLAG = _part2_parm->LR_FLAG;
+    icsd_alg_rtanc_part2_parm_init(&part2_parm);
 #endif
 }
-
+//BIT0: CHL
+//BIT1: CHR
+u8 icsd_adt_get_rtanc_part1_ch()
+{
+    u8 part1_ch = 0;
+#if ICSD_RTANC_LIB
+    part1_ch = icsd_alg_rtanc_get_part1_ch();
+    printf("part1_ch= %d \n", part1_ch);
+#endif
+    return part1_ch;
+}
+void icsd_adt_set_rtanc_part1_ch()
+{
+#if ICSD_RTANC_LIB
+    icsd_alg_rtanc_set_part1_ch();
+#endif
+}
+void icsd_adt_rtanc_set_part1_all0()
+{
+    icsd_alg_rtanc_set_part1_ch_all0();
+}
 void icsd_adt_alg_rtanc_part1_reset()
 {
 #if ICSD_RTANC_LIB
@@ -405,10 +428,15 @@ u8 icsd_adt_alg_rtanc_get_adjdcc_result()
 void icsd_adt_alg_rtanc_de_run_l()
 {
 #if ICSD_RTANC_LIB
-    rtanc_cal_and_update_filter_l_task();
+    rtanc_cal_and_update_filter_task(0);
 #endif
 }
-
+void icsd_adt_alg_rtanc_de_run_r()
+{
+#if ICSD_RTANC_LIB
+    rtanc_cal_and_update_filter_task(1);
+#endif
+}
 void icsd_adt_rtanc_fadegain_update_run(void *_param)
 {
 #if ICSD_RTANC_LIB

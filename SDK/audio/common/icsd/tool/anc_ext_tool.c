@@ -229,12 +229,14 @@ static const struct __anc_ext_subfile_id_table ear_adaptive_id_table[] = {
     { 0, ANC_EXT_ADAPTIVE_CMP_WEIGHT_ID,		EAR_ADAPTIVE_STR_OFFSET(cmp_weight)},
     { 0, ANC_EXT_ADAPTIVE_CMP_MSE_ID,			EAR_ADAPTIVE_STR_OFFSET(cmp_mse)},
     { 0, ANC_EXT_ADAPTIVE_CMP_RECORDER_IIR_ID,	EAR_ADAPTIVE_STR_OFFSET(cmp_mem_iir)},
+    { 0, ANC_EXT_ADAPTIVE_CMP_SZ_FACTOR_ID,	    EAR_ADAPTIVE_STR_OFFSET(cmp_sz_factor)},
 
     { 0, ANC_EXT_ADAPTIVE_CMP_R_GAINS_ID,		EAR_ADAPTIVE_STR_OFFSET(rcmp_gains)},
     { 0, ANC_EXT_ADAPTIVE_CMP_R_IIR_ID,			EAR_ADAPTIVE_STR_OFFSET(rcmp_iir)},
     { 0, ANC_EXT_ADAPTIVE_CMP_R_WEIGHT_ID,		EAR_ADAPTIVE_STR_OFFSET(rcmp_weight)},
     { 0, ANC_EXT_ADAPTIVE_CMP_R_MSE_ID,			EAR_ADAPTIVE_STR_OFFSET(rcmp_mse)},
     { 0, ANC_EXT_ADAPTIVE_CMP_R_RECORDER_IIR_ID, EAR_ADAPTIVE_STR_OFFSET(rcmp_mem_iir)},
+    { 0, ANC_EXT_ADAPTIVE_CMP_R_SZ_FACTOR_ID,	EAR_ADAPTIVE_STR_OFFSET(rcmp_sz_factor)},
 #endif
 
 #if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
@@ -369,12 +371,14 @@ const struct __anc_ext_printf anc_ext_printf[] = {
     { anc_file_cfg_data_float_printf },
     { anc_file_cfg_data_float_printf },
     { anc_file_adaptive_mem_iir_printf },
+    { anc_file_cfg_data_float_printf },
 
     { anc_file_ear_adaptive_iir_gains_printf },
     { anc_file_ear_adaptive_iir_printf },
     { anc_file_cfg_data_float_printf },
     { anc_file_cfg_data_float_printf },
     { anc_file_adaptive_mem_iir_printf },
+    { anc_file_cfg_data_float_printf },
 #endif
 
 #if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE
@@ -1125,6 +1129,9 @@ static void anc_file_cfg_data_float_printf(int id, void *buf, int len)
     case ANC_EXT_REF_SZ_DATA_ID ... ANC_EXT_REF_SZ_R_DATA_ID:
         anc_ext_log("---ANC_EXT_REF_SZ_DATA_ID 0x%x, cnt %d---\n", id, cnt);
         break;
+    case ANC_EXT_ADAPTIVE_CMP_SZ_FACTOR_ID ... ANC_EXT_ADAPTIVE_CMP_R_SZ_FACTOR_ID:
+        anc_ext_log("---ANC_EXT_ADAPTIVE_CMP_SZ_FACTOR_ID 0x%x, cnt %d---\n", id, cnt);
+        break;
     }
 #if ANC_EXT_CFG_FLOAT_EN
     for (int i = 0; i < cnt; i++) {
@@ -1549,6 +1556,12 @@ u8 anc_ext_ear_adaptive_param_check(void)
             anc_ext_log("ERR:ANC_EXT adaptive cmp cfg no enough! %p\n", cfg->cmp_gains);
             return ANC_EXT_FAIL_CMP_CFG_MISS;
         }
+#if AUDIO_ANC_ADAPTIVE_CMP_SZ_FACTOR
+        if (!cfg->cmp_sz_factor) {
+            anc_ext_log("ERR:ANC_EXT adaptive cmp sz_factor no enough! %p\n", cfg->cmp_sz_factor);
+            return ANC_EXT_FAIL_CMP_SZ_FACTOR_MISS;
+        }
+#endif
     }
 #endif
 
@@ -1578,10 +1591,16 @@ u8 anc_ext_ear_adaptive_param_check(void)
 #if TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN
         if (anc_ext_adaptive_cmp_tool_en_get()) {
             if (!cfg->rcmp_gains) {
-                anc_ext_log("ERR:ANC_EXT adaptive cmp cfg no enough! %p\n", cfg->rcmp_gains);
+                anc_ext_log("ERR:ANC_EXT R adaptive cmp cfg no enough! %p\n", cfg->rcmp_gains);
                 return ANC_EXT_FAIL_CMP_CFG_MISS;
             }
         }
+#if AUDIO_ANC_ADAPTIVE_CMP_SZ_FACTOR
+        if (!cfg->rcmp_sz_factor) {
+            anc_ext_log("ERR:ANC_EXT R adaptive cmp sz_factor no enough! %p\n", cfg->rcmp_sz_factor);
+            return ANC_EXT_FAIL_CMP_SZ_FACTOR_MISS;
+        }
+#endif
 #endif
     }
     return 0;

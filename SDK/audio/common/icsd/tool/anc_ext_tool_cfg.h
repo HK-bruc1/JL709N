@@ -381,4 +381,9 @@ struct __anc_ext_adaptive_mem_iir {
     s16 mem_iir[0];	//31 * 30
 };
 
+//CMP SZ补偿
+struct __anc_ext_sz_factor_data {
+    float data[0];
+};
+
 #endif /*_ANC_EXT_TOOL_CFG_H_*/

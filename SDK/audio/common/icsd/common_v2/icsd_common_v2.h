@@ -99,6 +99,11 @@ enum {
 };
 
 enum {
+    RT_ANC_CHL = 0,
+    RT_ANC_CHR,
+};
+
+enum {
     ADT_TWS = 0,
     ADT_HEADSET,
 };
@@ -259,8 +264,6 @@ typedef struct {
 //LIB调用的算术函数
 float angle_float(float x, float y);
 
-unsigned int hw_fft_config(int N, int log2N, int is_same_addr, int is_ifft, int is_real);
-void hw_fft_run(unsigned int fft_config, const int *in, int *out);
 void  icsd_common_version();
 
 //---------------------------
@@ -400,6 +403,8 @@ void icsd_sde_free();
 void sz_select_from_memory(__sz_sel_mem *hdl);
 
 void icsd_common_ancdma_4ch_cic8(int *r_ptr, s16 *__wptr_dma1_h, s16 *__wptr_dma1_l, s16 *__wptr_dma2_h, s16 *__wptr_dma2_l, u16 inpoints);
+
+void fbx2_szcmp_cal(double *fb1_coeff, float fb1_gain, u8 fb1_tap, double *fb2_coeff, float fb2_gain, u8 fb2_tap, float *sz1, float *sz_cmp_factor, float *sz_cmp);
 
 
 extern char lib_common_version[];

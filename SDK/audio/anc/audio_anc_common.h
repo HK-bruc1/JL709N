@@ -32,6 +32,8 @@ struct anc_tws_sync_info {
 
 int audio_anc_event_notify(enum anc_event event, int arg);
 
+int audio_anc_app_adt_mode_init(u8 enable);
+
 //ANC进入产测模式
 int audio_anc_production_enter(void);
 

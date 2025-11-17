@@ -254,6 +254,10 @@ enum {
     ANC_EXT_ADAPTIVE_EQ_RECORDER_IIR_ID = 0x69,						//AEQ 滤波器存线配置(RTANC 专属)
     ANC_EXT_ADAPTIVE_EQ_R_RECORDER_IIR_ID = 0x6A,					//AEQ 滤波器存线配置(右)(RTANC 专属)
 
+    //CMP 配置 文件ID FILE_ID_ANC_EXT_ADAPTIVE_CMP_DATA
+    ANC_EXT_ADAPTIVE_CMP_SZ_FACTOR_ID = 0x6B,					//CMP SZ补偿(RTANC 专属)(双FB方案)
+    ANC_EXT_ADAPTIVE_CMP_R_SZ_FACTOR_ID = 0x6C,					//CMP SZ补偿(右)(RTANC 专属)(双FB方案)
+
     //自适应DCC配置 文件ID FILE_ID_ANC_EXT_ADAPTIVE_DCC_CFG
     // ANC_EXT_ADAPTIVE_DCC_CFG_ID = 0x63,				//自适应DCC配置
 };
@@ -440,11 +444,13 @@ struct anc_ext_ear_adaptive_param {
     struct __anc_ext_ear_adaptive_weight *cmp_weight;	//[60]
     struct __anc_ext_ear_adaptive_mse *cmp_mse;	//[60]
     struct __anc_ext_adaptive_mem_iir *cmp_mem_iir;
+    struct __anc_ext_sz_factor_data	*cmp_sz_factor;
     struct __anc_ext_ear_adaptive_iir_gains	*rcmp_gains;
     struct __anc_ext_ear_adaptive_iir *rcmp_iir; //[6]
     struct __anc_ext_ear_adaptive_weight *rcmp_weight;	//[60]
     struct __anc_ext_ear_adaptive_mse *rcmp_mse;	//[60]
     struct __anc_ext_adaptive_mem_iir *rcmp_mem_iir;
+    struct __anc_ext_sz_factor_data	*rcmp_sz_factor;
 #endif
 
 #if TCFG_AUDIO_ADAPTIVE_EQ_ENABLE

@@ -47,6 +47,9 @@ enum {
     ANC_EXT_FAIL_AEQ_GAIN_CFG_MISS,				//缺失AEQ增益参数
     ANC_EXT_FAIL_AEQ_MEM_CFG_MISS,				//缺失AEQ_MEM参数
     ANC_EXT_FAIL_AEQ_NODE_MISS,					//缺失AEQ节点
+
+    //CMP
+    ANC_EXT_FAIL_CMP_SZ_FACTOR_MISS,			//缺失耳道自适应参数-CMP SZ补偿
 };
 
 //频响获取选择

@@ -13,6 +13,7 @@
 
 #include "icsd_common_v2.h"
 #include "audio_anc.h"
+#include "hw_fft.h"
 
 #define ICSD_DE_RUN_TIME_DEBUG				0  //DE 算法运行时间测试
 
@@ -90,6 +91,7 @@ float db_diff_v2(float *in1, int in1_idx, float *in2, int in2_idx)
     return in1_db - in2_db;
 }
 
+static int *icsd_sde_alloc_addr = NULL;
 static int *icsd_de_alloc_addr = NULL;
 #if ICSD_DE_RUN_TIME_DEBUG
 u32 icsd_de_run_time_last = 0;
@@ -148,39 +150,78 @@ void icsd_sde_malloc()
     struct icsd_de_libfmt libfmt;
     struct icsd_de_infmt  fmt;
     icsd_sde_get_libfmt(&libfmt);
-    if (icsd_de_alloc_addr == NULL) {
+    if (icsd_sde_alloc_addr == NULL) {
         common_log("sDE RAM SIZE:%d\n", libfmt.lib_alloc_size);
         int *reuse = icsd_minirt_reuse_ram();
         if (reuse) {
-            icsd_de_alloc_addr = reuse;
+            icsd_sde_alloc_addr = reuse;
             memset(reuse, 0, libfmt.lib_alloc_size);
             common_log("sDE REUSE RAM SIZE:%d %x\n", libfmt.lib_alloc_size, (int)icsd_de_alloc_addr);
         } else {
-            icsd_de_alloc_addr = anc_malloc("ICSD_ADJ", libfmt.lib_alloc_size);
+            icsd_sde_alloc_addr = anc_malloc("ICSD_ADJ", libfmt.lib_alloc_size);
             common_log("sDE RAM SIZE:%d %x\n", libfmt.lib_alloc_size, (int)icsd_de_alloc_addr);
         }
+    } else {
+        printf("sde ram exist\n");
     }
-    fmt.alloc_ptr = icsd_de_alloc_addr;
+    fmt.alloc_ptr = icsd_sde_alloc_addr;
     icsd_sde_set_infmt(&fmt);
 }
 
 void icsd_sde_free()
 {
     common_log("icsd_sde_free\n");
-    if (icsd_de_alloc_addr) {
-        //common_log("sDE RAM anc_free\n");
+    if (icsd_sde_alloc_addr) {
+        //printf("sDE RAM anc_free\n");
         int *reuse = icsd_minirt_reuse_ram();
         if (reuse) {
             common_log("sDE RAM reuse end\n");
             icsd_minirt_reuse_end();
         } else {
             common_log("sDE RAM anc_free\n");
-            anc_free(icsd_de_alloc_addr);
+            anc_free(icsd_sde_alloc_addr);
         }
-        icsd_de_alloc_addr = NULL;
+        icsd_sde_alloc_addr = NULL;
     }
 }
 
+void fbx2_szcmp_cal(double *fb1_coeff, float fb1_gain, u8 fb1_tap, double *fb2_coeff, float fb2_gain, u8 fb2_tap, float *sz1, float *sz_cmp_factor, float *sz_cmp)
+{
+    const u8 len = 60;
+    const float fs = 46.875e3;
+
+    if (!fb1_coeff || !fb2_coeff || !fb1_tap || !fb2_tap || !sz_cmp_factor) {
+        ASSERT(0, "fbx2_szcmp_cal error %p %p %d %d\n", fb1_coeff, fb2_coeff, fb1_tap, fb2_tap);
+    }
+
+    float *freq = anc_malloc("ICSD_COMMON", sizeof(float) * len);
+    float *hz1 = anc_malloc("ICSD_COMMON", sizeof(float) * len * 2);
+    float *hz2 = anc_malloc("ICSD_COMMON", sizeof(float) * len * 2);
+
+    for (int i = 0; i < len; i++) {
+        freq[i] = 1.0f * i / 1024 * fs;
+    }
+
+    icsd_cal_wz(fb1_coeff, fb1_gain, fb1_tap, freq, 375e3, hz1, len * 2);
+    icsd_cal_wz(fb2_coeff, fb2_gain, fb2_tap, freq, 375e3, hz2, len * 2);
+
+    icsd_complex_div_v2(hz2, hz1, sz_cmp, len * 2);
+    icsd_complex_muln(sz_cmp, sz_cmp_factor, sz_cmp, len * 2);
+
+    for (int i = 0; i < len; i++) {
+        sz_cmp[2 * i] = 1 + sz_cmp[2 * i];
+    }
+
+    icsd_complex_muln(sz1, sz_cmp, sz_cmp, len * 2);
+
+    /* for (int i = 0; i < (len * 2); i++) { */
+    /* printf("%d, %d, %d, %d, %d \n", (int)(hz1[i] * 1e6), (int)(hz2[i] * 1e6), (int)(sz1[i] * 1e6), (int)(sz_cmp_factor[i] * 1e6), (int)(sz_cmp[i] * 1e6)); */
+    /* } */
+
+    anc_free(freq);
+    anc_free(hz1);
+    anc_free(hz2);
+}
 
 #define	ICSD_COMMON_4CH_CIC8_DEBUG		0
 #if ICSD_COMMON_4CH_CIC8_DEBUG

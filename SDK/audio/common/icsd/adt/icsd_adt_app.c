@@ -1472,7 +1472,7 @@ int audio_icsd_adt_open_permit(u16 adt_mode)
 #if TCFG_ANC_TOOL_DEBUG_ONLINE
     /*连接anc spp 工具的时候不允许打开*/
     if (get_app_anctool_spp_connected_flag()) {
-        adt_debug_log("anctool spp connected !!!");
+        /* adt_debug_log("anctool spp connected !!!"); */
         //由于免摘需要无线调试，所以支持打开在线调试
         //return 0;
     }
@@ -1758,81 +1758,83 @@ static int audio_icsd_adt_res_close(u16 adt_mode, u8 suspend)
 {
     adt_debug_log("%s: 0x%x, 0x%x", __func__, adt_mode, adt_info.adt_mode);
     struct speak_to_chat_t *hdl = speak_to_chat_hdl;
-    if (hdl && hdl->state) {
-        if (!(adt_info.adt_mode & adt_mode) && adt_mode) {
-            adt_log("adt mode : 0x%x is alreadly closed !!!", adt_mode);
-            return 0;
-        }
-        adt_info.adt_mode &= ~adt_mode;
-        adt_info.record_adt_mode &= ~adt_mode;
+    if (hdl) {
+        if (hdl->state) {
+            if (!(adt_info.adt_mode & adt_mode) && adt_mode) {
+                adt_log("adt mode : 0x%x is alreadly closed !!!", adt_mode);
+                return 0;
+            }
+            adt_info.adt_mode &= ~adt_mode;
+            adt_info.record_adt_mode &= ~adt_mode;
 
-        hdl->state = 0;
+            hdl->state = 0;
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
-        DeAlorithm_disable();
-        while (hdl->busy || audio_anc_real_time_adaptive_run_busy_get()) {
+            DeAlorithm_disable();
+            while (hdl->busy || audio_anc_real_time_adaptive_run_busy_get()) {
 #else
-        while (hdl->busy) {
+            while (hdl->busy) {
 #endif
-            putchar('w');
-            os_time_dly(1);
-        }
-        audio_acoustic_detector_close();
+                putchar('w');
+                os_time_dly(1);
+            }
+            audio_acoustic_detector_close();
 
-        audio_anc_event_notify(ANC_EVENT_ADT_CLOSE, adt_mode);
+            audio_anc_event_notify(ANC_EVENT_ADT_CLOSE, adt_mode);
 
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
-        if ((adt_info.adt_mode | adt_mode) & ADT_REAL_TIME_ADAPTIVE_ANC_MODE) {
-            audio_rtanc_adaptive_exit();
-        }
+            if ((adt_info.adt_mode | adt_mode) & ADT_REAL_TIME_ADAPTIVE_ANC_MODE) {
+                audio_rtanc_adaptive_exit();
+            }
 #endif
 
 #if TCFG_AUDIO_ANC_HOWLING_DET_ENABLE
-        if ((adt_info.adt_mode | adt_mode) & ADT_HOWLING_DET_MODE) {
-            /*关闭啸叫检测资源*/
-            icsd_anc_soft_howling_det_exit();
-        }
+            if ((adt_info.adt_mode | adt_mode) & ADT_HOWLING_DET_MODE) {
+                /*关闭啸叫检测资源*/
+                icsd_anc_soft_howling_det_exit();
+            }
 #endif
 
 #if TCFG_AUDIO_SPEAK_TO_CHAT_ENABLE
-        if ((adt_info.adt_mode | adt_mode) & ADT_SPEAK_TO_CHAT_MODE) {
-            audio_adt_vdt_ioctl(ICSD_ADT_IOC_EXIT, 0);
-        }
+            if ((adt_info.adt_mode | adt_mode) & ADT_SPEAK_TO_CHAT_MODE) {
+                audio_adt_vdt_ioctl(ICSD_ADT_IOC_EXIT, 0);
+            }
 #endif
 
 #if ICSD_ADT_MIC_DATA_EXPORT_EN
-        aec_uart_close();
+            aec_uart_close();
 #endif /*ICSD_ADT_MIC_DATA_EXPORT_EN*/
 
-        /*打开蓝牙sniff*/
+            /*打开蓝牙sniff*/
 #if TCFG_USER_TWS_ENABLE
-        icsd_bt_sniff_set_enable(1);
+            icsd_bt_sniff_set_enable(1);
 #endif
 
-        //关闭风噪检测时恢复现场
+            //关闭风噪检测时恢复现场
 #if TCFG_AUDIO_ANC_WIND_NOISE_DET_ENABLE
-        if (adt_mode & ADT_WIND_NOISE_DET_MODE) {
-            icsd_anc_fade_set(ANC_FADE_MODE_WIND_NOISE, 16384);
-            audio_anc_wind_noise_fade_param_reset();
+            if (adt_mode & ADT_WIND_NOISE_DET_MODE) {
+                icsd_anc_fade_set(ANC_FADE_MODE_WIND_NOISE, 16384);
+                audio_anc_wind_noise_fade_param_reset();
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
-            //恢复RT_ANC 相关标志/状态
-            audio_anc_real_time_adaptive_resume("ANC_WIND_DET");
+                //恢复RT_ANC 相关标志/状态
+                audio_anc_real_time_adaptive_resume("ANC_WIND_DET");
 #endif
-        }
+            }
 #endif
 
 #if TCFG_AUDIO_ANC_ENV_ADAPTIVE_GAIN_ENABLE
-        if (adt_mode & ADT_ENV_NOISE_DET_MODE) {
-            icsd_anc_fade_set(ANC_FADE_MODE_ENV_ADAPTIVE_GAIN, 16384);
-            audio_anc_env_adaptive_fade_param_reset();
+            if (adt_mode & ADT_ENV_NOISE_DET_MODE) {
+                icsd_anc_fade_set(ANC_FADE_MODE_ENV_ADAPTIVE_GAIN, 16384);
+                audio_anc_env_adaptive_fade_param_reset();
 #if TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE
-            if (anc_env_adaptive_gain_suspend) {
-                anc_env_adaptive_gain_suspend = 0;
-                audio_anc_real_time_adaptive_resume("ENV_ADAPTIVE");
+                if (anc_env_adaptive_gain_suspend) {
+                    anc_env_adaptive_gain_suspend = 0;
+                    audio_anc_real_time_adaptive_resume("ENV_ADAPTIVE");
+                }
+#endif
             }
 #endif
-        }
-#endif
 
+        }
         anc_free(hdl->sync_cnt);
         anc_free(hdl);
         speak_to_chat_hdl = NULL;

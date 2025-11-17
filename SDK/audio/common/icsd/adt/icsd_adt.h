@@ -88,6 +88,7 @@ struct adt_function {
     void (*anc_dma_on)(u8 out_sel, int *buf, int len);
     void (*anc_dma_on_double)(u8 out_sel, int *buf, int len);
     void (*anc_dma_on_double_4ch)(u8 ch1_out_sel, u8 ch2_out_sel, int *buf, int irq_point);
+    void (*anc_dma_off)();
     void (*icsd_adt_hw_suspend)();
     void (*icsd_adt_hw_resume)();
     void (*icsd_adt_anc46k_out_reset)();
@@ -305,6 +306,6 @@ extern const u8 icsd_ancdma_dac_debug;
 extern u16 adt_debug_ramsize;
 extern const u8 ADT_MIC_VERSION;
 extern const u8 ICSD_AVC_DATAPATH;
-
+extern const u16 ANC_DMA_POINTS;
 extern char lib_adt_version[];
 #endif

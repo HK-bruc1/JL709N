@@ -55,4 +55,6 @@ u8 audio_anc_ear_adaptive_cmp_result_get(void);
 //CMP SZ挑线
 void audio_anc_ear_adaptive_cmp_sz_sel(u8 sz_l_sel, float *fgq, u8 *iir_type);
 
+float *audio_anc_ear_adaptive_cmp_sz_cmp_get(enum ANC_EAR_ADAPTIVE_CMP_CH ch);
+
 #endif

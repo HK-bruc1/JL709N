@@ -15,6 +15,7 @@
 #include "audio_anc_common.h"
 #include "icsd_common_v2_app.h"
 #include "audio_anc_debug_tool.h"
+#include "audio_adc.h"
 
 #if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
 #include "icsd_adt_app.h"
@@ -537,6 +538,34 @@ void audio_anc_env_det_toggle_demo()
     }
 #endif/*ANC_EAR_ADAPTIVE_EN*/
 }
+
+#if ANC_MIC_REUSE_ENABLE
+void audio_adc_mic_ch_analog_close(struct audio_adc_hdl *adc, u32 ch);
+void audio_anc_reuse_mic_change_demo(u8 is_esco)
+{
+    if (is_esco) {
+        //复用RFB MIC的增益设置为0
+        audio_anc_fade_ctr_set(ANC_FADE_MODE_REUSE_MIC, AUDIO_ANC_FADE_CH_RFB, 0);
+        //关闭复用 MIC
+        if (anc_mode_get() != ANC_OFF) {
+            os_time_dly(6);
+            audio_adc_mic_ch_analog_close(&adc_hdl, BIT(TCFG_AUDIO_ANCR_FB_MIC));
+        }
+        //jlstream 流程打开通话MIC ...
+    } else {
+        if (anc_mode_get() != ANC_OFF) {
+            //关闭通话MIC ...
+            audio_adc_mic_ch_analog_close(&adc_hdl, BIT(TCFG_AUDIO_ANCR_FB_MIC));
+
+            //以ANC 方式打开复用MIC
+            extern void audio_anc_mic_open(audio_adc_mic_mana_t *anc_mic_param, u8 trans_en, u8 adc_ch);
+            audio_anc_mic_open(audio_anc_param_get()->mic_param, anc_mode_get() == ANC_TRANSPARENCY, 0);
+        }
+        //复用RFB MIC的增益设置为16384
+        audio_anc_fade_ctr_set(ANC_FADE_MODE_REUSE_MIC, AUDIO_ANC_FADE_CH_RFB, 16384);
+    }
+}
+#endif
 
 /*----------------------------------------------------------------*/
 /*                         Test demo End                          */
