@@ -48,6 +48,24 @@
 #define TCFG_BT_BACKGROUND_ENABLE   						0
 #endif
 
+#define TCFG_BT_SUPPORT_BIP         0X0
+#if TCFG_BT_SUPPORT_BIP
+#undef TCFG_BT_MUSIC_INFO_ENABLE
+#define TCFG_BT_MUSIC_INFO_ENABLE 1 // 歌曲信息显示
+#endif
+
+#if TCFG_BT_DUAL_CONN_ENABLE
+#define TCFG_BT_DUAL_1T3_CONN_ENABLE  0//1t3 enable
+
+#if TCFG_BT_DUAL_1T3_CONN_ENABLE
+#define TCFG_BT_SUPPORT_CONN_NUM      3
+#else
+#define TCFG_BT_SUPPORT_CONN_NUM      2
+#endif
+#else
+#define TCFG_BT_DUAL_1T3_CONN_ENABLE  0
+#define TCFG_BT_SUPPORT_CONN_NUM      2
+#endif
 
 //*********************************************************************************//
 //                                  AI配置                                         //

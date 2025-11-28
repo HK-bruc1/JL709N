@@ -386,9 +386,11 @@ static int dma_protocol_bt_status_event_handler(struct bt_event *bt)
         break;
     case BT_STATUS_SECOND_CONNECTED:
     case BT_STATUS_FIRST_CONNECTED:
+    case BT_STATUS_THIRD_CONNECTED:
         break;
     case BT_STATUS_FIRST_DISCONNECT:
     case BT_STATUS_SECOND_DISCONNECT:
+    case BT_STATUS_THIRD_DISCONNECT:
         dma_update_tws_state_to_lib(DMA_NOTIFY_STATE_MOBILE_DISCONNECTED);
         dueros_dma_set_calling_asr_state(0);
         break;

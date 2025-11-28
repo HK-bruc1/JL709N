@@ -125,6 +125,7 @@ static int poweroff_btstack_event_handler(int *_event)
     switch (bt->event) {
     case BT_STATUS_SECOND_CONNECTED:
     case BT_STATUS_FIRST_CONNECTED:
+    case BT_STATUS_THIRD_CONNECTED:
         sys_auto_shut_down_disable();
         break;
     }

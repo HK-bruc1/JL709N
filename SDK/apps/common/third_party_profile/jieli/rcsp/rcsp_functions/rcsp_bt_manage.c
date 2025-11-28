@@ -169,6 +169,7 @@ static int rcsp_bt_status_event_handler(struct bt_event *bt)
     switch (bt->event) {
     case BT_STATUS_SECOND_CONNECTED:
     case BT_STATUS_FIRST_CONNECTED:
+    case BT_STATUS_THIRD_CONNECTED:
 #if TCFG_USER_TWS_ENABLE
         if ((tws_api_get_role() == TWS_ROLE_MASTER) || (bt_rcsp_spp_conn_num() > 0)) {
             bt_ble_adv_ioctl(BT_ADV_SET_EDR_CON_FLAG, SECNE_CONNECTED, 1);
@@ -190,6 +191,7 @@ static int rcsp_bt_status_event_handler(struct bt_event *bt)
         break;
     case BT_STATUS_FIRST_DISCONNECT:
     case BT_STATUS_SECOND_DISCONNECT:
+    case BT_STATUS_THIRD_DISCONNECT:
 #if RCSP_ADV_EN
         bt_adv_seq_change();
         if (!app_var.goto_poweroff_flag) {

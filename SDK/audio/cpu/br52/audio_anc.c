@@ -3134,7 +3134,7 @@ void audio_anc_stereo_mix_set(u8 en)
 
 u8 audio_anc_stereo_mix_get(void)
 {
-    return anc_hdl->param.stereo_to_mono_mix;
+    return anc_hdl->stereo_to_mono_mix;
 }
 
 static void audio_anc_stereo_mix_ctr(void)

@@ -467,11 +467,17 @@ static int gfps_bt_status_event_handler(int *msg)
         break;
     case BT_STATUS_SECOND_CONNECTED:
     case BT_STATUS_FIRST_CONNECTED:
+    case BT_STATUS_THIRD_CONNECTED:
         __this->poweron_reconn = 0;
         gfps_adv_interval_set(SUBS_PAIR_ADV_INTERVAL); //连接上手机间隔改为220ms，防止fast pair validator测试fail
         set_gfps_pair_state(1);
         gfps_bt_ble_adv_enable(0);
         gfps_bt_ble_adv_enable(1);
+        break;
+    case BT_STATUS_FIRST_DISCONNECT:
+    case BT_STATUS_SECOND_DISCONNECT:
+    case BT_STATUS_THIRD_DISCONNECT:
+        gfps_edr_conn_handler(bt->args, 0);
         break;
     case BT_STATUS_PHONE_INCOME:
     case BT_STATUS_PHONE_OUT:

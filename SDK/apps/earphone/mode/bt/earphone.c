@@ -174,6 +174,29 @@ void bt_get_btstack_device(u8 *addr_a, void **device_a, void **device_b)
     *device_a = btstack_get_conn_device(addr_a);
     *device_b = *device_a == device[0] ? device[1] : device[0];
 }
+void bt_get_btstack_device3(u8 *addr_a, void **device_a, void **device_b, void **device_c)
+{
+    int i;
+    void *device[3] = { NULL, NULL, NULL };
+    btstack_get_conn_devices(device, 3);
+    *device_a = NULL;
+    *device_b = NULL;
+    *device_c = NULL;
+
+    *device_a = btstack_get_conn_device(addr_a);
+    for (i = 0; i < 3; i++) {
+        if (device[i] && (device[i] != (*device_a))) {
+            *device_b = device[i];
+        }
+
+    }
+    for (i = 0; i < 3; i++) {
+        if (device[i] && (device[i] != (*device_a) && (device[i] != (*device_b)))) {
+            *device_c = device[i];
+        }
+
+    }
+}
 
 bool bt_in_phone_call_state(void *device)
 {
@@ -368,6 +391,7 @@ void user_read_remote_name_handle(u8 status, u8 *addr, u8 *name)
 }
 void bt_function_select_init()
 {
+    int support_set_conn_num = 2;
     /* set_edr_wait_conn_run_slot(1500,8,16,10); */
 
 #if 0//3mb set
@@ -378,6 +402,9 @@ void bt_function_select_init()
 #if TCFG_BT_DUAL_CONN_ENABLE
     g_bt_hdl.bt_dual_conn_config = DUAL_CONN_SET_TWO;//DUAL_CONN_SET_TWO:默认可以连接1t2  DUAL_CONN_SET_ONE:默认只支持一个连接
     syscfg_read(CFG_TWS_DUAL_CONFIG, &(g_bt_hdl.bt_dual_conn_config), 1);
+#if TCFG_BT_DUAL_1T3_CONN_ENABLE
+    support_set_conn_num = 3;
+#endif
 #else
     g_bt_hdl.bt_dual_conn_config = DUAL_CONN_CLOSE;
 #endif
@@ -397,9 +424,9 @@ void bt_function_select_init()
     log_info("app_auracast en");
     g_bt_hdl.bt_dual_conn_config = DUAL_CONN_SET_ONE;
 #endif
-    bt_set_user_ctrl_conn_num((get_bt_dual_config() == DUAL_CONN_CLOSE) ? 1 : 2);
-    set_lmp_support_dual_con((get_bt_dual_config() == DUAL_CONN_CLOSE) ? 1 : 2);
-    bt_set_auto_conn_device_num((get_bt_dual_config() == DUAL_CONN_SET_TWO) ? 2 : 1);
+    bt_set_user_ctrl_conn_num((get_bt_dual_config() == DUAL_CONN_CLOSE) ? 1 : support_set_conn_num);
+    set_lmp_support_dual_con((get_bt_dual_config() == DUAL_CONN_CLOSE) ? 1 : support_set_conn_num);
+    bt_set_auto_conn_device_num((get_bt_dual_config() == DUAL_CONN_SET_TWO) ? support_set_conn_num : 1);
 
     bt_set_support_msbc_flag(TCFG_BT_MSBC_EN);
 
@@ -604,6 +631,7 @@ static int bt_connction_status_event_handler(struct bt_event *bt)
 
         break;
 
+    case BT_STATUS_THIRD_CONNECTED:
     case BT_STATUS_SECOND_CONNECTED:
         bt_clear_current_poweron_memory_search_index(0);
     case BT_STATUS_FIRST_CONNECTED:
@@ -618,6 +646,7 @@ static int bt_connction_status_event_handler(struct bt_event *bt)
         break;
     case BT_STATUS_FIRST_DISCONNECT:
     case BT_STATUS_SECOND_DISCONNECT:
+    case BT_STATUS_THIRD_DISCONNECT:
         log_info("BT_STATUS_DISCONNECT\n");
         if (app_var.goto_poweroff_flag) {
             break;
@@ -1156,14 +1185,23 @@ int bt_mode_exit()
 
 int bt_app_msg_handler(int *msg)
 {
-    u8 data[1];
-    u8 a2dp_addr[6];
-    u8 *bt_addr = NULL;
+    u8 data[1] = {0};
+    u8 temp_a2dp_addr[6] = {0};
+    u8 temp_call_addr[6] = {0};
+    u8 *bt_a2dp_addr = NULL;
+    u8 *bt_esco_addr = NULL;
     if (!app_in_mode(APP_MODE_BT)) {
         return 0;
     }
-    if (a2dp_player_get_btaddr(a2dp_addr)) {
-        bt_addr = a2dp_addr;
+    if (a2dp_player_get_btaddr(temp_a2dp_addr)) {
+        bt_a2dp_addr = temp_a2dp_addr;
+        printf("temp_a2dp_addr:\n");
+        put_buf(temp_a2dp_addr, 6);
+    }
+    if (esco_player_get_btaddr(temp_call_addr)) {
+        bt_esco_addr = temp_call_addr;
+        printf("temp_call_addr:\n");
+        put_buf(temp_call_addr, 6);
     }
     int state = bt_get_call_status();
     switch (msg[0]) {
@@ -1211,12 +1249,11 @@ int bt_app_msg_handler(int *msg)
 #endif
         break;
     case APP_MSG_CALL_ANSWER:
-        u8 temp_call_btaddr[6];
-        if (esco_player_get_btaddr(temp_call_btaddr)) {
+        if (bt_esco_addr) {
             if (bt_get_call_status() == BT_CALL_INCOMING) {
                 log_info("APP_MSG_CALL_ANSWER: esco playing, device_addr:\n");
-                put_buf(temp_call_btaddr, 6);
-                bt_cmd_prepare_for_addr(temp_call_btaddr, USER_CTRL_HFP_CALL_ANSWER, 0, NULL);		// 根据哪个设备使用esco接听哪个
+                put_buf(temp_call_addr, 6);
+                bt_cmd_prepare_for_addr(temp_call_addr, USER_CTRL_HFP_CALL_ANSWER, 0, NULL);		// 根据哪个设备使用esco接听哪个
                 break;
             }
         } else {
@@ -1228,32 +1265,31 @@ int bt_app_msg_handler(int *msg)
         }
         break;
     case APP_MSG_CALL_HANGUP:
-        u8 temp_btaddr[6];
-        if (esco_player_get_btaddr(temp_btaddr)) {
+        if (bt_esco_addr) {
             log_info("APP_MSG_CALL_HANGUP: current esco playing\n");		// 根据哪个设备使用esco挂断哪个
-            put_buf(temp_btaddr, 6);
-            bt_cmd_prepare_for_addr(temp_btaddr, USER_CTRL_HFP_CALL_HANGUP, 0, NULL);
+            put_buf(temp_call_addr, 6);
+            bt_cmd_prepare_for_addr(temp_call_addr, USER_CTRL_HFP_CALL_HANGUP, 0, NULL);
             break;
         } else {
             u8 *addr = bt_get_current_remote_addr();
             if (addr) {
-                memcpy(temp_btaddr, addr, 6);
-                u8 call_status = bt_get_call_status_for_addr(temp_btaddr);
+                memcpy(temp_call_addr, addr, 6);
+                u8 call_status = bt_get_call_status_for_addr(temp_call_addr);
                 if ((call_status >= BT_CALL_INCOMING) && (call_status <= BT_CALL_ACTIVE)) {
                     log_info("APP_MSG_CALL_HANGUP: current addr\n");
-                    put_buf(temp_btaddr, 6);
-                    bt_cmd_prepare_for_addr(temp_btaddr, USER_CTRL_HFP_CALL_HANGUP, 0, NULL);
+                    put_buf(temp_call_addr, 6);
+                    bt_cmd_prepare_for_addr(temp_call_addr, USER_CTRL_HFP_CALL_HANGUP, 0, NULL);
                     break;
                 }
                 u8 *other_conn_addr;
                 other_conn_addr = btstack_get_other_dev_addr(addr);
                 if (other_conn_addr) {
                     log_info("APP_MSG_CALL_HANGUP: other addr\n");
-                    memcpy(temp_btaddr, other_conn_addr, 6);
-                    put_buf(temp_btaddr, 6);
-                    call_status = bt_get_call_status_for_addr(temp_btaddr);
+                    memcpy(temp_call_addr, other_conn_addr, 6);
+                    put_buf(temp_call_addr, 6);
+                    call_status = bt_get_call_status_for_addr(temp_call_addr);
                     if ((call_status >= BT_CALL_INCOMING) && (call_status <= BT_CALL_ACTIVE)) {
-                        bt_cmd_prepare_for_addr(temp_btaddr, USER_CTRL_HFP_CALL_HANGUP, 0, NULL);
+                        bt_cmd_prepare_for_addr(temp_call_addr, USER_CTRL_HFP_CALL_HANGUP, 0, NULL);
                         break;
                     }
                 }
@@ -1274,11 +1310,23 @@ int bt_app_msg_handler(int *msg)
         break;
     case APP_MSG_OPEN_SIRI:
         puts("APP_MSG_OPEN_SIRI\n");
-        bt_cmd_prepare(USER_CTRL_HFP_GET_SIRI_OPEN, 0, NULL);
+        if (bt_esco_addr) {
+            bt_cmd_prepare_for_addr(temp_call_addr, USER_CTRL_HFP_GET_SIRI_OPEN, 0, NULL);
+        } else if (bt_a2dp_addr) {
+            bt_cmd_prepare_for_addr(temp_a2dp_addr, USER_CTRL_HFP_GET_SIRI_OPEN, 0, NULL);
+        } else {
+            bt_cmd_prepare(USER_CTRL_HFP_GET_SIRI_OPEN, 0, NULL);
+        }
         break;
     case APP_MSG_CLOSE_SIRI:
         puts("APP_MSG_CLOSE_SIRI\n");
-        bt_cmd_prepare(USER_CTRL_HFP_GET_SIRI_CLOSE, 0, NULL);
+        if (bt_esco_addr) {
+            bt_cmd_prepare_for_addr(temp_call_addr, USER_CTRL_HFP_GET_SIRI_CLOSE, 0, NULL);
+        } else if (bt_a2dp_addr) {
+            bt_cmd_prepare_for_addr(temp_a2dp_addr, USER_CTRL_HFP_GET_SIRI_CLOSE, 0, NULL);
+        } else {
+            bt_cmd_prepare(USER_CTRL_HFP_GET_SIRI_CLOSE, 0, NULL);
+        }
         break;
     case APP_MSG_LOW_LANTECY:
         if (bt_get_low_latency_mode() == 0) {
@@ -1311,7 +1359,7 @@ int bt_app_msg_handler(int *msg)
         if (bt_share_call_a2dp(DATA_ID_SHARE_TO_SHARE_PP)) {
             break;
         }
-        bt_cmd_prepare_for_addr(bt_addr, USER_CTRL_AVCTP_OPID_PLAY, 0, NULL);   // 入耳播歌
+        bt_cmd_prepare_for_addr(bt_a2dp_addr, USER_CTRL_AVCTP_OPID_PLAY, 0, NULL);   // 入耳播歌
         break;
     case APP_MSG_EARTCH_OUT_EAR:
         puts("APP_MSG_EARTCH_OUT_EAR\n");
@@ -1321,7 +1369,7 @@ int bt_app_msg_handler(int *msg)
         if (bt_share_call_a2dp(DATA_ID_SHARE_TO_SHARE_PP)) {
             break;
         }
-        bt_cmd_prepare_for_addr(bt_addr, USER_CTRL_AVCTP_OPID_STOP, 0, NULL);   // 出耳暂停
+        bt_cmd_prepare_for_addr(bt_a2dp_addr, USER_CTRL_AVCTP_OPID_STOP, 0, NULL);   // 出耳暂停
         break;
 #endif
     default:
