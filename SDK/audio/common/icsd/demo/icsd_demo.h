@@ -15,5 +15,7 @@ int audio_real_time_adaptive_app_open_demo(void);
 
 int audio_real_time_adaptive_app_close_demo(void);
 
+void audio_anc_reuse_mic_change_demo(u8 is_esco);
+
 #endif
 

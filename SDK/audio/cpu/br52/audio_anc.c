@@ -3145,6 +3145,36 @@ static void audio_anc_stereo_mix_ctr(void)
         anc_hdl->param.stereo_to_mono_mix = 0;
     }
 }
+
+void audio_anc_stereo_mix_ch_change(u8 type, u8 ch)
+{
+    user_anc_log("ANC_STEREO_MIX: type 0x%x, ch 0x%x\n", type, ch);
+    switch (type) {
+    case ANC_FF_TYPE:
+        if (ch & BIT(0)) {
+            anc_hdl->param.mic_type[0] = TCFG_AUDIO_ANCL_FF_MIC;
+            anc_hdl->param.mic_type[2] = TCFG_AUDIO_ANCR_FF_MIC;
+        } else if (ch == BIT(1)) {
+            anc_hdl->param.mic_type[0] = TCFG_AUDIO_ANCR_FF_MIC;
+            anc_hdl->param.mic_type[2] = TCFG_AUDIO_ANCL_FF_MIC;
+        }
+        break;
+    case ANC_FB_TYPE:
+        if (ch & BIT(0)) {
+            anc_hdl->param.mic_type[1] = TCFG_AUDIO_ANCL_FB_MIC;
+            anc_hdl->param.mic_type[3] = TCFG_AUDIO_ANCR_FB_MIC;
+        } else if (ch == BIT(1)) {
+            anc_hdl->param.mic_type[1] = TCFG_AUDIO_ANCR_FB_MIC;
+            anc_hdl->param.mic_type[3] = TCFG_AUDIO_ANCL_FB_MIC;
+        }
+        break;
+    }
+    audio_anc_stereo_mix_set(ch == (BIT(0) | BIT(1)));
+    audio_anc_stereo_mix_ctr();
+    if (anc_mode_get() != ANC_OFF) {
+        audio_anc_param_reset(0);
+    }
+}
 #endif
 
 #endif/*TCFG_AUDIO_ANC_ENABLE*/

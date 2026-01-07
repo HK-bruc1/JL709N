@@ -406,6 +406,15 @@ void icsd_common_ancdma_4ch_cic8(int *r_ptr, s16 *__wptr_dma1_h, s16 *__wptr_dma
 
 void fbx2_szcmp_cal(double *fb1_coeff, float fb1_gain, u8 fb1_tap, double *fb2_coeff, float fb2_gain, u8 fb2_tap, float *sz1, float *sz_cmp_factor, float *sz_cmp);
 
+float icsd_anc_v2_HpEst_part2(float *out0_sum, float *out1_sum, float *out2_sum, float *output, float *mscohere);
+void icsd_anc_v2_HpEst_dsf_part1(s16 *input0, s16 *input1, float *_out0_sum, float *_out1_sum, float *_out2_sum, int *in_cur, float *in_cur0);
+void htarget_v2(float *Hpz, float *Hsz, float *Hflt, int len);
+float sz_frequency_response_check_v2(float *output);
+float pz_frequency_response_check_v2(float *output);
+void szest_form_bypass_v2(float *input1, float *input2, float *sz_out, int len, float *hz_cmp, float _bypass_volume);
+u8 cal_tig_idx(float *target, float *target_sv, int cmp_num);
+u16 target_dither_decision(float *tg_ori, float *tg_flt, int len);
+void icsd_target_joint_v2(float *target_mat, float *target_est, int len, int begin_idx, int end_idx);
 
 extern char lib_common_version[];
 #endif

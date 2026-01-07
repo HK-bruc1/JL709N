@@ -53,6 +53,9 @@
 //CMP SZ补偿使能
 #define AUDIO_ANC_ADAPTIVE_CMP_SZ_FACTOR   (AUDIO_ANC_MIC_ARRAY_ENABLE && (AUDIO_ANC_MIC_ARRAY_FB_NUM == 2))
 
+//双FB方案： TALK/副FB 复用ADC0 MIC切换控制逻辑
+#define AUDIO_ANC_DOUBLE_FB_MIC_SWITCH	   ((AUDIO_ANC_MIC_ARRAY_ENABLE && (AUDIO_ANC_MIC_ARRAY_FB_NUM == 2)) && ANC_MIC_REUSE_ENABLE)
+
 /*
    ANC多场景滤波器配置
  */
@@ -531,4 +534,5 @@ void audio_anc_stereo_mix_set(u8 en);
 
 u8 audio_anc_stereo_mix_get(void);
 
+void audio_anc_stereo_mix_ch_change(u8 type, u8 ch);
 #endif/*AUDIO_ANC_H*/

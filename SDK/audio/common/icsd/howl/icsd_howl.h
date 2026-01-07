@@ -50,6 +50,9 @@ typedef struct {
     float loud_thr2;
     float hd_det_cnt;
     float hd_step_pwr;
+    float harm_rel_thr_l;
+    float harm_rel_thr_h;
+    float maxvld_lat_t2_add;
     float param1;
     float param2;
     float param3;
@@ -84,6 +87,10 @@ void icsd_alg_howl_ftdebug_free();
 extern const u8 icsd_howl_debug;
 extern const u8 howl_debug_dlen;
 extern const u8 howl_ft_debug;
-
+extern const u8 howl_train_en;
+extern const u8 howl_train_debug;
+extern const u8 howl_parm_correction;
 extern char lib_howl_version[];
+
 #endif
+

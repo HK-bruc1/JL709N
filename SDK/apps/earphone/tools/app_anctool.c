@@ -161,7 +161,8 @@ enum {
     CMD_MIC_CMP_GAIN_ALL_GET = 0X64, //FF/FB 增益补偿结构体获取
     CMD_MIC_CMP_GAIN_ALL_SET = 0X65, //FF/FB 增益补偿结构体设置
 
-    CMD_MIC_SCHEME_GET = 0x66, //ANC MIC组合方案获取
+    CMD_MIC_SCHEME_GET = 0x66,       //ANC MIC组合方案获取
+    CMD_MIC_SCHEME_FB_CH_SET = 0x68, //ANC MIC组合方案-FB 通道设置
 
     CMD_ANC_EXT_TOOL = 0XB0,
     CMD_DEBUG_USER_CMD = 0XB1,		//用户自定义命令
@@ -844,6 +845,10 @@ static void app_anctool_passthrough_deal(u8 *data, u16 len)
         mic_cfg[2] = AUDIO_ANC_MIC_ARRAY_FB_NUM; //fb mic个数
         anctool_printf("CMD_MIC_SCHEME_GET ff_num %d, fb_num %d\n", mic_cfg[1], mic_cfg[2]);
         app_anctool_passthrough_send_buf(cmd, mic_cfg, 3);
+        break;
+    case CMD_MIC_SCHEME_FB_CH_SET:
+        anctool_printf("CMD_MIC_SCHEME_FB_CH_SET 0x%x\n", data[1]);
+        audio_anc_stereo_mix_ch_change(ANC_FB_TYPE, data[1]);
         break;
 #endif
     default:

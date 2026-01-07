@@ -191,6 +191,7 @@ LFLAGS := \
 	cpu/br52/liba/lib_ogg_opus_dec.a \
 	cpu/br52/liba/libjlsp.a \
 	cpu/br52/liba/lib_nn_v3.a \
+	cpu/br52/liba/lib_nn_v3_params.a \
 	cpu/br52/liba/libjlsp_kws.a \
 	cpu/br52/liba/libjlsp_kws_far_keyword.a \
 	cpu/br52/liba/libjlsp_kws_india_english.a \
@@ -280,6 +281,7 @@ LFLAGS := \
 	apps/common/device/sensor/hr_sensor/hx3918/CodeBlocks_3918_hrv_20241026_v2.2.a  \
 	cpu/br52/liba/lib_dns.a \
 	cpu/br52/liba/lib_dns_v3.a \
+	apps/common/third_party_profile/tuya_protocol/sdk/lib/libtuya_lib.a \
 	cpu/br52/liba/update.a \
 	cpu/br52/liba/cbuf.a \
 	cpu/br52/liba/lbuf.a \

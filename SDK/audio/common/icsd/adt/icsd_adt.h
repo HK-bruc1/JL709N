@@ -95,7 +95,9 @@ struct adt_function {
     void (*icsd_adt_anc46k_out_isr)();
     //dac
     int (*audio_dac_read_anc_reset)();
+    int (*audio_dac_read_mic_reset)();
     int (*audio_dac_read_anc)(s16 points_offset, void *data, int len, u8 read_channel);
+    int (*audio_dac_read_mic)(s16 points_offset, void *data, int len, u8 read_channel);
     //src
     void (*icsd_adt_src_write)(void *data, int len, void *resample);
     void (*icsd_adt_src_push)(void *resample);
@@ -289,6 +291,7 @@ int audio_dac_read_anc_init(void);
 int audio_dac_read_anc_exit(void);
 /*重置当前dac read读取的参数*/
 int audio_dac_read_anc_reset(void);
+int audio_dac_read_mic_reset(void);
 
 int *icsd_minirt_reuse_ram();
 void icsd_adt_de_suspend();
@@ -308,4 +311,7 @@ extern const u8 ADT_MIC_VERSION;
 extern const u8 ICSD_AVC_DATAPATH;
 extern const u16 ANC_DMA_POINTS;
 extern char lib_adt_version[];
+extern const u8 icsd_dac_micread;
+extern const u8 rtanc_ancout_2ch_en;
+
 #endif

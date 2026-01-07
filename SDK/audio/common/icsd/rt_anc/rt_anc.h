@@ -102,6 +102,7 @@ enum {
     RT_ANC_WAIT_UPDATA,
     RT_ANC_UPDATA_END,
     RT_CMP_PART2,
+    RTANC_HEADSET_UPDATE = 17,
 };
 
 enum {
@@ -273,6 +274,7 @@ typedef struct {
     u8  part1_cnt;
     u8  dac_flag_iszero;
     s16 *inptr_h;
+    s16 *inptr_m;
     s16 *inptr_l;
     int p1dac_max_vld;
 
@@ -324,6 +326,8 @@ void icsd_alg_rtanc_set_part1_ch_lr(u8 ch, u8 part2_stop);
 u8   icsd_alg_rtanc_get_part1_ch();
 void icsd_alg_rtanc_set_part1_ch();
 void icsd_alg_rtanc_set_part1_ch_all0();
+void icsd_alg_rtanc_set_update_flag(u8 flag);
+u8 icsd_alg_rtanc_get_update_flag();
 void rt_anc_time_out_del();
 void rt_anc_set_init(struct rt_anc_infmt *fmt, struct __anc_ext_rtanc_adaptive_cfg *rtanc_tool_cfg, struct __anc_ext_rtanc_adaptive_cfg *rtanc_tool_cfg_r, struct __anc_ext_dynamic_cfg *dynamic_cfg, struct __anc_ext_dynamic_cfg *dynamic_cfg_r);
 void rt_anc_init(struct rt_anc_infmt *fmt, struct __anc_ext_rtanc_adaptive_cfg *rtanc_tool_cfg, struct __anc_ext_rtanc_adaptive_cfg *rtanc_tool_cfg_r, struct __anc_ext_dynamic_cfg *dynamic_cfg, struct __anc_ext_dynamic_cfg *dynamic_cfg_r);

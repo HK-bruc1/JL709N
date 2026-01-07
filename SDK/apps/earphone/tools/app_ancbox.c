@@ -232,6 +232,8 @@ enum {
     CMD_ANC_KEY_DUT_SCAN = 0x5A, //按键查询
     CMD_PRODUCTION_MODE_SET = 0X5D,	 //产测模式设置
     CMD_PRODUCTION_MODE_SET_BUSY = 0X5E,	//产测模式设置繁忙标志
+    CMD_MIC_SCHEME_GET = 0x66,       //ANC MIC组合方案获取
+    CMD_MIC_SCHEME_FB_CH_SET = 0x68, //ANC MIC组合方案-FB 通道设置
     //透传指令END
 
     CMD_ANC_GET_MAC = 0x80, //获取MAC地址
@@ -1074,6 +1076,17 @@ int app_ancbox_event_handler(int *msg)
         __this->fft_file_busy = 1;
         cmd[0] = CMD_ANC_MODULE;
         if (__this->audio_enc_mpt_fre_ch) {
+#if AUDIO_ANC_DOUBLE_FB_MIC_SWITCH
+            //ANC双FB 方案： 处理TALK 与 副FB（RFB）复用的场景
+            if ((__this->audio_enc_mpt_fre_ch & AUDIO_ENC_MPT_RFB_MIC) && \
+                (__this->audio_enc_mpt_fre_ch & (AUDIO_ENC_MPT_TALK_MIC | AUDIO_ENC_MPT_CVP_OUT))) {
+                //复用MIC同时打开时报错
+                log_error("CMD_ANC_MIC_FFT_START ERROR ch = 0x%x, RFB & TALK is reuse\n", __this->audio_enc_mpt_fre_ch);
+                cmd[1] = CMD_ANC_FAIL;
+                chargestore_api_write(cmd, 2);
+                break;
+            }
+#endif
             cmd[1] = CMD_ANC_MIC_FFT_START;
             chargestore_api_write(cmd, 2);	//先回复，再执行
             audio_enc_mpt_fre_response_open(__this->audio_enc_mpt_fre_ch);
@@ -1086,6 +1099,10 @@ int app_ancbox_event_handler(int *msg)
     case CMD_ANC_MIC_FFT_STOP:
         cmd[0] = CMD_ANC_MODULE;
         cmd[1] = CMD_ANC_MIC_FFT_STOP;
+#if AUDIO_ANC_DOUBLE_FB_MIC_SWITCH
+        //恢复默认的ADC节点配置
+        audio_adc_user_cfg_change(0);
+#endif
         audio_enc_mpt_fre_response_close();
         /* chargestore_api_write(cmd, 2); */
         __this->fft_file_busy = 0;
@@ -1550,7 +1567,17 @@ static int app_ancbox_module_deal(u8 *buf, u8 len)
 
 #if TCFG_ANC_SELF_DUT_GET_SZ
     case CMD_ANC_SZ_FFT_START:
+        log_info("CMD_ANC_SZ_FFT_START sel %d\n", buf[2]);
         __this->fft_file_busy = 1;
+#if (AUDIO_ANC_MIC_ARRAY_ENABLE && (AUDIO_ANC_MIC_ARRAY_FB_NUM == 2))
+        if (buf[2] == 2) {
+            //ANC双FB 方案：由于BR52仅有L_OUT有输出，因此测试R_SZ时，映射到L_SZ
+            buf[2] = 4;		//映射到L_SZ声道
+            audio_anc_stereo_mix_ch_change(ANC_FB_TYPE, BIT(1));
+        } else {
+            audio_anc_stereo_mix_ch_change(ANC_FB_TYPE, BIT(0));
+        }
+#endif
         void audio_anc_post_msg_sz_fft_open(u8 sel);
         audio_anc_post_msg_sz_fft_open(buf[2]);
         chargestore_api_write(sendbuf, 2);
@@ -1620,6 +1647,20 @@ static int app_ancbox_module_deal(u8 *buf, u8 len)
         sendbuf[2] = __this->production_set_busy;
         chargestore_api_write(sendbuf, 3);
         return 1;
+#if AUDIO_ANC_MIC_ARRAY_ENABLE
+    case CMD_MIC_SCHEME_GET:
+        sendbuf[2] = AUDIO_ANC_MIC_ARRAY_ENABLE;
+        sendbuf[3] = AUDIO_ANC_MIC_ARRAY_FF_NUM; //ff mic个数
+        sendbuf[4] = AUDIO_ANC_MIC_ARRAY_FB_NUM; //fb mic个数
+        log_info("CMD_MIC_SCHEME_GET ff_num %d, fb_num %d\n", sendbuf[3], sendbuf[4]);
+        chargestore_api_write(sendbuf, 5);
+        return 1;
+    case CMD_MIC_SCHEME_FB_CH_SET:
+        log_info("CMD_MIC_SCHEME_FB_CH_SET 0x%x\n", buf[2]);
+        audio_anc_stereo_mix_ch_change(ANC_FB_TYPE, buf[2]);
+        chargestore_api_write(sendbuf, 2);
+        return 1;
+#endif
 #if TCFG_AUDIO_ANC_EXT_TOOL_ENABLE
     case CMD_ANC_EXT_TOOL:
         __this->anc_ext_len = len - 2;

@@ -361,30 +361,14 @@ int audio_anc_debug_user_cmd_process(u8 *data, int len)
 #endif
 #if AUDIO_ANC_MIC_ARRAY_ENABLE
     case 14:
-        //对调主副的FF mic
-        printf("ANC_STEREO_MIX: swap ff mic ch\n");
-        anc_param = audio_anc_param_get();
-        if (data[1]) {
-            anc_param->mic_type[0] = TCFG_AUDIO_ANCR_FF_MIC;
-            anc_param->mic_type[2] = TCFG_AUDIO_ANCL_FF_MIC;
-        } else {
-            anc_param->mic_type[0] = TCFG_AUDIO_ANCL_FF_MIC;
-            anc_param->mic_type[2] = TCFG_AUDIO_ANCR_FF_MIC;
-        }
-        put_buf(anc_param->mic_type, 4);
+        //对调主副的FF mic，并实时生效
+        printf("ANC_STEREO_MIX: swap ff mic ch 0x%x\n", data[1]);
+        audio_anc_stereo_mix_ch_change(ANC_FF_TYPE, data[1]);
         break;
     case 15:
-        //对调主副的FB mic
-        printf("ANC_STEREO_MIX: swap fb mic ch\n");
-        anc_param = audio_anc_param_get();
-        if (data[1]) {
-            anc_param->mic_type[1] = TCFG_AUDIO_ANCR_FB_MIC;
-            anc_param->mic_type[3] = TCFG_AUDIO_ANCL_FB_MIC;
-        } else {
-            anc_param->mic_type[1] = TCFG_AUDIO_ANCL_FB_MIC;
-            anc_param->mic_type[3] = TCFG_AUDIO_ANCR_FB_MIC;
-        }
-        put_buf(anc_param->mic_type, 4);
+        //对调主副的FB mic, 并实时生效
+        printf("ANC_STEREO_MIX: swap fb mic ch 0x%x\n", data[1]);
+        audio_anc_stereo_mix_ch_change(ANC_FB_TYPE, data[1]);
         break;
     case 16:
         /*
@@ -409,9 +393,11 @@ int audio_anc_debug_user_cmd_process(u8 *data, int len)
  */
 void audio_anc_debug_app_send_data(u8 cmd, u8 cmd_2nd, u8 *buf, int len)
 {
+#if TCFG_AUDIO_ANC_EXT_TOOL_ENABLE
     if (!(anc_ext_debug_tool_function_get() & ANC_EXT_FUNC_SPP_EN_APP)) {
         return;
     }
+#endif
     u8 *send_buf = anc_malloc("ANC_DEBUG", len + 3);
     send_buf[0] = ANC_DEBUG_CMD_APP;
     send_buf[1] = cmd;

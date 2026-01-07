@@ -15,6 +15,7 @@
 #include "audio_config_def.h"
 #include "effects/voiceChanger_api.h"
 #include "scene_update.h"
+#include "cvp_v3.h"
 
 /*音频配置在线调试配置*/
 const int config_audio_cfg_debug_online = TCFG_CFG_TOOL_ENABLE;
@@ -157,6 +158,24 @@ const int config_audio_adc7_input_mode = 0;
  *******************************************************************
  */
 const int config_audio_cvp_ref_source = 1;/*0:DAC Internal 1:External*/
+
+#if (TCFG_AUDIO_GLOBAL_SAMPLE_RATE == 32000)
+#define LLNS_TABLE_SELECT  	NN_TABLE_LLNS_SR32K
+#else
+#define LLNS_TABLE_SELECT  	NN_TABLE_LLNS_SR48K
+#endif
+
+#if (TCFG_CVP_ALGO_TYPE & NN_TABLE_DEFAULT_GROUP)
+#define CVP_TABLE_SELECT    	NN_TABLE_CVP_DEFAULT
+#elif (TCFG_CVP_ALGO_TYPE & NN_TABLE_2MIC_CLIP_GROUP)
+#define CVP_TABLE_SELECT   		NN_TABLE_CVP_2MIC_CLIP
+#endif
+
+#if TCFG_AUDIO_CVP_V3_MODE
+const u32 NN_TABLE_SELECT = (CVP_TABLE_SELECT | LLNS_TABLE_SELECT);
+#else
+const u32 NN_TABLE_SELECT = (LLNS_TABLE_SELECT);
+#endif
 
 /*
  *******************************************************************
@@ -503,6 +522,12 @@ const int spatial_brir_azimuth = -1;    /* -1加载所有brir，角度调试模�
 const u8 const_mic_capless_open_delay_debug = 0;
 const u8 const_mic_capless_trim_delay_debug = 0;
 
+//***********************
+//*   	LLNS DNS   *
+//***********************
+const u8 LLNS_DNS_AGC_EN = 0; //预留配置，当前版本不支持AGC
+const u32 LLNS_DNS_SUPPORT_SAMPLE_RATE = TCFG_AUDIO_GLOBAL_SAMPLE_RATE; //仅支持32k、48k采样率
+const u16 LLNS_DNS_PROCESS_FRAME_SIZE = (LLNS_DNS_SUPPORT_SAMPLE_RATE == 32000) ? 480 : 720; //降噪一次输出数据长度(点)，不可更改
 
 const char log_tag_const_v_ALINK  = CONFIG_DEBUG_LIB(0);
 const char log_tag_const_c_ALINK  = CONFIG_DEBUG_LIB(0);

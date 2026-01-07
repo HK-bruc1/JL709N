@@ -784,14 +784,6 @@ const int audio_effect_nsgate_pro_enable = 0;
 #endif
 
 //***********************
-//*   	LLNS DNS   *
-//***********************
-const u8 LLNS_DNS_AGC_EN = 0; //可以默认置1，由节点的配置判断是否使能agc
-const u32 LLNS_DNS_SUPPORT_SAMPLE_RATE = TCFG_AUDIO_GLOBAL_SAMPLE_RATE; //仅支持32k、48k采样率
-const u16 LLNS_DNS_PROCESS_FRAME_SIZE = (LLNS_DNS_SUPPORT_SAMPLE_RATE == 32000) ? 480 : 720; //降噪一次输出数据长度(点)，请在原厂指导下更改
-const u32 LLNS_DNS_TABLE_SELECT = (LLNS_DNS_SUPPORT_SAMPLE_RATE == 32000) ? BIT(0) : BIT(1);
-
-//***********************
 //*   	Others          *
 //***********************
 const  int RS_FAST_MODE_QUALITY = 2;	//软件变采样 滤波阶数配置，范围2到8， 8代表16阶的变采样模式 ,速度跟它的大小呈正相关

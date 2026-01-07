@@ -13,6 +13,7 @@
 
 #if TCFG_AUDIO_ANC_ENABLE
 #include "audio_anc.h"
+#include "icsd_demo.h"
 #if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
 #include "icsd_adt_app.h"
 #endif
@@ -74,7 +75,9 @@ int esco_player_open_extended(u8 *bt_addr, int ext_type, void *ext_param)
 
 #if TCFG_AUDIO_ANC_ENABLE
     audio_anc_mic_gain_check(1);
-
+#if AUDIO_ANC_DOUBLE_FB_MIC_SWITCH
+    audio_anc_reuse_mic_change_demo(1);
+#endif
 #if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
     audio_icsd_adt_scene_set(ADT_SCENE_ESCO, 1);
     audio_icsd_adt_reset(ADT_SCENE_ESCO);
@@ -224,7 +227,9 @@ void esco_player_close()
         aec_ref_dac_ch_data_read_exit();
     }
 #endif
-
+#if AUDIO_ANC_DOUBLE_FB_MIC_SWITCH
+    audio_anc_reuse_mic_change_demo(0);
+#endif
 #if TCFG_AUDIO_ANC_ACOUSTIC_DETECTOR_EN
     audio_icsd_adt_scene_set(ADT_SCENE_ESCO, 0);
     audio_icsd_adt_reset(ADT_SCENE_ESCO);

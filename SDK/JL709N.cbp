@@ -325,6 +325,7 @@
 <Add option="cpu/br52/liba/lib_ogg_opus_dec.a" />
 <Add option="cpu/br52/liba/libjlsp.a" />
 <Add option="cpu/br52/liba/lib_nn_v3.a" />
+<Add option="cpu/br52/liba/lib_nn_v3_params.a" />
 <Add option="cpu/br52/liba/libjlsp_kws.a" />
 <Add option="cpu/br52/liba/libjlsp_kws_far_keyword.a" />
 <Add option="cpu/br52/liba/libjlsp_kws_india_english.a" />
@@ -414,6 +415,7 @@
 <Add option="apps/common/device/sensor/hr_sensor/hx3918/CodeBlocks_3918_hrv_20241026_v2.2.a " />
 <Add option="cpu/br52/liba/lib_dns.a" />
 <Add option="cpu/br52/liba/lib_dns_v3.a" />
+<Add option="apps/common/third_party_profile/tuya_protocol/sdk/lib/libtuya_lib.a" />
 <Add option="cpu/br52/liba/update.a" />
 <Add option="cpu/br52/liba/cbuf.a" />
 <Add option="cpu/br52/liba/lbuf.a" />

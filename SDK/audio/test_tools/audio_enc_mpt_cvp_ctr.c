@@ -151,6 +151,15 @@ static void audio_enc_mpt_fre_pre(u16 mic_ch)
     if (mic_ch & AUDIO_ENC_MPT_RFB_MIC) {
     }
 #endif
+
+#if AUDIO_ANC_DOUBLE_FB_MIC_SWITCH
+    //TWS 双FB方案 TALK/副FB复用ADC0切换
+    if (mic_ch & AUDIO_ENC_MPT_RFB_MIC) {
+        audio_adc_user_cfg_change(1);
+    } else {
+        audio_adc_user_cfg_change(0);
+    }
+#endif
 }
 
 /*mic adc原始数据输出*/

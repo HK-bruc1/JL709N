@@ -121,20 +121,22 @@ struct icsd_anc_v2_libfmt {
 };
 
 struct icsd_anc_v2_infmt {
+    u8     specific_en;
+    s8 tool_ffgain_sign;
+    s8 tool_fbgain_sign;
     void *alloc_ptr;    //外部申请的ram地址
     float ff_gain;
     float fb_gain;
-    s8 tool_ffgain_sign;
-    s8 tool_fbgain_sign;
     float *target_out_l;
     float *target_out_r;
     float *ff_fgq_l;
     float *ff_fgq_r;
     float *specific_szl;
     float *specific_pzl;
+    float *specific_targetl;
     float *specific_szr;
     float *specific_pzr;
-    u8     specific_en;
+    float *specific_targetr;
 };
 
 enum {

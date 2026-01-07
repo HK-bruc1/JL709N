@@ -564,6 +564,12 @@ static void audio_rt_anc_param_updata(void *rt_param_l, void *rt_param_r)
     fb_updat |= anc_param->fb_updat;
     cmp_eq_updat |= anc_param->cmp_eq_updat;
 
+    if (anc_param->ff_updat) {
+        anc_param->ff_updat = 0;
+    }
+    if (anc_param->fb_updat) {
+        anc_param->fb_updat = 0;
+    }
     //param->lfb_coeff = &anc_param->lfb_coeff[0];
 #if ANC_CONFIG_RFB_EN && AUDIO_ANC_STEREO_ENABLE
     if (rt_param_r) {
@@ -743,6 +749,7 @@ void audio_adt_rtanc_output_handle(void *rt_param_l, void *rt_param_r)
     }
     //RTANC LIB 内部busy清0
     ((__rt_anc_param *)rt_param_l)->updat_busy = 0;
+    ((__rt_anc_param *)rt_param_l)->cmp_eq_updat = 0;
 
     //恢复RT_ANC
     audio_anc_real_time_adaptive_resume("RTANC_OUTPUT");

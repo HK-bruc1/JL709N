@@ -320,6 +320,7 @@ void icsd_adt_alg_rtanc_run_part1(__adt_anc_part1_parm *_part1_parm)
     part1_parm.part1_cnt = _part1_parm->part1_cnt;
     part1_parm.inptr_h  = _part1_parm->inptr_h;
     part1_parm.inptr_l  = _part1_parm->inptr_l;
+    part1_parm.inptr_m  = _part1_parm->inptr_m;
     part1_parm.out0_sum = _part1_parm->out0_sum;
     part1_parm.out1_sum = _part1_parm->out1_sum;
     part1_parm.out2_sum = _part1_parm->out2_sum;
@@ -380,9 +381,17 @@ void icsd_adt_set_rtanc_part1_ch()
     icsd_alg_rtanc_set_part1_ch();
 #endif
 }
+void icsd_adt_rtanc_set_update_flag(u8 flag)
+{
+#if ICSD_RTANC_LIB
+    icsd_alg_rtanc_set_update_flag(flag);
+#endif
+}
 void icsd_adt_rtanc_set_part1_all0()
 {
+#if ICSD_RTANC_LIB
     icsd_alg_rtanc_set_part1_ch_all0();
+#endif
 }
 void icsd_adt_alg_rtanc_part1_reset()
 {

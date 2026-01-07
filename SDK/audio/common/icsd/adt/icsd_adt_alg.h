@@ -59,6 +59,7 @@ typedef struct {
     u8  part1_cnt;
     u8  dac_flag_iszero;
     s16 *inptr_h;
+    s16 *inptr_m;
     s16 *inptr_l;
     int   p1dac_max_vld;
 
@@ -118,6 +119,7 @@ void icsd_adt_alg_rtanc_part2_parm_init_r();
 u8   icsd_adt_get_rtanc_part1_ch();
 u8   icsd_adt_alg_rtanc_run_part2(__adt_rtanc_part2_parm *_part2_parm);
 void icsd_adt_set_rtanc_part1_ch();
+void icsd_adt_rtanc_set_update_flag(u8 flag);
 void icsd_adt_rtanc_set_part1_all0();
 u8 	 icsd_adt_alg_rtanc_get_wind_lvl();
 float icsd_adt_alg_rtanc_get_avc_spldb_iir();
