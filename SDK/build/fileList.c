@@ -14,6 +14,11 @@ objs += \
       $(ROOT)/audio/framework/nodes/volume_node.o \
 
 objs += \
+	  $(ROOT)/audio/framework/nodes/audio_debug_node.o
+
+
+
+objs += \
       $(ROOT)/audio/framework/nodes/ns_node.o
 
 objs += \
