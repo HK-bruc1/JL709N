@@ -1682,7 +1682,7 @@
        "paddingLeft": "",
        "saveWay": "code",
        "eventField": [],
-       "structDef": ""
+       "structDef": "const struct battery_curve g_battery_curve_table"
       },
       "type": "default",
       "justify": "start",
@@ -2793,7 +2793,7 @@
        "paddingLeft": "",
        "saveWay": "code",
        "eventField": [],
-       "structDef": ""
+       "structDef": "const struct battery_curve g_battery_curve_table"
       },
       "type": "default",
       "justify": "start",

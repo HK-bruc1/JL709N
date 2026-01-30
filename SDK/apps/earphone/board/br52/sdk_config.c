@@ -62,13 +62,13 @@ const struct battery_curve g_battery_curve_table [] =  {
 
 #if TCFG_IO_CFG_AT_POWER_ON
 const struct gpio_cfg_item g_io_cfg_at_poweron [] =  {
-
+    
 };
 #endif // TCFG_IO_CFG_AT_POWER_ON
 
 #if TCFG_IO_CFG_AT_POWER_OFF
 const struct gpio_cfg_item g_io_cfg_at_poweroff [] =  {
-
+    
 };
 #endif // TCFG_IO_CFG_AT_POWER_OFF
 
@@ -78,7 +78,7 @@ const struct iokey_info g_iokey_info [] =  {
         .key_value = KEY_POWER,
         .key_io = IO_PORTB_01,
         .detect = 0,
-        .long_press_reset_enable = 1,
+        .long_press_reset_enable = 0,
         .long_press_reset_time = 8
     }
 };
@@ -119,7 +119,7 @@ const struct touch_key_cfg lp_touch_key_table [] =  {
     {
         .key_ch = LPCTMU_CH1_PB1,
         .key_value = KEY_POWER,
-        .wakeup_enable = 1,
+        .wakeup_enable = 0,
         .eartch_en = 0,
         .index = 0,
         .algo_cfg = {

@@ -348,6 +348,22 @@
             "value": "id_1647485267192_78"
            },
            {
+            "label": "IO_PORTB_05",
+            "value": "id_1734937975137_0"
+           },
+           {
+            "label": "IO_PORTB_06",
+            "value": "id_1734937985240_1"
+           },
+           {
+            "label": "IO_PORTB_07",
+            "value": "id_1734937986392_2"
+           },
+           {
+            "label": "IO_PORTB_08",
+            "value": "id_1734937995945_3"
+           },
+           {
             "label": "IO_PORTC_00",
             "value": "id_1647485267192_82"
            },
@@ -774,6 +790,22 @@
            {
             "label": "IO_PORTB_04",
             "value": "id_1647485267192_78"
+           },
+           {
+            "label": "IO_PORTB_05",
+            "value": "id_1734937975137_0"
+           },
+           {
+            "label": "IO_PORTB_06",
+            "value": "id_1734937985240_1"
+           },
+           {
+            "label": "IO_PORTB_07",
+            "value": "id_1734937986392_2"
+           },
+           {
+            "label": "IO_PORTB_08",
+            "value": "id_1734937995945_3"
            },
            {
             "label": "IO_PORTC_00",
@@ -3050,7 +3082,7 @@
           "eventField": [],
           "saveWay": "code",
           "uuid": "",
-          "structDef": "",
+          "structDef": "const struct touch_key_cfg lp_touch_key_table",
           "structProp": "",
           "showLabelIndex": false
          },
