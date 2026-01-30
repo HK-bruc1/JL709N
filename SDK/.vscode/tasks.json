@@ -5,23 +5,35 @@
             "label": "all",
             "type": "shell",
             "windows": {
-                "command": ".vscode/winmk.bat all"
+                "command": "cmd",
+                "args": ["/c", "product_compile_image.bat", "all"]
             },
-            "command": "make all -j`nproc`",
-            "problemMatcher": [],
+            "problemMatcher": ["$gcc"],  // Automatically capture make errors/warnings
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
             "group": {
                 "kind": "build",
                 "isDefault": true
             }
-        }
-        ,{
+        },
+        {
             "label": "clean",
             "type": "shell",
             "windows": {
-                "command": ".vscode/winmk.bat clean"
+                "command": "cmd",
+                "args": ["/c", "product_compile_image.bat", "clean"]
             },
-            "command": "make clean -j`nproc`",
-            "problemMatcher": [],
+            "problemMatcher": ["$gcc"],
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
             "group": "build"
         }
     ]

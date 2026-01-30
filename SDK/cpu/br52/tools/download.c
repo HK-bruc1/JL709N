@@ -49,9 +49,9 @@ host-client -project ${NICKNAME}$2 -f ${files} $1.elf
 @echo off
 Setlocal enabledelayedexpansion
 @echo ********************************************************************************
-@echo           SDK BR52
-@echo ********************************************************************************
+@echo           cpu\br52\tools\download.bat
 @echo %date%
+@echo ********************************************************************************
 
 
 cd /d %~dp0
@@ -108,7 +108,7 @@ copy anc_ext.bin download\earphone\ALIGN_DIR\.
 del download\earphone\ALIGN_DIR\anc_ext.bin
 #endif
 
-call download/earphone/download.bat
+call download/earphone/download.bat %CUSTOMER_PATH% %CUSTOMER_CHIPKEY% %IC_VER% "%GIT_VER%"
 
 #endif
 

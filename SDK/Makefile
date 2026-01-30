@@ -11,6 +11,38 @@
 #       可以通过 ulimit -n 8096 来设置一个较大的值
 #
 
+# 固件生成时需要的参数
+# 包含指定目录的配置文件，可以引用其中的变量,提供两个固件生成参数
+
+# 为了拿客户名以及KEY类型
+include $(CURDIR)/customer_path.conf
+# 为了拿IC型号
+include $(CURDIR)/customer/$(CUSTOMER_PATH)/customer.conf
+
+# 判断IC型号
+ifeq ($(_IC_Model),0)
+  IC_VER = JL7096D6
+else ifeq ($(_IC_Model),1)
+  IC_VER = JL7096D6
+else ifeq ($(_IC_Model),2)
+  IC_VER = JL7096D6
+else ifeq ($(_IC_Model),3)
+  IC_VER = JL7096D6
+else
+  $(error Unsupported _IC_Model value: $(_IC_Model))
+endif
+
+# 使用shell命令获取git的hash值作为git版本号
+GIT_VER_EX := $(shell git log --pretty=oneline -1)
+GIT_VER := $(firstword $(GIT_VER_EX))
+
+# 导出环境变量，供所有子 Makefile 使用
+export CUSTOMER_PATH
+export CUSTOMER_CHIPKEY
+export IC_VER
+export GIT_VER
+
+
 # 工具路径设置
 ifeq ($(OS), Windows_NT)
 # Windows 下工具链位置
@@ -93,6 +125,13 @@ export CFLAGS := \
 # C++额外的编译参数
 export CXXFLAGS :=
 
+# 这里将宏传递给编译器，代码中不显式定义，代码可以直接引用
+# 这样整个项目中都使用统一的大写变量名 GIT_VER
+# apps\earphone\mode\bt\earphone.c直接使用
+ifneq ($(GIT_VER),)
+	CFLAGS += -DGIT_VER=\"$(GIT_VER)\"
+	CXXFLAGS += -DGIT_VER=\"$(GIT_VER)\"
+endif
 
 # 宏定义
 export DEFINES := \
