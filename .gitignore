@@ -26,8 +26,8 @@ SDK/objs/
 *aptx.bin
 *data_code.bin
 *jl_isd.bin
-*jl_isd.fw
-*update.ufw
+#*jl_isd.fw
+#*update.ufw
 SDK/cpu/*/sdk.ld
 SDK/cpu/*/tools/download.bat
 SDK/cpu/*/tools/isd_config.ini
@@ -37,5 +37,6 @@ patch/
 SDK.git/
 info.json
 *sdk.md5
-output/
+#/output/
+#!/SDK/output/
 cache/
