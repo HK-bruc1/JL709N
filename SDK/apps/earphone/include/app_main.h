@@ -65,6 +65,11 @@ typedef struct _APP_VAR {
     float enc_degradation;//default:1,range[0:1]
     u32 start_time;
     s16 mic_eff_volume;
+
+    u8 factory_reset_flag;//双耳恢复出厂设置标志位
+#if _LED_POWER_LOW_NO_INTERRUPT_ENABLE
+    u8 power_low_no_interrupt_flag;//双耳同步低电灯效标志位
+#endif
 } APP_VAR;
 
 struct bt_mode_var {

@@ -242,6 +242,9 @@ void clear_sniff_out_status()
 *  mode=0:使能可以进入dut，原本流程不变。
 *  mode=1:删除一些其它切换状态，产线中通过工具调用此接口进入dut模式，提高测试效率
  *********************/
+
+ u8 dut_on_flag = 0;//DUT模式标志位,主要是中TWS断开时，不更新灯效，不播报提示音，限制作用
+ 
 void bt_bredr_enter_dut_mode(u8 mode, u8 inquiry_scan_en)
 {
     puts("<<<<<<<<<<<<<bt_bredr_enter_dut_mode>>>>>>>>>>>>>>\n");

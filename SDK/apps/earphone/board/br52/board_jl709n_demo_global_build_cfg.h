@@ -103,7 +103,7 @@
 
 //with single-bank mode,actual vm size should larger this VM_LEAST_SIZE,and dual bank mode,actual vm size equals this;
 //config whether erased this area when do a update,1-No Operation,0-Erase
-#define CONFIG_VM_OPT							1
+#define CONFIG_VM_OPT							_CONFIG_VM_OPT
 
 //config whether erased this area when do a update,1-No Operation,0-Erase
 #define CONFIG_BTIF_OPT							1
