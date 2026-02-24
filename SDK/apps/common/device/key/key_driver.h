@@ -136,7 +136,13 @@ enum key_action {
     KEY_ACTION_TWS_HOLD_8SEC,
     KEY_ACTION_TWS_HOLD_10SEC,
 
-    /*=======新增按键动作请在此处之上增加=======*/
+    //多击+长按
+    KEY_ACTION_CLICK_PLUS_LONG,         // 单击+长按
+    KEY_ACTION_DOUBLE_CLICK_PLUS_LONG,  // 双击+长按
+    KEY_ACTION_TRIPLE_CLICK_PLUS_LONG,  // 三击+长按
+    KEY_ACTION_TRIPLE_CLICK_PLUS_LONG_KEY_ACTION_HOLD_3SEC,//三击+长按+hold_3s
+
+    /*=======新增按键动作请在此处之上增加，不建议中间插入，可能影响基于偏移量计算的功能，比如多击判断流程=======*/
     KEY_ACTION_NO_KEY,
     KEY_ACTION_MAX,
 };
