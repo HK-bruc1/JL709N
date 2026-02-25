@@ -249,6 +249,8 @@ enum {
     //IR_NUM中间不允许插入msg
 
     APP_MSG_INPUT_FILE_NUM,
+
+    APP_MSG_FACTORY_RESET,//新增公共枚举值，不区分项目
 };
 
 

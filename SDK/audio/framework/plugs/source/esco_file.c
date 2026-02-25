@@ -12,6 +12,8 @@
 #include "system/timer.h"
 #include "app_config.h"
 
+#include "customer.h"
+
 #define ESCO_DISCONNECTED_FILL_PACKET_NUMBER    5 //esco 链路断开时，补包的数量
 
 struct esco_file_hdl {
@@ -169,7 +171,7 @@ void esco_ts_handle_create(struct esco_file_hdl *hdl)
         return;
     }
 #define ESCO_DELAY_TIME     60
-#define ESCO_RECOGNTION_TIME 220
+#define ESCO_RECOGNTION_TIME _ESCO_RECOGNTION_TIME//220
 
     int delay_time = ESCO_DELAY_TIME;
     /* if (get_sniff_out_status()) { */

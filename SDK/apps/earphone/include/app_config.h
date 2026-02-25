@@ -6,6 +6,8 @@
 #include "audio_cvp_def.h"
 #include "rcsp_define.h"
 
+#include "customer.h"
+
 /*
  * 系统打印总开关
  */
@@ -950,13 +952,13 @@
 #elif ((THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN) && RCSP_ADV_TRANSLATOR)
 #define TCFG_LOWPOWER_RAM_SIZE              2	                // 低功耗掉电ram大小，单位：128K，可设置值：0、2、3
 #else
-#define TCFG_LOWPOWER_RAM_SIZE				3	                // 低功耗掉电ram大小，单位：128K，可设置值：0、2、3
+#define TCFG_LOWPOWER_RAM_SIZE				_TCFG_LOWPOWER_RAM_SIZE_DMS_DNS_MODE//3	                // 低功耗掉电ram大小，单位：128K，可设置值：0、2、3
 
 /************TCFG_AUDIO_CVP_DMS_DNS_MODE &&AI***********/
 #if TCFG_AUDIO_CVP_DMS_DNS_MODE
 #if TCFG_THIRD_PARTY_PROTOCOLS_ENABLE
 #undef TCFG_LOWPOWER_RAM_SIZE
-#define TCFG_LOWPOWER_RAM_SIZE              2                   // 低功耗掉电ram大小，单位：128K，可设置值：0、2、3
+#define TCFG_LOWPOWER_RAM_SIZE              _TCFG_LOWPOWER_RAM_SIZE_DMS_DNS_APP_MODE//2                   // 低功耗掉电ram大小，单位：128K，可设置值：0、2、3
 #endif
 #endif
 #if (((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))|| TCFG_AUDIO_BIT_WIDTH || TCFG_BT_SUPPORT_LHDC_V5 || TCFG_BT_SUPPORT_LHDC||TCFG_BT_SUPPORT_LDAC)&&(TCFG_LOWPOWER_RAM_SIZE>=2)

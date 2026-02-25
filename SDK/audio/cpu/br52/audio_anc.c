@@ -1889,7 +1889,13 @@ void anc_info_save()
         }
 
         user_anc_log("save anc_info");
+
+#if _ANC_INFO_SAVE_DEFAULT_ANC_ON
+        anc_hdl->param.mode = ANC_ON;
+#else
         anc_info.mode = anc_mode_get();
+#endif
+
 #if INEAR_ANC_UI
         anc_info.inear_tws_mode = inear_tws_ancmode;
 #endif/*INEAR_ANC_UI*/
@@ -1950,9 +1956,9 @@ void anc_poweroff(void)
 /*模式切换测试demo*/
 #define ANC_MODE_NUM	3 /*ANC模式循环切换*/
 static const u8 anc_mode_switch_tab[ANC_MODE_NUM] = {
-    ANC_OFF,
-    ANC_TRANSPARENCY,
-    ANC_ON,
+    _ANC_MOODE_1,
+    _ANC_MOODE_2,
+    _ANC_MOODE_3,
 };
 void anc_mode_next(void)
 {

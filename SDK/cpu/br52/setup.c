@@ -9,6 +9,8 @@
 #define LOG_CLI_ENABLE
 #include "debug.h"
 
+#include "customer.h"
+
 extern void sys_timer_init(void);
 extern void tick_timer_init(void);
 extern void exception_irq_handler(void);
@@ -266,6 +268,11 @@ void setup_arch()
     power_early_flowing();
 
     clock_dump();
+
+#if _OSC_OFFSET_ENABLE
+    extern void bt_osc_offset_set(u32 offset);
+    bt_osc_offset_set(_FREQUENCY_OFFSET);
+#endif
 
     extern void ic_vbg_current_trim();
     ic_vbg_current_trim();

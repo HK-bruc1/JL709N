@@ -53,8 +53,21 @@ void bt_set_low_latency_mode(int enable, u8 tone_play_enable, int delay_ms)
      * 未连接手机,操作无效
      */
     int state = tws_api_get_tws_state();
-    if (state & TWS_STA_PHONE_DISCONNECTED) {
-        return;
+    // if (state & TWS_STA_PHONE_DISCONNECTED) {
+    //     return;
+    // }
+    //这里改为conf配置，更加灵活，虽然未连接蓝牙，游戏模式没有意义，播放个提示音
+    //使用APP自然可以直接切换游戏模式
+
+    //不用默认的led游戏模式流程直接在这里更新灯效，APP与普通都可以
+    if(enable){
+        //游戏模式灯效
+        extern void update_game_led(void);
+        update_game_led();
+    }else {
+        //退出游戏模式灯效
+        extern void update_normal_led(void);
+        update_normal_led();
     }
 
     const char *fname = enable ? get_tone_files()->low_latency_in :

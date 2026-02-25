@@ -17,6 +17,8 @@
 #include "app_le_connected.h"
 #endif
 
+#include "customer.h"
+
 void bt_volume_up(u8 inc)
 {
     u8 test_box_vol_up = 0x41;
@@ -53,7 +55,11 @@ void bt_volume_up(u8 inc)
     /* if (cur_vol >= app_audio_get_max_volume()) { */
     if (cur_vol >= max_volume) {
         audio_event_to_user(AUDIO_EVENT_VOL_MAX);	//触发vol max事件
-
+#if _TONE_MAX_VOL_ENABLE
+        //手动添加最大音量提示音
+        tws_play_tone_file_alone(get_tone_files()->_TONE_MAX_VOL_NAME,300);
+#endif
+        
         if (bt_get_call_status() != BT_CALL_HANGUP) {
             /*本地音量最大，如果手机音量还没最大，继续加，以防显示不同步*/
             if (g_bt_hdl.phone_vol < 15) {
@@ -122,6 +128,10 @@ void bt_volume_down(u8 dec)
     /* if (app_audio_get_volume(APP_AUDIO_CURRENT_STATE) <= 0) { */
     if (app_audio_get_volume(cur_state) <= 0) {
         audio_event_to_user(AUDIO_EVENT_VOL_MIN);	//触发vol mix事件
+#if _TONE_MIN_VOL_ENABLE
+        //手动添加最大音量提示音
+        tws_play_tone_file_alone(get_tone_files()->_TONE_MIN_VOL_NAME,300);
+#endif
         if (bt_get_call_status() != BT_CALL_HANGUP) {
             /*
              *本地音量最小，如果手机音量还没最小，继续减

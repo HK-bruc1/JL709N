@@ -13,6 +13,8 @@
 #include "audio_def.h"
 #include "audio_platform_config.h"
 
+#include "customer.h"
+
 //**************************************
 // 			ASS通用配置
 //**************************************
@@ -81,13 +83,13 @@
 #define AUDIO_CVP_AEC_AT_RAM        		1	//AEC
 #define AUDIO_CVP_NLP_AT_RAM        		1	//NLP
 #define AUDIO_CVP_NS_AT_RAM	        		1	//ANS/下行降噪
-#define AUDIO_CVP_COMMON_AT_RAM		     	1	//COMMON
+#define AUDIO_CVP_COMMON_AT_RAM		        _AUDIO_CVP_COMMON_AT_RAM//1	//COMMON
 #define AUDIO_CVP_DNS_AT_RAM		     	1	//DNS
-#define AUDIO_CVP_AGC_AT_RAM		     	1	//AGC
+#define AUDIO_CVP_AGC_AT_RAM		        _AUDIO_CVP_AGC_AT_RAM//1	//AGC
 #define AUDIO_CVP_DMS_AT_RAM		     	1	//双MIC DNS
-#define AUDIO_CVP_PREP_AT_RAM		     	1	//COMMON 预处理
-#define AUDIO_CVP_WN_AT_RAM			     	1	//抗风噪
-#define AUDIO_CVP_THIRD_AT_RAM		     	1	//3MIC
+#define AUDIO_CVP_PREP_AT_RAM		        _AUDIO_CVP_PREP_AT_RAM//1	//COMMON 预处理
+#define AUDIO_CVP_WN_AT_RAM			        _AUDIO_CVP_WN_AT_RAM//1	//抗风噪
+#define AUDIO_CVP_THIRD_AT_RAM		        _AUDIO_CVP_THIRD_AT_RAM//1	//3MIC
 
 /*编解码编译链接配置*/
 #define AUD_AAC_DEC_AT_RAM		        	1   //AAC解码
@@ -195,7 +197,7 @@
 #define TCFG_ESCO_PLC					1  	//通话丢包修复(1T2已修改为节点)
 #define TCFG_AEC_ENABLE					1	//通话回音消除使能
 
-#define MAX_ANA_VOL               (3)	// 系统最大模拟音量,范围: 0 ~ 3
+#define MAX_ANA_VOL               (_MAX_ANA_VOL)	// 系统最大模拟音量,范围: 0 ~ 3
 //#define MAX_COM_VOL             (16)    // 数值应该大于等于16，具体数值应小于联合音量等级的数组大小 (combined_vol_list)
 //#define MAX_DIG_VOL             (16)    // 数值应该大于等于16，因为手机是16级，如果小于16会导致某些情况手机改了音量等级但是小机音量没有变化
 

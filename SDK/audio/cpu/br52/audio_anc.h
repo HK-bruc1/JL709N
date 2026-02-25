@@ -19,9 +19,11 @@
 
 #include "audio_anc_fade_ctr.h"
 
+#include "customer.h"
+
 /*******************ANC User Config***********************/
 #define ANC_COEFF_SAVE_ENABLE		1	/*ANC滤波器表保存使能*/
-#define ANC_INFO_SAVE_ENABLE		0	/*ANC信息记忆:保存上一次关机时所处的降噪模式等等*/
+#define ANC_INFO_SAVE_ENABLE		_ANC_INFO_SAVE_ENABLE//0	/*ANC信息记忆:保存上一次关机时所处的降噪模式等等*/
 #define ANC_TONE_PREEMPTION			0	/*ANC提示音打断播放(1)还是叠加播放(0)*/
 #define ANC_BOX_READ_COEFF			1	/*支持通过工具读取ANC训练系数*/
 #define ANC_FADE_EN					1	/*ANC淡入淡出使能*/

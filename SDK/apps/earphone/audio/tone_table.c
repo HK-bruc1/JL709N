@@ -59,6 +59,9 @@ static const struct tone_files chinese_tone_files = {
     .share_conn_master = "tone_zh/sharemaster.*",
     .share_conn_slave = "tone_zh/shareslaver.*",
     .share_disconnect = "tone_zh/share_dconn.*",
+    .reset              = "tone_zh/reset.*",
+    .find_ear           = "tone_en/find_ear.*",
+    .du                 = "tone_en/du.*",
 };
 
 static const struct tone_files english_tone_files = {
@@ -112,6 +115,9 @@ static const struct tone_files english_tone_files = {
     .share_conn_master = "tone_en/sharemaster.*",
     .share_conn_slave = "tone_en/shareslaver.*",
     .share_disconnect = "tone_en/share_dconn.*",
+    .reset              = "tone_en/reset.*",
+    .find_ear           = "tone_en/find_ear.*",
+    .du                 = "tone_en/du.*",
 };
 
 #if TCFG_TONE_EN_ENABLE

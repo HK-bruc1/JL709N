@@ -70,6 +70,8 @@ enum {
     SYNC_CMD_PLEASE_OPEN_XIAODU_TONE,//请打开小度
 #endif
     SYNC_CMD_OPUS_CLOSE,
+
+    SYNC_CMD_RESET, //新增公共枚举值，不区分项目
 };
 
 enum {

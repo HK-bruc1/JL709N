@@ -1197,6 +1197,141 @@ int bt_mode_exit()
     return 0;
 }
 
+int factory_reset_led = 0;//存放定时器编号
+static u8 factory_reset_cnt =0;//延迟计数
+void factory_reset_deal(void *priv)
+{
+    factory_reset_cnt++;
+    printf("factory_reset_cnt = %d\n",factory_reset_cnt);
+    if (factory_reset_cnt >= _FACTORY_RESET_TIMEOUT_CNT) {
+        if(factory_reset_led) {
+            //如果创建了定时器，就删除
+            sys_timer_del(factory_reset_led);
+            factory_reset_led=0;
+        }
+        #if (_SET_SOFT_POWEROFF == 0)
+            sys_enter_soft_poweroff(POWEROFF_NORMAL_TWS); // 软关机
+            // power_set_soft_poweroff();
+        #elif (_SET_SOFT_POWEROFF == 1)
+            //dac_power_off();使用这个接口会有波声。。。
+            power_set_soft_poweroff();//不带提示音的
+        #elif (_SET_SOFT_POWEROFF == 2)
+            //sys_enter_soft_poweroff(POWEROFF_RESET); // 软关机复位,会走灯效流程
+            cpu_reset();
+        #endif
+    }
+}
+
+#if (TCFG_THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN)
+u8 rcsp_setting_info_reset() //恢复默认的APP设置
+{
+    printf("%s", __func__);
+
+    u32 time_stamp = 0xffffffff;
+    syscfg_write(CFG_RCSP_ADV_TIME_STAMP, (u8 *)&time_stamp, sizeof(time_stamp));
+
+#if RCSP_ADV_NAME_SET_ENABLE 
+    u8 name[LOCAL_NAME_LEN];
+    memset(name, 0x00, sizeof(name));
+    syscfg_read_string(CFG_BT_NAME, name, sizeof(name), 0);
+    syscfg_write(CFG_BT_NAME, name, LOCAL_NAME_LEN);
+#endif 
+
+#if RCSP_ADV_KEY_SET_ENABLE
+    u8 key_setting_info[8] = {0}; //重点注意带长按跟三击时这里数组大小要改
+    memset(key_setting_info, 0xff, 8);  //重点注意带长按跟三击时这里数组大小要改
+    syscfg_write(CFG_RCSP_ADV_KEY_SETTING, key_setting_info, sizeof(key_setting_info));
+#endif
+    
+#if RCSP_ADV_LED_SET_ENABLE
+    u8 led_setting_info[3] = {0};
+    memset(led_setting_info, 0xff, 3);
+    syscfg_write(CFG_RCSP_ADV_LED_SETTING, led_setting_info, sizeof(led_setting_info));
+#endif
+
+#if RCSP_ADV_MIC_SET_ENABLE
+    u8 mic_setting_info = 0xff;
+    syscfg_write(CFG_RCSP_ADV_MIC_SETTING, &mic_setting_info, sizeof(mic_setting_info));
+#endif
+
+#if RCSP_ADV_WORK_SET_ENABLE
+    u8 work_setting_info = 0xff;
+    syscfg_write(CFG_RCSP_ADV_WORK_SETTING, &work_setting_info, sizeof(work_setting_info));
+#endif
+
+#if RCSP_ADV_HIGH_LOW_SET//RCSP模块默认开启了高低音功能
+    int _HIGH_LOW_VOL[2] = {0,0};
+    syscfg_write(CFG_RCSP_ADV_HIGH_LOW_VOL, _HIGH_LOW_VOL,2);
+#endif
+
+#if RCSP_ADV_EQ_SET_ENABLE
+    u8 eq_setting_info[10] = {0};
+    u8 eq_setting_mode = 0xff;
+    memset(eq_setting_info, 0xff, 10);
+    syscfg_write(CFG_RCSP_ADV_EQ_DATA_SETTING, &eq_setting_info, sizeof(eq_setting_info));
+    syscfg_write(CFG_RCSP_ADV_EQ_MODE_SETTING, &eq_setting_mode, sizeof(eq_setting_mode));
+#endif
+    return 0;
+}
+#endif
+
+/**
+ * @brief 这里可以清除耳机的配对信息以及对耳的记忆，其他协议下有各自函数实现
+ * 
+ */
+void factory_reset_deal_callback(void) {
+
+#ifdef TCFG_THIRD_PARTY_PROTOCOLS_ENABLE
+    #if (TCFG_THIRD_PARTY_PROTOCOLS_SEL & RCSP_MODE_EN)
+        //选择APP时开启
+        rcsp_setting_info_reset();
+    #endif
+#endif
+
+    bt_cmd_prepare(USER_CTRL_DISCONNECTION_HCI, 0, NULL);//蓝牙连接调用恢复出厂的话先断开蓝牙
+
+    bt_cmd_prepare(USER_CTRL_DEL_ALL_REMOTE_INFO, 0, NULL);
+
+    //灯效可以同步闪烁，即使先断开后再设置灯效也可以，因为这个消息是两个耳机都会执行
+#if _TWS_FACTORY_RESET_ENABLE
+    bt_tws_remove_pairs();
+#endif
+
+#if _LED_FACTORY_RESET_ENABLE
+    //设置灯效
+    led_ui_set_state(_LED_FACTORY_RESET_NAME, _LED_FACTORY_RESET_DISP_MODE);
+    if (factory_reset_led == 0) {
+        //回调函数，200ms执行一次
+        factory_reset_led = sys_timer_add(NULL, factory_reset_deal, 200);
+    }
+#else
+    #if (_SET_SOFT_POWEROFF == 0)
+        sys_enter_soft_poweroff(POWEROFF_NORMAL); // 软关机
+        // power_set_soft_poweroff();
+    #elif (_SET_SOFT_POWEROFF == 1)
+        //dac_power_off();使用这个接口会有波声。。。
+        power_set_soft_poweroff();//不带提示音的
+    #elif (_SET_SOFT_POWEROFF == 2)
+        //sys_enter_soft_poweroff(POWEROFF_RESET); // 软关机复位
+        cpu_reset();
+    #endif
+#endif
+}
+
+void dhf_factory_reset_deal(void)
+{
+    //用来关闭按键音的，避免用户认为是假关机,这是单耳用的
+    app_var.factory_reset_flag = 1;
+    //判断TWS连接状态
+    if (get_tws_sibling_connect_state()) {
+        //给指令，指令中再一起调用factory_reset_deal_callback
+        //apps\earphone\mode\bt\bt_tws.c的tws_sync_call_fun
+        tws_api_sync_call_by_uuid('T', SYNC_CMD_RESET, 300);
+    } else {
+        factory_reset_deal_callback();
+    }
+}
+
 int bt_app_msg_handler(int *msg)
 {
     u8 data[1] = {0};
@@ -1270,6 +1405,14 @@ int bt_app_msg_handler(int *msg)
     }
 #endif
     switch (msg[0]) {
+    case APP_MSG_FACTORY_RESET:
+        //恢复出厂设置之前把音乐停止掉，不然按键触发对应提示音后，音乐还会继续播放
+        bt_cmd_prepare(USER_CTRL_AVCTP_OPID_STOP, 0, NULL);
+        //自定义的APP层消息
+        puts("APP_MSG_FACTORY_RESET\n");
+        //自定义的处理函数
+        dhf_factory_reset_deal();
+        break;
     case APP_MSG_MUSIC_PP:
     case APP_MSG_MUSIC_NEXT:
     case APP_MSG_MUSIC_PREV:

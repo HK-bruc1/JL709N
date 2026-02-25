@@ -133,6 +133,12 @@ static void tws_sync_call_fun(int cmd, int err)
             bt_cmd_prepare(USER_CTRL_AVCTP_OPID_PAUSE, 0, NULL);
         }
         break;
+    case SYNC_CMD_RESET:
+        //用来关闭按键音的，避免用户认为是假关机，这里同时执行应该可以保证两只耳都是1，避免一只耳朵还是触摸生效的
+        app_var.factory_reset_flag = 1;
+		extern void factory_reset_deal_callback(void);
+        factory_reset_deal_callback();
+        break;
     }
 }
 
