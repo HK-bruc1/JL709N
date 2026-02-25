@@ -9,6 +9,8 @@
 #include "app_tone.h"
 #include "key_driver.h"
 
+#include "customer.h"
+
 #if TCFG_KEY_TONE_NODE_ENABLE
 
 static u8 g_have_key_tone_file = 0;
@@ -32,6 +34,14 @@ static bool is_key_tone_enable()
 
 static int key_tone_msg_handler(int *msg)
 {
+    //这个关机标志位先与提示音和灯效，关机流程中触摸提示音失效
+    if (app_var.goto_poweroff_flag) {
+        return 0;
+    }
+    //恢复出厂设置过程中让提示音失效，避免用户认为是假关机
+    if(app_var.factory_reset_flag){
+        return 0;
+    }
     if (!is_key_tone_enable()) {
         return 0;
     }
@@ -64,7 +74,16 @@ void touch_key_send_key_tone_msg(void)
 {
 #if TCFG_KEY_TONE_NODE_ENABLE
     if (g_have_key_tone_file == 1) {
+        //通话状态是否开启按键提示音
+#if _TCFG_KEY_TONE_PHONE_ENABLE
         app_send_message(APP_MSG_KEY_TONE, 0);
+#else
+        u8 call_status = bt_get_call_status();
+        if((call_status>=BT_CALL_INCOMING) && (call_status<=BT_CALL_ACTIVE)){
+            return;
+        }
+        app_send_message(APP_MSG_KEY_TONE, 0);
+#endif
     }
 #endif
 }

@@ -30,6 +30,9 @@
 #include "debug.h"
 
 
+#include "customer.h"
+
+
 
 #if TCFG_LP_TOUCH_KEY_ENABLE
 
@@ -506,7 +509,13 @@ void lp_touch_key_event_irq_handler()
 
         if (__this->pdata->slide_mode_en) {
         } else {
-            lp_touch_key_send_key_tone_msg();
+            //lp_touch_key_send_key_tone_msg();
+#if TCFG_KEY_TONE_EN
+            //放到里面没有作用，只能放外面
+            extern void touch_key_send_key_tone_msg(void);
+            touch_key_send_key_tone_msg();
+            log_debug("----touch_key_send_key_tone_msg()\n");
+#endif
         }
         break;
     case CTMU_P2M_CH0_RAISING_EVENT:

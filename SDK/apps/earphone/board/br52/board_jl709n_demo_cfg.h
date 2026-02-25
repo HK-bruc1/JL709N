@@ -3,6 +3,8 @@
 
 #include "board_jl709n_demo_global_build_cfg.h"
 
+#include "customer.h"
+
 #ifdef CONFIG_BOARD_JL709N_DEMO
 
 #define CONFIG_SDFILE_ENABLE
@@ -56,7 +58,7 @@
 
 #define MULT_KEY_ENABLE						DISABLE 		//是否使能组合按键消息, 使能后需要配置组合按键映射表
 
-#define TCFG_KEY_TONE_EN					DISABLE 		// 按键提示音。
+#define TCFG_KEY_TONE_EN					_TCFG_KEY_TONE_EN   //DISABLE 		// 按键提示音。
 
 //*********************************************************************************//
 //                                 iokey 配置                                      //

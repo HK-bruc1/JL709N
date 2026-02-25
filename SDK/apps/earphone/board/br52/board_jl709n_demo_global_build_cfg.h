@@ -3,6 +3,8 @@
 
 #include "sdk_config.h"
 
+#include "customer.h"
+
 /* 改文件只添加和isd_config.ini相关的配置，用以生成isd_config.ini */
 /* 其他不相关的配置请勿添加在改文件 */
 

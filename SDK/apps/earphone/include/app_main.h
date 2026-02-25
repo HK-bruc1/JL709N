@@ -8,6 +8,8 @@
 #include "bt_background.h"
 #include "earphone.h"
 
+#include "customer.h"
+
 enum {
     SYS_POWERON_BY_KEY = 1,
     SYS_POWERON_BY_OUT_BOX,
