@@ -74,55 +74,63 @@
      "type": 4,
      "fileName": "src\\音频流程\\系统模式.x6flow",
      "binName": "stream.bin",
-     "showName": "系统模式"
+     "showName": "系统模式",
+     "data": ""
     },
     {
      "type": 4,
      "fileName": "src\\音频流程\\媒体.x6flow",
      "binName": "stream.bin",
-     "showName": "媒体"
+     "showName": "媒体",
+     "data": ""
     },
     {
      "type": 4,
      "fileName": "src\\音频流程\\蓝牙通话.x6flow",
      "binName": "stream.bin",
-     "showName": "蓝牙通话"
+     "showName": "蓝牙通话",
+     "data": ""
     },
     {
      "type": 4,
      "fileName": "src\\音频流程\\USB Audio.x6flow",
      "binName": "stream.bin",
-     "showName": "USB Audio"
+     "showName": "USB Audio",
+     "data": ""
     },
     {
      "type": 4,
      "fileName": "src\\音频流程\\产测模式.x6flow",
      "binName": "stream.bin",
-     "showName": "产测模式"
+     "showName": "产测模式",
+     "data": ""
     },
     {
      "type": 4,
      "fileName": "src\\音频流程\\麦克风音效.x6flow",
      "binName": "stream.bin",
-     "showName": "麦克风音效"
+     "showName": "麦克风音效",
+     "data": ""
     },
     {
      "type": 4,
      "fileName": "src\\音频流程\\LE_Audio.x6flow",
      "binName": "stream.bin",
-     "showName": "LE_Audio"
+     "showName": "LE_Audio",
+     "data": ""
     },
     {
      "type": 4,
      "fileName": "src\\音频流程\\智能语音.x6flow",
      "binName": "stream.bin",
-     "showName": "智能语音"
+     "showName": "智能语音",
+     "data": ""
     }
    ]
   }
  ],
  "create_time": "2026-01-30T01:27:33.074Z",
- "update_time": "2026-01-30T01:31:16.644Z",
+ "update_time": "2026-02-25T03:29:55.831Z",
  "standardPatch": "3.4.3",
  "lastOpenToolVersion": "4.7.3",
  "lastStencilFlowTime": "2026-01-30T09:30:51.6465009+08:00",
@@ -133,5 +141,7 @@
  "checkPatchTime": 0,
  "relateVersion": "4.7.0",
  "variant": [],
- "defaultVariant": {}
+ "defaultVariant": {
+  "name": "默认配置"
+ }
 }

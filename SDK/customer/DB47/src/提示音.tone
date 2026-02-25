@@ -642,7 +642,7 @@
    ],
    "enableOutput": 1,
    "size": 39056,
-   "isOpen": false
+   "isOpen": true
   },
   {
    "title": "tone_zh",
@@ -1271,7 +1271,7 @@
    ],
    "enableOutput": 0,
    "size": 35392,
-   "isOpen": false
+   "isOpen": true
   }
  ],
  "version": {

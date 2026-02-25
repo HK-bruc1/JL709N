@@ -39,7 +39,7 @@
 #define TCFG_CHARGE_OFF_POWERON_EN                1                // 拔出开机
 #define TCFG_CHARGE_NVDC_EN                       0                // NVDC架构使能
 #define TCFG_LDOIN_PULLDOWN_EN                    1                // 下拉电阻开关
-#define TCFG_LDOIN_PULLDOWN_LEV                   3                // 下拉电阻档位
+#define TCFG_LDOIN_PULLDOWN_LEV                   1                // 下拉电阻档位
 #define TCFG_LDOIN_PULLDOWN_KEEP                  0                // 下拉电阻保持开关
 #define TCFG_LDOIN_ON_FILTER_TIME                 100              // 入舱滤波时间(ms)
 #define TCFG_LDOIN_OFF_FILTER_TIME                200              // 出舱滤波时间(ms)
@@ -59,8 +59,8 @@
 // ------------板级配置.json------------
 #define TCFG_DEBUG_UART_ENABLE                    1                // 调试串口
 #if TCFG_DEBUG_UART_ENABLE
-#define TCFG_DEBUG_UART_TX_PIN                    IO_PORTA_05      // 输出IO
-#define TCFG_DEBUG_UART_BAUDRATE                  2000000          // 波特率
+#define TCFG_DEBUG_UART_TX_PIN                    IO_PORT_DP       // 输出IO
+#define TCFG_DEBUG_UART_BAUDRATE                  1000000          // 波特率
 #define TCFG_EXCEPTION_LOG_ENABLE                 1                // 打印异常信息
 #define TCFG_EXCEPTION_RESET_ENABLE               1                // 异常自动复位
 #endif // TCFG_DEBUG_UART_ENABLE
@@ -78,11 +78,11 @@
 
 #define TCFG_PWMLED_ENABLE                        1                // LED配置
 #if TCFG_PWMLED_ENABLE
-#define TCFG_LED_LAYOUT                           ONE_IO_TWO_LED   // 连接方式
+#define TCFG_LED_LAYOUT                           ONE_IO_ONE_LED   // 连接方式
 #define TCFG_LED_RED_ENABLE                       1                // 红灯
-#define TCFG_LED_RED_GPIO                         IO_PORTC_02      // IO
+#define TCFG_LED_RED_GPIO                         IO_PORTB_03      // IO
 #define TCFG_LED_RED_LOGIC                        BRIGHT_BY_HIGH   // 点亮方式
-#define TCFG_LED_BLUE_ENABLE                      1                // 蓝灯
+#define TCFG_LED_BLUE_ENABLE                      0                // 蓝灯
 #define TCFG_LED_BLUE_GPIO                        IO_PORTC_02      // IO
 #define TCFG_LED_BLUE_LOGIC                       BRIGHT_BY_LOW    // 点亮方式
 #endif // TCFG_PWMLED_ENABLE
@@ -155,13 +155,13 @@
 #define TCFG_SEND_HOLD_SEC_MSG_DURING_HOLD        1                // 按住过程中发送按住几秒消息
 #define TCFG_MAX_HOLD_SEC                         ((KEY_ACTION_HOLD_5SEC << 8) | 5) // 最长按住消息
 
-#define TCFG_IOKEY_ENABLE                         1                // IO按键配置
+#define TCFG_IOKEY_ENABLE                         0                // IO按键配置
 
 #define TCFG_ADKEY_ENABLE                         0                // AD按键配置
 
 #define TCFG_LP_TOUCH_KEY_BT_TOOL_ENABLE          0                // 内置触摸在线调试
 
-#define TCFG_LP_TOUCH_KEY_ENABLE                  0                // 内置触摸按键配置
+#define TCFG_LP_TOUCH_KEY_ENABLE                  1                // 内置触摸按键配置
 #if TCFG_LP_TOUCH_KEY_ENABLE
 #define TCFG_LP_KEY_LIMIT_VOLTAGE_DELTA           800              // 上下限电压差
 #define TCFG_LP_KEY_CHARGE_FREQ_KHz               2500             // 充放电频率
@@ -315,22 +315,22 @@
 #define TCFG_ADC_PERFORMANCE_MODE                 ADC_MODE_LOW_POWER // 性能模式
 #define TCFG_ADC_DIGITAL_GAIN                     0                // 数字增益
 #define TCFG_ADC0_ENABLE                          1                // 使能
-#define TCFG_ADC0_MODE                            0                // 模式
+#define TCFG_ADC0_MODE                            1                // 模式
 #define TCFG_ADC0_AIN_SEL                         1                // 输入端口
-#define TCFG_ADC0_BIAS_SEL                        1                // 供电端口
+#define TCFG_ADC0_BIAS_SEL                        32               // 供电端口
 #define TCFG_ADC0_BIAS_RSEL                       3                // MIC BIAS上拉电阻挡位
 #define TCFG_ADC0_POWER_IO                        IO_PORTA_00      // IO供电选择
 #define TCFG_ADC0_DCC_EN                          1                // DCC使能
 #define TCFG_ADC0_DCC_LEVEL                       1                // DCC 截止频率
 #define TCFG_ADC1_ENABLE                          1                // 使能
-#define TCFG_ADC1_MODE                            0                // 模式
+#define TCFG_ADC1_MODE                            1                // 模式
 #define TCFG_ADC1_AIN_SEL                         1                // 输入端口
 #define TCFG_ADC1_BIAS_SEL                        2                // 供电端口
 #define TCFG_ADC1_BIAS_RSEL                       3                // MIC BIAS上拉电阻挡位
-#define TCFG_ADC1_POWER_IO                        IO_PORTA_00      // IO供电选择
+#define TCFG_ADC1_POWER_IO                        IO_PORTA_03      // IO供电选择
 #define TCFG_ADC1_DCC_EN                          1                // DCC使能
 #define TCFG_ADC1_DCC_LEVEL                       1                // DCC 截止频率
-#define TCFG_ADC2_ENABLE                          1                // 使能
+#define TCFG_ADC2_ENABLE                          0                // 使能
 #define TCFG_ADC2_MODE                            0                // 模式
 #define TCFG_ADC2_AIN_SEL                         1                // 输入端口
 #define TCFG_ADC2_BIAS_SEL                        4                // 供电端口
@@ -340,7 +340,7 @@
 #define TCFG_ADC2_DCC_LEVEL                       1                // DCC 截止频率
 #endif // TCFG_AUDIO_ADC_ENABLE
 
-#define CONFIG_ANC_ENABLE                         0                // ANC 配置
+#define CONFIG_ANC_ENABLE                         1                // ANC 配置
 #if CONFIG_ANC_ENABLE
 #define TCFG_AUDIO_ANC_TRAIN_MODE                 ANC_FF_EN        // ANC类型
 #define TCFG_ANC_TOOL_DEBUG_ONLINE                1                // 蓝牙调试/产测
@@ -354,7 +354,7 @@
 #define TCFG_AUDIO_ANCR_FF_MIC                    0XFF             // 右声道FFMIC
 #define TCFG_AUDIO_ANCL_FB_MIC                    A_MIC1           // 左声道FBMIC
 #define TCFG_AUDIO_ANCR_FB_MIC                    0XFF             // 右声道FBMIC
-#define TCFG_AUDIO_ANC_TALK_MIC                   A_MIC2           // TALK MIC
+#define TCFG_AUDIO_ANC_TALK_MIC                   A_MIC1           // TALK MIC
 #define TCFG_ANCIF_FILE_LOAD_SEL                  3                // 配置文件选择
 #define TCFG_ANCIF_FILE_SPACE                     4096             // 配置文件大小
 #define TCFG_AUDIO_SPEAK_TO_CHAT_ENABLE           0                // 智能免摘
@@ -380,7 +380,7 @@
 #define TCFG_AUDIO_DMS_GLOBAL_VERSION             DMS_GLOBAL_V200  // 2micDNS算法选择
 #define TCFG_3MIC_MODE_SEL                        JLSP_3MIC_MODE2  // 3mic算法选择
 #define TCFG_MUSIC_PLC_TYPE                       0                // PLC类型选择
-#define TCFG_AUDIO_DUT_ENABLE                     0                // 音频/通话产测
+#define TCFG_AUDIO_DUT_ENABLE                     1                // 音频/通话产测
 #define TCFG_AUDIO_MIC_ARRAY_TRIM_ENABLE          0                // 麦克风阵列校准
 #define TCFG_ANC_HAT_DUT                          0                // JL自研ANC产测
 #define AUDIO_ENC_MPT_SELF_ENABLE                 0                // JL自研ENC产测

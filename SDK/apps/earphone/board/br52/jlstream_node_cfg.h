@@ -19,7 +19,7 @@
 #define TCFG_TONE_MTY_ENABLE                      0                // MTY
 #define TCFG_TONE_SBC_ENABLE                      0                // SBC
 #define TCFG_TONE_SIN_ENABLE                      1                // SIN
-#define TCFG_TONE_WAV_ENABLE                      0                // WAV
+#define TCFG_TONE_WAV_ENABLE                      1                // WAV
 #define TCFG_TONE_WTG_ENABLE                      0                // WTG
 #define TCFG_TONE_WTS_ENABLE                      1                // WTS
 // ------------提示音宏定义------------
@@ -38,12 +38,12 @@
 #define TCFG_AUDIO_CVP_DEVELOP_ENABLE             0                // 通话第三方算法
 #define TCFG_AUDIO_CVP_DMS_ANS_MODE               0                // 双MIC通话
 #define TCFG_AUDIO_CVP_DMS_AWN_DNS_MODE           0                // 2MIC-AWN
-#define TCFG_AUDIO_CVP_DMS_DNS_MODE               0                // 双MIC+DNS
+#define TCFG_AUDIO_CVP_DMS_DNS_MODE               1                // 双MIC+DNS
 #define TCFG_AUDIO_CVP_DMS_FLEXIBLE_ANS_MODE      0                // 话务双MIC通话
 #define TCFG_AUDIO_CVP_DMS_FLEXIBLE_DNS_MODE      0                // 话务双MIC+DNS
 #define TCFG_AUDIO_CVP_DMS_HYBRID_DNS_MODE        0                // HYBRID双MIC+DNS
 #define TCFG_AUDIO_CVP_SMS_ANS_MODE               0                // 单MIC通话
-#define TCFG_AUDIO_CVP_SMS_DNS_MODE               1                // 单MIC+DNS
+#define TCFG_AUDIO_CVP_SMS_DNS_MODE               0                // 单MIC+DNS
 #define TCFG_AUDIO_CVP_SMS_VF_MODE                0                // 单麦AEC
 #define TCFG_AUDIO_CVP_V3_MODE                    0                // CVP_V3
 #define TCFG_AUDIO_DEBUG_NODE_ENABLE              0                // Audio Debug
@@ -294,7 +294,7 @@
 #define TCFG_AUDIO_EFX_A724_RUN_MODE              EFx_BW_UNUSED    // 声道拆分
 #define TCFG_AUDIO_EFX_36D7_RUN_MODE              EFx_BW_UNUSED    // 声道交换器
 #define TCFG_AUDIO_EFX_503D_RUN_MODE              EFx_BW_UNUSED    // 声道组合
-#define TCFG_AUDIO_EFX_420E_RUN_MODE              EFx_BW_UNUSED    // 双MIC+DNS
+#define TCFG_AUDIO_EFX_420E_RUN_MODE              EFx_BW_16t16     // 双MIC+DNS
 #define TCFG_AUDIO_EFX_2115_RUN_MODE              EFx_BW_UNUSED    // 双MIC通话
 #define TCFG_AUDIO_EFX_768A_RUN_MODE              EFx_BW_16t16     // 提示音
 #define TCFG_AUDIO_EFX_76EF_RUN_MODE              EFx_BW_UNUSED    // 通话第三方算法
