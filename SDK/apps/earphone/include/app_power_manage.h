@@ -4,7 +4,9 @@
 #include "typedef.h"
 #include "system/event.h"
 
-#define LOW_POWER_WARN_TIME   	(60 * 1000)  //低电提醒时间
+#include "customer.h"
+
+#define LOW_POWER_WARN_TIME   	(_LOW_POWER_WARN_TIME * 1000)  //低电提醒时间
 
 struct battery_curve {
     u8 percent;

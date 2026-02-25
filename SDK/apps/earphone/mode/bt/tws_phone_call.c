@@ -62,6 +62,7 @@
 #define LOG_CLI_ENABLE
 #include "debug.h"
 
+#include "customer.h"
 
 #if TCFG_BT_DUAL_1T3_CONN_ENABLE
 #define SECONDE_PHONE_IN_RING_COEXIST   0		// 二次来电是否启动铃声叠加
@@ -411,7 +412,8 @@ static int esco_audio_open(u8 *bt_addr)
 #endif
     esco_player_open(bt_addr);
 #if TCFG_TWS_POWER_BALANCE_ENABLE && TCFG_USER_TWS_ENABLE
-    if (tws_api_get_role() == TWS_ROLE_MASTER) {
+    //if (tws_api_get_role() == TWS_ROLE_MASTER) {
+    if (tws_api_get_role() != TWS_ROLE_SLAVE) {
         log_info("tws_master open esco recoder\n");
         esco_recoder_open(COMMON_SCO, bt_addr);
     } else {
@@ -443,8 +445,16 @@ int bt_phone_active(u8 *bt_addr)
     g_bt_hdl.phone_num_flag = 0;
     g_bt_hdl.phone_ring_sync_tws = 0;
     /* g_bt_hdl.phone_con_sync_ring = 0; */
-    g_bt_hdl.phone_vol = 15;
+#if _SET_FIXED_PHONE_VOL_ENABLE
+    g_bt_hdl.phone_vol = _SET_FIXED_PHONE_VOL_SCALE;
+    extern void phone_sync_vol();
+    phone_sync_vol();
+    //app_var.call_volume = 8;//不加这个似乎也可以每次都是固定百分比
     bt_tws_sync_volume();
+#else
+    g_bt_hdl.phone_vol = _SET_DEFAULT_PHONE_VOL_SCALE;
+    bt_tws_sync_volume();
+#endif
     r_printf("phone_active:%d\n", app_var.call_volume);
     app_audio_set_volume(APP_AUDIO_STATE_CALL, app_var.call_volume, 1);
     return 0;
@@ -819,6 +829,30 @@ void send_speak_mic_test(void *pri)
 }
 #endif
 
+static u8 user_phone_call = 0;
+void user_phone_deal_call_keep(){
+    printf("----user_phone_deal_call_keep");
+
+    u8 active_addr[6] = {0};
+    u8 esco_status = 0;
+    u8 a2dp_status = 0;
+    u8 hfp_status = BT_CALL_HANGUP;
+    u8 *bt_addr = NULL;
+
+    if (esco_player_get_btaddr(active_addr)) { //获取活跃地址，非可视化不需要调用
+        esco_status = esco_player_is_playing(btstack_get_device_mac_addr(active_addr));      //获取ESCO状态
+        a2dp_status = a2dp_player_is_playing(btstack_get_device_mac_addr(active_addr));      //获取a2dp状态
+        hfp_status = btstack_bt_get_call_status(active_addr);                                   //获取hfp状态
+        bt_addr = btstack_get_device_mac_addr(active_addr);                                  //获取活跃设备的蓝牙地址
+        printf("active:%p, esco:%d, a2dp:%d, hfp:%d", active_addr, esco_status, a2dp_status, hfp_status);
+        put_buf(bt_addr,6);
+    }
+
+     if(user_phone_call){
+        bt_cmd_prepare_for_addr(bt_addr,USER_CTRL_SCO_LINK,0,NULL);
+        user_phone_call = 0;
+     }
+}
 /*
  * 对应原来的状态处理函数，连接，电话状态等
  */
@@ -835,6 +869,9 @@ static int bt_phone_status_event_handler(int *msg)
     switch (bt->event) {
     case BT_STATUS_PHONE_INCOME:
         log_info("BT_STATUS_PHONE_INCOME\n");
+
+        user_phone_call = 1;
+
         put_buf(bt->args, 6);
         esco_dump_packet = ESCO_DUMP_PACKET_CALL;
         u8 tmp_bd_addr[6];
@@ -890,6 +927,9 @@ static int bt_phone_status_event_handler(int *msg)
         break;
     case BT_STATUS_PHONE_HANGUP:
         log_info("BT_STATUS_PHONE_HANGUP\n");
+
+        user_phone_call = 0;
+
         put_buf(bt->args, 6);
 #if SECONDE_PHONE_IN_RING_COEXIST
         second_phone_call_ring_stop(outband_ring_bt_addr_get());
@@ -944,9 +984,10 @@ static int bt_phone_status_event_handler(int *msg)
             }
 #endif
             u8 call_vol = 15;
+            log_info("BT_STATUS_SCO_STATUS_CHANGE----call_vol = 15");
             //为了解决两个手机都在通话，在手机上轮流切声卡的音量问题
             call_vol = bt_get_call_vol_for_addr(bt->args);
-            //r_printf("---bt_get_call_vol_for_addr--%d\n", call_vol);
+            log_info("BT_STATUS_SCO_STATUS_CHANGE----bt_get_call_vol_for_addr----%d\n", call_vol);
             app_audio_state_switch(APP_AUDIO_STATE_CALL, app_var.aec_dac_gain, NULL);
             app_audio_set_volume(APP_AUDIO_STATE_CALL, call_vol, 1);
 
@@ -991,6 +1032,7 @@ static int bt_phone_status_event_handler(int *msg)
 #endif
 
         } else {
+            log_info("BT_STATUS_SCO_STATUS_CHANGE----bt->value != 0xff");
             u8 bt_esco_play[6];
             int ret = esco_player_get_btaddr(bt_esco_play);
             if (ret && memcmp(bt_esco_play, bt->args, 6) != 0) {
@@ -998,6 +1040,8 @@ static int bt_phone_status_event_handler(int *msg)
                 puts("<<<<<<<<<<<bt_esco_stop err,check addr\n");
                 break;
             }
+
+            user_phone_deal_call_keep();
 
 #if SECONDE_PHONE_IN_RING_COEXIST
             second_phone_call_ring_stop(outband_ring_bt_addr_get());
@@ -1060,7 +1104,7 @@ static int bt_phone_status_event_handler(int *msg)
             //如果有地址在是用esco音频，但跟传出来的值地址不一致，就不更新了。
             break;
         }
-        printf("call_vol:%d", bt->value);
+        printf("BT_STATUS_CALL_VOL_CHANGE----call_vol:%d", bt->value);
         u8 volume = bt->value;
         u8 call_status = bt_get_call_status_for_addr(bt->args);
 

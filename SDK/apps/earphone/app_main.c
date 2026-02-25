@@ -55,6 +55,8 @@
 #define LOG_CLI_ENABLE
 #include "debug.h"
 
+#include "customer.h"
+
 
 /*任务列表 */
 const struct task_info task_info_table[] = {
@@ -302,7 +304,7 @@ void check_power_on_key(void)
             putchar('+');
             delay_10ms_cnt++;
             key_ng_cnt = 0;
-            if (delay_10ms_cnt > 70) {
+            if (delay_10ms_cnt > _SOFTOFF_WAKEUP_TIME) {
                 app_var.poweron_reason = SYS_POWERON_BY_KEY;
                 return;
             }

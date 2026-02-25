@@ -29,6 +29,8 @@
 #define BLUETOOTH_CORE_SPEC_50  0x09
 #define BLUETOOTH_CORE_SPEC_51  0x0a
 #define BLUETOOTH_CORE_SPEC_52  0x0b
+#define BLUETOOTH_CORE_SPEC_54  0x0d
+#define BLUETOOTH_CORE_SPEC_60  0x0e
 extern void set_bt_version(u8 version);
 
 

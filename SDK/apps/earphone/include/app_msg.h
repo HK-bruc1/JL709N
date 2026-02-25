@@ -133,8 +133,9 @@ enum {
     APP_MSG_BT_CLOSE_DUT,
     APP_MSG_CALL_ANSWER,						// 接听电话
     APP_MSG_HID_CONTROL,						// 拍照
-    APP_MSG_CALL_THREE_WAY_ANSWER1,
-    APP_MSG_CALL_THREE_WAY_ANSWER2,
+    APP_MSG_CALL_THREE_WAY_ANSWER1,             //三方通话 挂断当前去听另一个（未接听或者在保留状态都可以）
+    APP_MSG_CALL_THREE_WAY_ANSWER2,             //三方通话 保留当前去接听, 或者用于两个通话的切换
+    APP_MSG_CALL_THREE_WAY_REJECT,              //三方通话 拒接第三方来电 
     APP_MSG_CALL_SWITCH,
     APP_MSG_CALL_HANGUP,
     APP_MSG_CALL_LAST_NO,

@@ -29,6 +29,12 @@ static void lp_touch_key_short_click_time_out_handle(void *priv)
     case 5:
         e.event = KEY_ACTION_FIRTH_CLICK;
         break;
+    case 6:
+        e.event = KEY_ACTION_SEXTUPLE_CLICK;
+        break;
+    case 7:
+        e.event = KEY_ACTION_SEPTUPLE_CLICK;
+        break;
     default:
         e.event = KEY_ACTION_NO_KEY;
         break;

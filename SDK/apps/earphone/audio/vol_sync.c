@@ -12,8 +12,19 @@
 #include "app_tone.h"
 #include "btstack/avctp_user.h"
 
+#include "customer.h"
+
 u8 vol_sys_tab[17] =  {0, 2, 3, 4, 6, 8, 10, 11, 12, 14, 16, 18, 19, 20, 22, 23, 25};
 const u8 vol_sync_tab[17] = {0, 8, 16, 24, 32, 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120, 127};
+
+#if _TCFG_ONE_CONN_VOL_SET_ENABLE
+/*  -> 初始化音量设置，CONFIG_VOL_SCALE设置百分比(整数)*/
+#define CONFIG_VOL_SCALE    _CONFIG_VOL_SCALE   
+u8 need_default_volume = (u8)(127*CONFIG_VOL_SCALE/10); 
+/*  -> sync_default_volume_every_time 改成0为手机连接时记忆上次的音量（有记录），1 手机连接时无论是否有记录都不记忆,输出指定音量*/
+u8 sync_default_volume_every_time = _CONFIG_REMEMBER_VOLUME ;
+/* ->  lib_btctrler_config.c config_delete_link_key变量也要改成0*/
+#endif
 
 void vol_sys_tab_init(void)
 {
@@ -76,6 +87,12 @@ void vol_sys_tab_init(void)
 void set_music_device_volume(int volume)
 {
     r_printf("set_music_device_volume=%d\n", volume);
+
+    //苹果手机音量最后一个格时没有声音
+    if((volume < 7) && (volume != 0)){
+        volume = 7;
+    }
+
 #if TCFG_BT_VOL_SYNC_ENABLE
     s16 music_volume;
 

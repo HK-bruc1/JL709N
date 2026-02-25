@@ -14,6 +14,7 @@ void bt_key_call_siri(void);
 void bt_key_hid_control(void);
 void bt_key_call_three_way_answer1(void);
 void bt_key_call_three_way_answer2(void);
+void bt_key_call_three_way_reject(void);
 void bt_key_call_switch(void);
 
 void bt_send_a2dp_cmd(int msg);

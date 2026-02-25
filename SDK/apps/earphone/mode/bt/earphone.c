@@ -104,6 +104,8 @@
 #define LOG_CLI_ENABLE
 #include "debug.h"
 
+#include "customer.h"
+
 #define AVC_VOLUME_UP			0x41
 #define AVC_VOLUME_DOWN			0x42
 
@@ -547,6 +549,15 @@ static int bt_connction_status_event_handler(struct bt_event *bt)
         g_bt_hdl.init_ok = 1;
         log_info("BT_STATUS_INIT_OK\n");
 
+#if _SET_BT_VERSION_ENABLE
+        //修改蓝牙版本
+        extern void set_bt_version(u8 version);
+        set_bt_version(_BT_VERSION);
+#endif
+        //鸿蒙系统打开音量同步
+        void set_bt_manufacturer_info(u16 cid,u16 svn);
+        set_bt_manufacturer_info(0x004c,0x7100);
+                
 #if TCFG_TEST_BOX_ENABLE
         testbox_set_bt_init_ok(1);
 #endif
@@ -1210,6 +1221,14 @@ int bt_app_msg_handler(int *msg)
     switch (msg[0]) {
     case APP_MSG_VOL_UP:
         log_info("APP_MSG_VOL_UP\n");
+
+#if _APP_MSG_VOL_UP_DOWN_ONLY_MUSIC_ENABLE
+        if(bt_a2dp_get_status() != BT_MUSIC_STATUS_STARTING){
+            //音量控制时，判断是否在音乐状态
+            return 0;
+        }
+#endif
+
 #if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
         app_audio_volume_up(1);
 #else
@@ -1223,6 +1242,14 @@ int bt_app_msg_handler(int *msg)
         return 0;
     case APP_MSG_VOL_DOWN:
         log_info("APP_MSG_VOL_DOWN\n");
+
+#if _APP_MSG_VOL_UP_DOWN_ONLY_MUSIC_ENABLE
+        if(bt_a2dp_get_status() != BT_MUSIC_STATUS_STARTING){
+            //音量控制时，判断是否在音乐状态
+            return 0;
+        }
+#endif
+
 #if (TCFG_LE_AUDIO_APP_CONFIG & LE_AUDIO_AURACAST_SINK_EN)
         app_audio_volume_down(1);
 #else
@@ -1298,6 +1325,18 @@ int bt_app_msg_handler(int *msg)
                 }
             }
         }
+        break;
+    case APP_MSG_CALL_THREE_WAY_ANSWER2:
+        puts("APP_MSG_CALL_THREE_WAY_ANSWER2\n");
+        bt_key_call_three_way_answer2();
+        break;
+    case APP_MSG_CALL_THREE_WAY_ANSWER1:
+        puts("APP_MSG_CALL_THREE_WAY_ANSWER1\n");
+        bt_key_call_three_way_answer1();
+        break;
+    case APP_MSG_CALL_THREE_WAY_REJECT:
+        puts("APP_MSG_CALL_THREE_WAY_REJECT\n");
+        bt_key_call_three_way_reject();
         break;
     case APP_MSG_CALL_LAST_NO:
         puts("APP_MSG_CALL_LAST_NO\n");
