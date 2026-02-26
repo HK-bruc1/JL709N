@@ -14,7 +14,8 @@ set para=%1
 
 @rem  ###-customer + blname or model
 @rem  ###-DB47
-set  CUSTOMER_PATH=DB47
+@rem  ###-DB_Mcdodo_ZENO_Pro_N5
+set  CUSTOMER_PATH=DB_Mcdodo_ZENO_Pro_N5
 echo CUSTOMER_PATH=%CUSTOMER_PATH%>customer_path.conf
 @rem ###  key select
 @rem ###  8134: AC690X-8134.key

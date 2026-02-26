@@ -54,6 +54,57 @@ c_SRC_FILES += apps/common/config/bt_profile_config.c
 c_SRC_FILES += apps/common/update/update.c apps/common/update/testbox_update.c apps/common/update/testbox_uart_update.c
 c_SRC_FILES += apps/common/ui/pwm_led/led_ui_api.c apps/common/ui/pwm_led/led_ui_tws_sync.c
 c_SRC_FILES += apps/common/third_party_profile/multi_protocol_common.c apps/common/third_party_profile/multi_protocol_event.c
+c_SRC_FILES += apps/common/third_party_profile/common/custom_cfg.c
+c_SRC_FILES += apps/common/third_party_profile/jieli/rcsp/adv/ble_rcsp_adv.c apps/common/third_party_profile/jieli/rcsp/ble_rcsp_client.c apps/common/third_party_profile/jieli/rcsp/ble_rcsp_multi_common.c apps/common/third_party_profile/jieli/rcsp/ble_rcsp_server.c
+c_SRC_FILES += apps/common/third_party_profile/jieli/rcsp/rcsp_functions/rcsp.c apps/common/third_party_profile/jieli/rcsp/rcsp_functions/rcsp_bt_manage.c apps/common/third_party_profile/jieli/rcsp/rcsp_functions/rcsp_config.c apps/common/third_party_profile/jieli/rcsp/rcsp_functions/rcsp_event.c apps/common/third_party_profile/jieli/rcsp/rcsp_functions/rcsp_manage.c apps/common/third_party_profile/jieli/rcsp/rcsp_functions/rcsp_task.c
+c_SRC_FILES += apps/common/third_party_profile/jieli/rcsp/server/functions/device_info/device_status_cmd/rcsp_bt_func.c
+c_SRC_FILES += apps/common/third_party_profile/jieli/rcsp/server/functions/device_info/rcsp_device_feature.c apps/common/third_party_profile/jieli/rcsp/server/functions/device_info/rcsp_device_status.c
+c_SRC_FILES += apps/common/third_party_profile/jieli/rcsp/server/functions/rcsp_setting_opt/rcsp_setting_opt.c
+
+
+
+
+
+c_SRC_FILES += apps/common/third_party_profile/jieli/rcsp/server/functions/rcsp_setting_opt/rcsp_setting_sync.c
+c_SRC_FILES += apps/common/third_party_profile/jieli/rcsp/server/functions/rcsp_setting_opt/settings/adv_anc_voice.c
+
+
+
+
+c_SRC_FILES += apps/common/third_party_profile/jieli/rcsp/server/functions/rcsp_setting_opt/rcsp_adv_bluetooth.c apps/common/third_party_profile/jieli/rcsp/server/functions/rcsp_setting_opt/settings/adv_time_stamp_setting.c
+
+
+
+
+
+c_SRC_FILES += apps/common/third_party_profile/jieli/rcsp/server/functions/rcsp_setting_opt/settings/adv_key_setting.c apps/common/third_party_profile/jieli/rcsp/server/functions/rcsp_setting_opt/settings/adv_anc_voice_key.c
+
+
+
+
+
+c_SRC_FILES += apps/common/third_party_profile/jieli/rcsp/server/functions/rcsp_setting_opt/settings/adv_bt_name_setting.c
+c_SRC_FILES += apps/common/third_party_profile/jieli/rcsp/server/functions/rcsp_setting_opt/settings/adv_mic_setting.c
+c_SRC_FILES += apps/common/third_party_profile/jieli/rcsp/server/functions/rcsp_setting_opt/settings/adv_work_setting.c
+c_SRC_FILES += apps/common/third_party_profile/jieli/rcsp/server/functions/rcsp_setting_opt/settings/rcsp_eq_setting.c
+c_SRC_FILES += apps/common/third_party_profile/jieli/rcsp/server/functions/rcsp_setting_opt/settings/rcsp_music_info_setting.c
+
+
+
+
+c_SRC_FILES += apps/common/third_party_profile/jieli/rcsp/server/functions/rcsp_setting_opt/settings/rcsp_vol_setting.c
+
+
+
+
+
+c_SRC_FILES += apps/common/third_party_profile/jieli/rcsp/server/functions/rcsp_switch_device.c
+
+
+
+c_SRC_FILES += apps/common/third_party_profile/jieli/rcsp/server/functions/rcsp_update/rcsp_ch_loader_download.c apps/common/third_party_profile/jieli/rcsp/server/functions/rcsp_update/rcsp_update.c
+c_SRC_FILES += apps/common/third_party_profile/jieli/rcsp/server/rcsp_cmd_recieve.c apps/common/third_party_profile/jieli/rcsp/server/rcsp_cmd_recieve_no_respone.c apps/common/third_party_profile/jieli/rcsp/server/rcsp_cmd_respone.c apps/common/third_party_profile/jieli/rcsp/server/rcsp_cmd_user.c apps/common/third_party_profile/jieli/rcsp/server/rcsp_command.c apps/common/third_party_profile/jieli/rcsp/server/rcsp_data_recieve.c apps/common/third_party_profile/jieli/rcsp/server/rcsp_data_recieve_no_respone.c apps/common/third_party_profile/jieli/rcsp/server/rcsp_data_respone.c
+c_SRC_FILES += apps/common/third_party_profile/jieli/rcsp/rcsp_interface.c apps/common/third_party_profile/jieli/rcsp/rcsp_simplified/rcsp_interface_simplified.c apps/common/third_party_profile/jieli/rcsp/server/functions/mass_data/mass_data.c apps/common/third_party_profile/jieli/rcsp/server/functions/pub_mutual_set_cmd/pub_mutual_set_cmd_opt.c
 c_SRC_FILES += apps/common/third_party_profile/jieli/online_db/spp_online_db.c apps/common/third_party_profile/jieli/online_db/online_db_deal.c
 c_SRC_FILES += apps/common/device/key/key_driver.c
 c_SRC_FILES += apps/common/device/usb/device/usb_pll_trim.c
