@@ -311,12 +311,17 @@ static int lp_touch_key_charge_msg_handler(int msg, int type)
 {
     switch (msg) {
     case CHARGE_EVENT_LDO5V_IN:
+        log_debug("CHARGE_EVENT_LDO5V_IN\n");
     case CHARGE_EVENT_LDO5V_KEEP:
+        log_debug("CHARGE_EVENT_LDO5V_KEEP\n");
         lp_touch_key_charge_mode_enter();
         break;
     case CHARGE_EVENT_CHARGE_FULL:
+        log_debug("CHARGE_EVENT_CHARGE_FULL\n");
+        lp_touch_key_charge_mode_enter();
         break;
     case CHARGE_EVENT_LDO5V_OFF:
+        log_debug("CHARGE_EVENT_LDO5V_OFF\n");
         lp_touch_key_charge_mode_exit();
         break;
     }

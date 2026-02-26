@@ -88,6 +88,7 @@ void bt_check_exit_sniff()
         return;
     }
     bt_cmd_prepare(USER_CTRL_ALL_SNIFF_EXIT, 0, NULL);
+    log_info("bt_check_exit_sniff----USER_CTRL_ALL_SNIFF_EXIT\n");
 }
 
 void bt_sniff_ready_clean(void)
@@ -106,9 +107,9 @@ void bt_check_enter_sniff()
     }
 #endif
 
-#if (RCSP_ADV_EN)
-    u8 rcsp_max_con_dev = rcsp_max_support_con_dev_num();
-    u8 rcsp_conn_num = bt_rcsp_device_conn_num();
+#if 0//(RCSP_ADV_EN) 带APP这里影响进入低功耗，有设备连接就不进入SNIFF？感觉这里也不影响
+    u8 rcsp_max_con_dev = rcsp_max_support_con_dev_num();//返回当前设备支持的最大连接数
+    u8 rcsp_conn_num = bt_rcsp_device_conn_num();//获取rcsp已连接设备数目
     if (get_ble_adv_modify() || ((rcsp_conn_num < rcsp_max_con_dev) && get_ble_adv_notify())) {
         // rcsp需要通知信息到手机 || rcsp未连接且需要通过广播信息到手机
         return;
@@ -159,6 +160,7 @@ void sys_auto_sniff_controle(u8 enable, u8 *addr)
         }
 
         if (tws_api_get_role_async() == TWS_ROLE_SLAVE) {
+            log_info("sys_auto_sniff_controle(1, bt->args);----TWS_ROLE_SLAVE----return\n");
             return;
         }
         if (g_bt_hdl.sniff_timer == 0) {
@@ -207,10 +209,10 @@ static int sniff_btstack_event_handler(int *_event)
         sys_auto_sniff_controle(1, bt->args);
         break;
     case BT_STATUS_SNIFF_STATE_UPDATE:
-        log_info(" BT_STATUS_SNIFF_STATE_UPDATE %d\n", bt->value);    //0退出SNIFF
+        log_info(" BT_STATUS_SNIFF_STATE_UPDATE=%d----0是退出SNIFF\n", bt->value);    //0退出SNIFF
         if (bt->value == 0) {
             sys_auto_sniff_controle(1, bt->args);
-            app_send_message(APP_MSG_BT_EXIT_SNIFF, 0);
+            app_send_message(APP_MSG_BT_EXIT_SNIFF, 0);//发消息通知APP层也做低功耗处理
         } else {
             sys_auto_sniff_controle(0, bt->args);
             app_send_message(APP_MSG_BT_ENTER_SNIFF, 0);

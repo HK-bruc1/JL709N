@@ -39,7 +39,8 @@ static int get_work_setting(u8 *work_setting_info)
 
 static void adv_work_setting_vm_value(u8 *work_setting_info)
 {
-    syscfg_write(CFG_RCSP_ADV_WORK_SETTING, work_setting_info, sizeof(u8));
+    //工作以及游戏模式不写入VM，避免开机报提示音
+    //syscfg_write(CFG_RCSP_ADV_WORK_SETTING, work_setting_info, sizeof(u8));
 }
 
 static void update_work_setting_state(void)
@@ -86,9 +87,11 @@ void rcsp_set_work_mode(RCSPWorkMode work_mode)
     if (get_bt_tws_connect_status()) {
         if (TWS_ROLE_MASTER == tws_api_get_role()) {
             deal_work_setting(&_work_mode, 1, 1);
+            printf("双耳中的主耳执行deal_work_setting(&_work_mode, 1, 1)\n");
         }
     } else {
         deal_work_setting(&_work_mode, 1, 1);
+        printf("单耳执行deal_work_setting(&_work_mode, 1, 1)\n");
     }
 #else
     deal_work_setting(&_work_mode, 1, 1);
@@ -111,7 +114,8 @@ static int adv_work_opt_init(void)
     u8 work_setting_info = RCSPWorkModeNormal;
     if (rcsp_read_data_from_vm(CFG_RCSP_ADV_WORK_SETTING, &work_setting_info, sizeof(work_setting_info))) {
         if (work_setting_info != RCSPWorkModeNormal && work_setting_info != RCSPWorkModeGame) {
-            work_setting_info = RCSPWorkModeNormal;
+            //如果从VM中啥也没有读取到，等于空，不然一定会报一个提示音
+            work_setting_info = RCSPWorkModeNone;
         }
         printf("%s, %s, %d, work_setting_info:%d\n", __FILE__, __FUNCTION__, __LINE__, work_setting_info);
         set_work_setting(&work_setting_info);

@@ -16,6 +16,8 @@
 #include "key_event_deal.h"
 #include "audio_config.h"
 
+#include "app_main.h"
+
 #if (RCSP_MODE && RCSP_ADV_EQ_SET_ENABLE)
 
 #include "vol_sync.h"
@@ -119,13 +121,19 @@ void rcsp_set_vol_for_find_device(u8 vol_flag)
     }
     if (vol_flag) {
         // 停止媒体
-        vol = app_audio_get_volume(APP_AUDIO_CURRENT_STATE);
+        //vol = app_audio_get_volume(APP_AUDIO_CURRENT_STATE);
+        if(bt_a2dp_get_status() == BT_MUSIC_STATUS_STARTING){
+            bt_cmd_prepare(USER_CTRL_AVCTP_OPID_PAUSE, 0, NULL);//先关闭音乐
+        }
         // 最大声
-        app_audio_set_volume(app_audio_get_state(), app_audio_volume_max_query(AppVol_BT_MUSIC), 1);
+        //app_audio_set_volume(app_audio_get_state(), app_audio_volume_max_query(AppVol_BT_MUSIC), 1);
+        vol = app_audio_get_volume(APP_AUDIO_STATE_WTONE);
+        app_var.wtone_volume = 16;
 
     } else {
         // 恢复
-        app_audio_set_volume(app_audio_get_state(), vol, 1);
+        //app_audio_set_volume(app_audio_get_state(), vol, 1);
+        app_var.wtone_volume = vol;
     }
 
     rcsp_device_status_update(COMMON_FUNCTION, BIT(RCSP_DEVICE_STATUS_ATTR_TYPE_VOL));

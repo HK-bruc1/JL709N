@@ -24,6 +24,9 @@
 #include "audio_dac.h"
 #endif
 
+#include "tws_tone_player.h"
+#include "classic/tws_api.h"
+
 #if (RCSP_MODE)
 
 /* #define RCSP_DEBUG_EN */
@@ -192,19 +195,23 @@ static void earphone_mute_timer_func(void *param)
 {
     u8 way = ((u8 *)param)[0];
     u8 player = ((u8 *)param)[1];
-    earphone_mute('L', 0);
-    earphone_mute('R', 0);
+
+    char local_channel = bt_tws_get_local_channel();  // 获取本机声道 'L' 或 'R'
+    
+    //earphone_mute('L', 0);
+    //earphone_mute('R', 0);
 
     printf("rcsp_find %s, %s, %d, way:%d, player:%d\n", __FILE__, __FUNCTION__, __LINE__, way, player);
 #if TCFG_USER_TWS_ENABLE
     if (tws_api_get_tws_state() & TWS_STA_SIBLING_CONNECTED) {
-        switch (way) {
-        case 1: // 左侧播放
-            earphone_mute('R', 1);
-            break;
-        case 2: // 右侧播放
-            earphone_mute('L', 1);
-            break;
+        if (way == 1 && local_channel == 'R') {
+            //只有左耳播放，右耳就要停止所有的提示音
+            tone_player_stop();
+            return ;
+        } else if (way == 2 && local_channel == 'L') {
+            //只有右耳播放，左耳就要停止所有的提示音
+            tone_player_stop();
+            return ;
         }
     }
 #endif
@@ -217,8 +224,9 @@ static void earphone_mute_timer_func(void *param)
     case 1:
         /* printf("%s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
         // 设备端播放
-        play_tone_file(get_tone_files()->normal);
-        earphone_mute_handler(param, 300);
+        printf("bt_cmd_prepare(USER_CTRL_AVCTP_OPID_STOP, 0, NULL);----app_find_ear\n");
+        play_tone_file(get_tone_files()->_TONE_APP_FIND_EAR_NAME);
+        earphone_mute_handler(param, _TONE_FIND_EAR_REPEAT_TIME);
         break;
     }
 }
@@ -231,11 +239,22 @@ void earphone_mute_handler(u8 *other_opt, u32 msec)
     static u8 tmp_param[3] = {0};
     int size_other_opt = sizeof(tmp_param);
     memcpy(tmp_param, other_opt, size_other_opt);
+
+    //置1位操作只在rcsp_manage.c中MSG_JL_FIND_DEVICE_STOP find_device_timeout_handle实现
+    //这里根据参数再判断一次，估计这个参数没有同步导致只有一只耳朵播放提示音
+    if(tmp_param[1] == 1){
+        find_device_key_flag = 1;
+    } else if(tmp_param[1] == 0){
+        find_device_key_flag = 0;
+    }
+
 #if TCFG_USER_TWS_ENABLE
     if ((tws_api_get_tws_state() & TWS_STA_SIBLING_CONNECTED) && (2 == tmp_param[2])) {
         /* printf("rcsp_find %s, %s, %d\n", __FILE__, __FUNCTION__, __LINE__); */
         rcsp_find_device_reset();
-        earphone_mute_timer_func(tmp_param);
+        earphone_mute_timer_func(tmp_param);//全部停止寻找时没有必要再执行一次了
+        extern void rcsp_set_vol_for_find_device(u8 vol_flag);
+        rcsp_set_vol_for_find_device(find_device_key_flag);
     }
 #endif
     if (earphone_mute_timer) {
