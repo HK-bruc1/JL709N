@@ -72,6 +72,12 @@ enum {
     SYNC_CMD_OPUS_CLOSE,
 
     SYNC_CMD_RESET, //新增公共枚举值，不区分项目
+
+#if _CHARGE_OUT_TONE_ENABLE
+    SYNC_CMD_TONE_TWS_ON,//双耳同步播放tws连接成功的提示音命令，用于从机向主耳传递标志位
+    SYNC_CMD_TONE_TWS_OFF,//主耳用于清除双耳的TWS连接成功提示音标志位
+#endif
+
 };
 
 enum {

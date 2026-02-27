@@ -14,6 +14,8 @@
 #define LOG_CLI_ENABLE
 #include "debug.h"
 
+#include "customer.h"
+
 //*----------------------------------------------------------------------------*/
 /**@brief   开机启动
   @param    无
@@ -47,7 +49,13 @@ static int poweron_mode_init()
     log_info("power on");
 
     if (app_var.play_poweron_tone) {
+
+#if _CHARGE_OUT_TONE_ENABLE
+        //跟那边换一下,一般这个提示音为空。
+        int ret = play_tone_file_callback(get_tone_files()->bt_mode, NULL, poweron_tone_play_end_callback);
+#else
         int ret = play_tone_file_callback(get_tone_files()->power_on, NULL, poweron_tone_play_end_callback);
+#endif
         if (ret != 0) {
             log_error("power on tone play err!!!");
             poweron_task_start();

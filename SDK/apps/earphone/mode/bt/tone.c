@@ -17,12 +17,20 @@
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
 #include "app_le_connected.h"
 #endif
+
+#include "app_main.h"
+#include "customer.h"
+
 #if TCFG_APP_BT_EN
 
 #define TWS_DLY_DISCONN_TIME            0//2000    //TWS超时断开，快速连接上不播提示音
 
 static u8 g_tws_connected = 0;
 static u16 tws_dly_discon_time = 0;
+#if _CHARGE_OUT_TONE_ENABLE
+static u8 tone_tws_connected_master_flag = 0;
+static u8 tone_tws_connected_time = 0;
+#endif
 
 
 static int tone_btstack_event_handler(int *_event)
@@ -101,7 +109,26 @@ APP_MSG_HANDLER(tone_stack_msg_entry) = {
     .handler    = tone_btstack_event_handler,
 };
 
+#if _CHARGE_OUT_TONE_ENABLE
+void tone_tws_connected_deal(void *priv)
+{
+    if (tone_tws_connected_time == 0) {
+        return;
+    }
 
+    if(app_var.tone_tws_connected_slave_flag && tone_tws_connected_master_flag){
+        printf("===========>主从机都满足tws_tone条件\n");
+        tws_play_tone_file(get_tone_files()->tws_connect, 400);
+    }
+    //清除各标志位
+    if (tone_tws_connected_time) {
+        sys_timeout_del(tone_tws_connected_time);
+        tone_tws_connected_time = 0;
+    }
+    tws_api_sync_call_by_uuid('T', SYNC_CMD_TONE_TWS_OFF, 300);
+    tone_tws_connected_master_flag = 0;
+}
+#endif
 
 void tws_disconn_dly_deal(void *priv)
 {
@@ -139,6 +166,12 @@ static int tone_tws_event_handler(int *_event)
             if (state & (TWS_STA_SBC_OPEN | TWS_STA_ESCO_OPEN)) {
                 break;
             }
+            
+#if _CHARGE_OUT_TONE_ENABLE
+            tone_tws_connected_master_flag = 1;
+            printf("===========>主耳tone_tws置位\n");
+#endif
+
 #if ((TCFG_LE_AUDIO_APP_CONFIG & (LE_AUDIO_UNICAST_SINK_EN | LE_AUDIO_JL_UNICAST_SINK_EN)))
             u32 slave_info =  event->args[3] | (event->args[4] << 8) | (event->args[5] << 16) | (event->args[6] << 24) ;
             printf("====slave_info:%x\n", slave_info);
@@ -147,11 +180,25 @@ static int tone_tws_event_handler(int *_event)
             }
 #endif
 #if TCFG_USER_TWS_ENABLE
-            tws_play_tone_file(get_tone_files()->tws_connect, 400);
+    #if _CHARGE_OUT_TONE_ENABLE
+                //主耳TWS连接报提示音时，从机的出仓提示音可能还没报完
+                //给个超时定时器,最好大于出仓开机提示音时长
+                tone_tws_connected_time = sys_timeout_add(NULL, tone_tws_connected_deal,_TONE_TWS_CONNECTED_DEAL_TIME);
+    #else
+                tws_play_tone_file(get_tone_files()->tws_connect, 400);
+    #endif
 #else
             play_tone_file(get_tone_files()->tws_connect);
 #endif
         }
+    #if _CHARGE_OUT_TONE_ENABLE
+        else if(role == TWS_ROLE_SLAVE){
+            //在各自耳机中处理的。只不过从机不处理TWS配对成功提示音，主耳使用同步提示音函数实现同步播放
+            //如果是从机连接了置位，从机开机提示音没有播完之前不太可能到这里
+            tws_api_sync_call_by_uuid('T', SYNC_CMD_TONE_TWS_ON, 300);
+            printf("===========>从耳tone_tws置位,并传递给主机\n");
+        }
+    #endif
         break;
     case TWS_EVENT_CONNECTION_DETACH:
         if (app_var.goto_poweroff_flag) {

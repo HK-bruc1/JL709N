@@ -1090,7 +1090,13 @@ int bt_mode_init()
 #endif  //endif TCFG_BLUETOOTH_BACK_MODE
     {
         tone_player_stop();
+
+#if _CHARGE_OUT_TONE_ENABLE
+        play_tone_file_callback(get_tone_files()->power_on, NULL, tone_bt_mode_callback);
+#else
         play_tone_file_callback(get_tone_files()->bt_mode, NULL, tone_bt_mode_callback);
+#endif
+
     }
 
 #if OPTIMIZATION_CONN_NOISE

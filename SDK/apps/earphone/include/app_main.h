@@ -69,6 +69,11 @@ typedef struct _APP_VAR {
     s16 mic_eff_volume;
 
     u8 factory_reset_flag;//双耳恢复出厂设置标志位
+
+#if _CHARGE_OUT_TONE_ENABLE
+    u8 tone_tws_connected_slave_flag;//从机同步给主机的TWS连接成功提示音标志位
+#endif
+
 #if _LED_POWER_LOW_NO_INTERRUPT_ENABLE
     u8 power_low_no_interrupt_flag;//双耳同步低电灯效标志位
 #endif

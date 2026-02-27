@@ -139,6 +139,18 @@ static void tws_sync_call_fun(int cmd, int err)
 		extern void factory_reset_deal_callback(void);
         factory_reset_deal_callback();
         break;
+
+#if _CHARGE_OUT_TONE_ENABLE
+    case SYNC_CMD_TONE_TWS_ON:
+        //同步执行，传递从机标志位
+        app_var.tone_tws_connected_slave_flag = 1;
+        break;
+    case SYNC_CMD_TONE_TWS_OFF:
+        //同步执行，传递从机标志位
+        app_var.tone_tws_connected_slave_flag = 0;
+        break;
+#endif
+
     }
 }
 
