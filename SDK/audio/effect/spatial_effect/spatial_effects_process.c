@@ -37,7 +37,7 @@ struct spatial_effect_global_param {
     u32 switch_timer;
 };
 static struct spatial_effect_global_param g_param = {
-    .spatial_audio_mode = SPATIAL_EFX_FIXED,//空间音效初始化状态
+    .spatial_audio_mode = SPATIAL_EFX_OFF,//空间音效初始化状态
     .spatial_audio_fade_finish = SPATIAL_EFX_FIXED,//是否完成淡入淡出的标志
     .frame_pack_disable = 0,//外部数据流是否需要拼帧标志位。关闭空间音效时使能
     .breaker_timer = 0,  //关闭音效后数据流插入断点定时器

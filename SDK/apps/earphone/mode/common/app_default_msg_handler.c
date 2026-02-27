@@ -65,6 +65,66 @@ static u8 esco_eff_uncle;
 static u8 esco_eff_goddess;
 #endif
 
+
+#include "bt_tws.h"
+#include "rcsp_cmd_user.h"
+
+
+//------------------------------------------------------------------  同步数据
+
+#define TWS_FUNC_ID_DIND_SYNC1    TWS_FUNC_ID('S', 'I', 'N', 'D')
+
+void user_send_crtl_app_data1(u8 type, u8 state)
+{
+    u8 send_date[6] = {0};
+    send_date[0] = 0xAA;
+    send_date[1] = 0xF1;
+    send_date[2] = type;
+    send_date[3] = state;
+    send_date[4] = type + 1;
+    send_date[5] = 0x55;
+    rcsp_user_cmd_send(send_date,sizeof(send_date));
+}
+static void dhf_bt_tws_mode_sync1(int value)
+{
+    printf("tws_slave : state --value:[%d]-\r\n",value);
+    u8 data[1] = {0};
+    data[0] = (u8)value;
+    #if TCFG_AUDIO_SPATIAL_EFFECT_ENABLE
+        audio_spatial_effects_mode_switch(data[0]); //只能在播歌下切换才有效？怎么设置开机时关闭空间音效
+    #endif
+    printf("tws_slave : end -------------------------------------------------------------------------");
+}
+
+static void dhf_app_protocol_tws_sync1_rx(void *data, u16 len, bool rx)
+{
+    int err = 0;
+    u8 *arg = (u8 *)data;
+    int msg[8];
+    printf("dhf_app_protocol_tws_sync1_rx---data0:[%d]-----\r\n",arg[0]);
+    msg[0] = (int)dhf_bt_tws_mode_sync1;
+    msg[1] = 1;
+    msg[2] = (int)arg[0]; //cmd
+    // msg[3] = (int)arg[1]; //value
+    err = os_taskq_post_type("app_core", Q_CALLBACK, 3, msg);
+
+    if (err) {
+        printf("-----dhf tws sync post fail\n");
+    }
+}
+
+REGISTER_TWS_FUNC_STUB(app_mode_sync_stub) = {
+    .func_id = TWS_FUNC_ID_DIND_SYNC1,
+    .func    = dhf_app_protocol_tws_sync1_rx,
+};
+void bt_tws_sync_moed1(u8 *value) //副耳播放发消息(播放状态)
+{
+    u8 data[1] = {0};
+    data[0] = value[0]; 
+    printf("bt_tws_sync_moed1---------data0:[%d]\r\n",data[0]);
+    tws_api_send_data_to_slave(data, 1, TWS_FUNC_ID_DIND_SYNC1);
+}
+
 extern void volume_up(u8 inc);
 extern void volume_down(u8 inc);
 
@@ -412,20 +472,36 @@ static void app_common_app_event_handler(int *msg)
         esco_eff_goddess = !esco_eff_goddess;
         break;
 #endif
-#if TCFG_AUDIO_SPATIAL_EFFECT_ENABLE
-    case APP_MSG_SPATIAL_EFFECT_SWITCH:
-        u8 mode = get_a2dp_spatial_audio_mode();
-        if (++mode > 2) {
-            mode = 0;
-        }
-        printf("%s : %d", __func__, mode);
-        audio_spatial_effects_mode_switch(mode);
-        break;
-#endif
+
 
 #if TCFG_SPEAKER_EQ_NODE_ENABLE
     case APP_MSG_SPK_EQ_TEST:
         spk_eq_test();
+        break;
+#endif
+
+#if TCFG_AUDIO_SPATIAL_EFFECT_ENABLE
+    case APP_MSG_SPATIAL_EFFECT_SWITCH:
+        // u8 mode = get_a2dp_spatial_audio_mode();
+        // if (++mode > 2) {
+        //     mode = 0;
+        // }
+        // printf("%s : %d", __func__, mode);
+        // audio_spatial_effects_mode_switch(mode);
+        u8 mode = get_a2dp_spatial_audio_mode();//默认是0，空间音效是关，只有0和1：关闭和固定头部
+        if (mode == 1) {
+            mode = 0;
+        } else if (mode == 0) {
+            mode = 1;
+        }
+        if (get_bt_tws_connect_status()) {
+            bt_tws_sync_moed1(&mode);
+            user_send_crtl_app_data1(DHF_SPATIAL_SOUND_BEGIN,mode);
+        } else {
+            printf("%s : %d", __func__, mode);
+            audio_spatial_effects_mode_switch(mode);
+            user_send_crtl_app_data1(DHF_SPATIAL_SOUND_BEGIN,mode);
+        }
         break;
 #endif
 

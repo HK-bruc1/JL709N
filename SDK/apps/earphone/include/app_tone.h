@@ -56,6 +56,8 @@ struct tone_files {
     const char *reset;
     const char *find_ear;
     const char *du;
+    const char *spatial_on;
+    const char *spatial_off;
 };
 
 

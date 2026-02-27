@@ -1356,6 +1356,7 @@ static void msg_tws_start_conn_timeout(void *p)
 
 static int dual_conn_app_event_handler(int *msg)
 {
+    int tws_state = tws_api_get_tws_state();
     switch (msg[0]) {
     case APP_MSG_TWS_PAIRED:
 #if TCFG_TWS_CONN_DISABLE
@@ -1402,12 +1403,23 @@ static int dual_conn_app_event_handler(int *msg)
                                             TCFG_TWS_PAIR_TIMEOUT * 1000);
         break;
     case APP_MSG_TWS_START_PAIR:
-        tws_api_search_sibling_by_code();
-        if (g_dual_conn.timer) {
-            sys_timeout_del(g_dual_conn.timer);
+        if((tws_state & TWS_STA_TWS_UNPAIRED) || (tws_state & TWS_STA_SIBLING_DISCONNECTED)){
+            //双耳掉配对了，直接先清除配对信息，再发起配对，也兼容一开始没有配对信息，没有TWS连接，就进行tws配对流程。
+            bt_cmd_prepare(USER_CTRL_DISCONNECTION_HCI, 0, NULL);//蓝牙连接调用恢复出厂的话先断开蓝牙
+            bt_cmd_prepare(USER_CTRL_DEL_ALL_REMOTE_INFO, 0, NULL);
+            tws_api_remove_pairs();
+            //没有TWS连接，就进行tws配对流程，前一个判断借鉴公版的写法
+            tws_api_search_sibling_by_code();
+            if (g_dual_conn.timer) {
+                sys_timeout_del(g_dual_conn.timer);
+            }
+            g_dual_conn.timer = sys_timeout_add(NULL, msg_tws_start_pair_timeout,TCFG_TWS_PAIR_TIMEOUT * 1000);
+        }else {
+            //如果是TWS连接状态的话或者有tws配对记录的话就断开并清除TWS记录
+            //解除配对，清掉对方地址信息和本地声道信息
+            //避免配对错了，无法解除配对的情况
+            tws_api_remove_pairs();
         }
-        g_dual_conn.timer = sys_timeout_add(NULL, msg_tws_start_pair_timeout,
-                                            TCFG_TWS_PAIR_TIMEOUT * 1000);
         break;
     case APP_MSG_TWS_WAIT_CONN:
         tws_api_wait_connection(0);

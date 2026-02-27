@@ -62,6 +62,8 @@ static const struct tone_files chinese_tone_files = {
     .reset              = "tone_zh/reset.*",
     .find_ear           = "tone_en/find_ear.*",
     .du                 = "tone_en/du.*",
+    .spatial_on          = "tone_zh/spatial_on.*",	
+    .spatial_off          = "tone_zh/spatial_off.*",
 };
 
 static const struct tone_files english_tone_files = {
@@ -118,6 +120,8 @@ static const struct tone_files english_tone_files = {
     .reset              = "tone_en/reset.*",
     .find_ear           = "tone_en/find_ear.*",
     .du                 = "tone_en/du.*",
+    .spatial_on          = "tone_en/spatial_on.*",	
+    .spatial_off          = "tone_en/spatial_off.*",
 };
 
 #if TCFG_TONE_EN_ENABLE
