@@ -201,6 +201,36 @@
 
 #endif /* #if TCFG_LP_TOUCH_KEY_ENABLE */
 
+//*********************************************************************************//
+//                                 外置入耳检测                                        //
+//*********************************************************************************//
+#define TCFG_EAR_DETECT_ENABLE                  ENABLE_THIS_MOUDLE//DISABLE_THIS_MOUDLE         //入耳检测使能
+#define DEVICE_EVENT_FROM_EAR_DETECT		     (('E' << 24) | ('A' << 16) | ('R' << 8) | '\0')
+/*检测类型 :
+    EAR_DETECT_BY_TOUCH , EAR_DETECT_BY_IR
+*/
+#define TCFG_EAR_DETECT_TYPE    		        EAR_DETECT_BY_IR
+
+// TOUCH
+#define TCFG_EAR_DETECT_DET_IO                  IO_PORTB_02                //检测引脚
+#define TCFG_EAR_DETECT_TOUCH_MODE				0          				//入耳检测方式 1：timer检测  0 ：触发检测
+
+// IR
+#define TCFG_EAR_DET_IR_POWER_IO                NO_CONFIG_PORT                //入耳红外检测IO1
+#define TCFG_EAR_DETECT_IRO1                    IO_PORTC_03                //入耳红外检测IO1
+#define TCFG_EAR_DETECT_IRO1_LEVEL     			0                         //IOR1工作电平选择
+#define TCFG_EAR_DETECT_IRO2                  	IO_PORTC_04//IO_PORT_DM//IO_PORTC_02                //入耳红外检测IO2-检测脚+
+#define TCFG_EAR_DETECT_IR_MODE              	0                          //0: IO检测  1：AD检测
+//IR AD 检测
+#define TCFG_EAR_DETECT_AD_CH                	NO_CONFIG_PORT 			   //AD检测IO
+#define TCFG_EAR_DETECT_AD_VALUE             	60
+
+//common config
+#define TCFG_EAR_DETECT_DET_LEVEL               1                          //入耳检测电平
+#define TCFG_EAR_DETECT_AUTO_CHG_MASTER         1                          //通话过程中，自动切换主从
+#define TCFG_EAR_DETECT_CALL_CTL_SCO            0//1                          //入耳控制通话链路
+#define TCFG_EAR_DETECT_CTL_KEY            	   	1                          //入耳按键有效使能
+#define TCFG_KEY_IN_EAR_FILTER_ENABLE           0     
 
 //*********************************************************************************//
 //                             plcnt tocuh key 配置                                   //

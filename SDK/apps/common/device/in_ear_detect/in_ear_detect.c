@@ -15,7 +15,7 @@
 #define LOG_INFO_ENABLE
 #include "debug.h"
 
-//#define log_info(format, ...)       y_printf("[EAR_DETECT] : " format "\r\n", ## __VA_ARGS__)
+#define log_info(format, ...)       y_printf("[EAR_DETECT] : " format "\r\n", ## __VA_ARGS__)
 
 #if TCFG_EAR_DETECT_ENABLE
 
@@ -38,21 +38,33 @@ static void __ear_detect_ir_init(void)
     log_info("%s\n", __func__);
     //IR VDD
     if (TCFG_EAR_DET_IR_POWER_IO != NO_CONFIG_PORT) {
-        gpio_set_pull_up(TCFG_EAR_DET_IR_POWER_IO, 0);
-        gpio_set_pull_down(TCFG_EAR_DET_IR_POWER_IO, 0);
-        gpio_set_die(TCFG_EAR_DET_IR_POWER_IO, 1);
-        gpio_set_direction(TCFG_EAR_DET_IR_POWER_IO, 0);
-        gpio_set_hd0(TCFG_EAR_DET_IR_POWER_IO, 1);
-        gpio_set_hd(TCFG_EAR_DET_IR_POWER_IO, 1);
-        gpio_set_output_value(TCFG_EAR_DET_IR_POWER_IO, 1);
+        // gpio_set_pull_up(TCFG_EAR_DET_IR_POWER_IO, 0);
+        // gpio_set_pull_down(TCFG_EAR_DET_IR_POWER_IO, 0);
+        // gpio_set_die(TCFG_EAR_DET_IR_POWER_IO, 1);
+        // gpio_set_direction(TCFG_EAR_DET_IR_POWER_IO, 0);
+        // gpio_set_hd0(TCFG_EAR_DET_IR_POWER_IO, 1);
+        // gpio_set_hd(TCFG_EAR_DET_IR_POWER_IO, 1);
+        // gpio_set_output_value(TCFG_EAR_DET_IR_POWER_IO, 1);
+
+        gpio_set_mode(IO_PORT_SPILT(TCFG_EAR_DET_IR_POWER_IO),GPIO_PULLUP_DISABLE);
+        gpio_set_mode(IO_PORT_SPILT(TCFG_EAR_DET_IR_POWER_IO),GPIO_PULLDOWN_DISABLE);
+        gpio_set_mode(IO_PORT_SPILT(TCFG_EAR_DET_IR_POWER_IO),PORT_INPUT_FLOATING);
+        gpio_set_mode(IO_PORT_SPILT(TCFG_EAR_DET_IR_POWER_IO),PORT_OUTPUT_HIGH);
     }
 
 
     //ir i01 init
-    gpio_set_pull_up(TCFG_EAR_DETECT_IRO1, 0);
-    gpio_set_pull_down(TCFG_EAR_DETECT_IRO1, 0);
-    gpio_set_direction(TCFG_EAR_DETECT_IRO1, 0);
-    gpio_set_output_value(TCFG_EAR_DETECT_IRO1, !TCFG_EAR_DETECT_IRO1_LEVEL);
+    // gpio_set_pull_up(TCFG_EAR_DETECT_IRO1, 0);
+    // gpio_set_pull_down(TCFG_EAR_DETECT_IRO1, 0);
+    // gpio_set_direction(TCFG_EAR_DETECT_IRO1, 0);
+    // gpio_set_output_value(TCFG_EAR_DETECT_IRO1, !TCFG_EAR_DETECT_IRO1_LEVEL);
+
+    gpio_hw_set_pull_up(PORTC,PORT_PIN_4,GPIO_PULLUP_DISABLE);
+    gpio_hw_set_pull_down(PORTC,PORT_PIN_4,GPIO_PULLDOWN_DISABLE);
+        //    gpio_set_mode(IO_PORT_SPILT(TCFG_EAR_DETECT_IRO1),GPIO_PULLUP_DISABLE);
+        // gpio_set_mode(IO_PORT_SPILT(TCFG_EAR_DETECT_IRO1),GPIO_PULLDOWN_DISABLE);
+        // gpio_set_mode(IO_PORT_SPILT(TCFG_EAR_DETECT_IRO1),PORT_INPUT_FLOATING);
+        gpio_set_mode(IO_PORT_SPILT(TCFG_EAR_DETECT_IRO1),PORT_OUTPUT_HIGH);
 
     //ir i02 init
 #if TCFG_EAR_DETECT_IR_MODE
@@ -64,10 +76,16 @@ static void __ear_detect_ir_init(void)
     gpio_set_direction(TCFG_EAR_DETECT_IRO2, 1);
 #else
     log_info("ear_detect_ir_io_mode\n");
-    gpio_set_pull_up(TCFG_EAR_DETECT_IRO2, !TCFG_EAR_DETECT_DET_LEVEL);
-    gpio_set_pull_down(TCFG_EAR_DETECT_IRO2, TCFG_EAR_DETECT_DET_LEVEL);
-    gpio_set_die(TCFG_EAR_DETECT_IRO2, 1);
-    gpio_set_direction(TCFG_EAR_DETECT_IRO2, 1);
+    // gpio_set_pull_up(TCFG_EAR_DETECT_IRO2, !TCFG_EAR_DETECT_DET_LEVEL);
+    // gpio_set_pull_down(TCFG_EAR_DETECT_IRO2, TCFG_EAR_DETECT_DET_LEVEL);
+    // gpio_set_die(TCFG_EAR_DETECT_IRO2, 1);
+    // gpio_set_direction(TCFG_EAR_DETECT_IRO2, 1);
+
+    gpio_hw_set_pull_up(PORTC,PORT_PIN_3,GPIO_PULLUP_DISABLE);
+        //  gpio_set_mode(IO_PORT_SPILT(TCFG_EAR_DETECT_IRO2),GPIO_PULLUP_DISABLE);
+        gpio_set_mode(IO_PORT_SPILT(TCFG_EAR_DETECT_IRO2),PORT_INPUT_PULLDOWN_LEVEL1);
+        gpio_set_mode(IO_PORT_SPILT(TCFG_EAR_DETECT_IRO2),PORT_HIGHZ);
+        gpio_set_mode(IO_PORT_SPILT(TCFG_EAR_DETECT_IRO2),PORT_INPUT_FLOATING);
 #endif
 }
 
@@ -76,17 +94,19 @@ static void __ear_detect_ir_run(void *priv)
 {
     if (get_charge_online_flag()) {
         __this->check_status = DETECT_IDLE;
-        gpio_set_output_value(TCFG_EAR_DETECT_IRO1, !TCFG_EAR_DETECT_IRO1_LEVEL);
+        // gpio_set_output_value(TCFG_EAR_DETECT_IRO1, !TCFG_EAR_DETECT_IRO1_LEVEL);
+          gpio_set_mode(IO_PORT_SPILT(TCFG_EAR_DETECT_IRO1),PORT_OUTPUT_HIGH);
         sys_hi_timer_modify(__this->s_hi_timer, __this->cfg->ear_det_ir_disable_time);
         //ear_detect_change_state_to_event(!TCFG_EAR_DETECT_DET_LEVEL);
         return;
     }
 
     if (__this->check_status == DETECT_IDLE) {
+        // printf("***********************__this->check_status == DETECT_IDLE********************__ear_detect_ir_run\r\n");
         //read det_level without enable power_port,maybe under sun
         if (__this->cfg->ear_det_ir_compensation_en == 1) {
             if (gpio_read(TCFG_EAR_DETECT_IRO2) == TCFG_EAR_DETECT_DET_LEVEL) {
-                //putchar('L');
+                putchar('L');
                 if (is_ear_detect_state_in() == 1) {
                     ear_detect_change_state_to_event(!TCFG_EAR_DETECT_DET_LEVEL);
                     __this->in_cnt = 0;
@@ -97,22 +117,26 @@ static void __ear_detect_ir_run(void *priv)
         }
 
         __this->check_status = DETECT_CHECKING;
-        gpio_set_output_value(TCFG_EAR_DETECT_IRO1, TCFG_EAR_DETECT_IRO1_LEVEL);
-
+        // gpio_set_output_value(TCFG_EAR_DETECT_IRO1, TCFG_EAR_DETECT_IRO1_LEVEL);
+        gpio_set_mode(IO_PORT_SPILT(TCFG_EAR_DETECT_IRO1),PORT_OUTPUT_LOW);
+        // printf("*=============================*__this->check_status == DETECT_IDLE*************END*******__ear_detect_ir_run\r\n");
         sys_hi_timer_modify(__this->s_hi_timer, __this->cfg->ear_det_ir_enable_time);
         return;
     }
 #if (!TCFG_EAR_DETECT_IR_MODE)
+    printf("*=================gpio_read(TCFG_EAR_DETECT_IRO2) :[%d]*****__ear_detect_ir_run\r\n",gpio_read(TCFG_EAR_DETECT_IRO2));
     if (gpio_read(TCFG_EAR_DETECT_IRO2) == TCFG_EAR_DETECT_DET_LEVEL) { //入耳
 #else
     u32 ear_ad = adc_get_value(TCFG_EAR_DETECT_AD_CH);
     if (ear_ad >= TCFG_EAR_DETECT_AD_VALUE) {
 #endif
-        //putchar('i');
+        putchar('i');
         __this->out_cnt = 0;
+        // printf("__this->in_cnt:[%d] ==== __this->cfg->ear_det_in_cnt:[%d]\r\n",__this->in_cnt,__this->cfg->ear_det_in_cnt);
         if (__this->in_cnt < __this->cfg->ear_det_in_cnt) {
             __this->is_idle = 0; //过滤期间不进入sniff
             __this->in_cnt++;
+            // printf("__this->in_cnt++:[%d] ==== __this->cfg->ear_det_in_cnt++:[%d]\r\n",__this->in_cnt,__this->cfg->ear_det_in_cnt);
             if (__this->in_cnt == __this->cfg->ear_det_in_cnt) {
                 log_info("earphone ir in\n");
 #if TCFG_KEY_IN_EAR_FILTER_ENABLE
@@ -127,7 +151,7 @@ static void __ear_detect_ir_run(void *priv)
             }
         }
     } else {
-        //putchar('o');
+        putchar('o');
         __this->in_cnt = 0;
         if (__this->out_cnt < __this->cfg->ear_det_out_cnt) {
             __this->is_idle = 0; //过滤期间不进入sniff
@@ -140,7 +164,8 @@ static void __ear_detect_ir_run(void *priv)
         }
     }
     __this->check_status = DETECT_IDLE;
-    gpio_set_output_value(TCFG_EAR_DETECT_IRO1, !TCFG_EAR_DETECT_IRO1_LEVEL);
+    // gpio_set_output_value(TCFG_EAR_DETECT_IRO1, !TCFG_EAR_DETECT_IRO1_LEVEL);
+    gpio_set_mode(IO_PORT_SPILT(TCFG_EAR_DETECT_IRO1),PORT_OUTPUT_HIGH);
     sys_hi_timer_modify(__this->s_hi_timer, __this->cfg->ear_det_ir_disable_time);
 }
 

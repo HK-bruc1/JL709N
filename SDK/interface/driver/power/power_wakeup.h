@@ -102,6 +102,15 @@ struct _wakeup_param {
 
 };
 
+#if 1//TCFG_EAR_DETECT_ENABLE //入耳需要变量
+struct wakeup_param {
+    //数字io输入
+    const struct _p33_io_wakeup_config *port[MAX_WAKEUP_PORT];
+    //模拟io输入
+    const struct _p33_io_wakeup_config *aport[MAX_WAKEUP_ANA_PORT];
+};
+#endif
+
 //
 //
 //                    power_wakeup api

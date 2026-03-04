@@ -77,6 +77,8 @@ enum {
     SYNC_CMD_TONE_TWS_ON,//双耳同步播放tws连接成功的提示音命令，用于从机向主耳传递标志位
     SYNC_CMD_TONE_TWS_OFF,//主耳用于清除双耳的TWS连接成功提示音标志位
 #endif
+    SYNC_CMD_MUSIC_PLAY,
+    SYNC_CMD_MUSIC_STOP,
 
 };
 

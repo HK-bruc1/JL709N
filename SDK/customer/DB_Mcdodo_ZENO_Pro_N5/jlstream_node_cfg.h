@@ -26,7 +26,7 @@
 
 // ------------流程图宏定义------------
 #define TCFG_AUDIO_BIT_WIDTH                      0                // 位宽
-#define TCFG_2BAND_MERGE_ENABLE                   0                // 2Band Merge
+#define TCFG_2BAND_MERGE_ENABLE                   1                // 2Band Merge
 #define TCFG_3BAND_MERGE_ENABLE                   0                // 3Band Merge
 #define TCFG_3D_PLUS_MODULE_NODE_ENABLE           0                // 3D Plus
 #define TCFG_ADC_NODE_ENABLE                      1                // ADC
@@ -54,7 +54,7 @@
 #define TCFG_BASS_TREBLE_NODE_ENABLE              0                // Bass Treble
 #define TCFG_BT_AUDIO_SYNC_NODE_ENABLE            1                // 蓝牙音频同步
 #define TCFG_CHANNEL_EXPANDER_NODE_ENABLE         0                // Channel Expander
-#define TCFG_CHANNEL_MERGE_NODE_ENABLE            0                // Channel Merge
+#define TCFG_CHANNEL_MERGE_NODE_ENABLE            1                // Channel Merge
 #define TCFG_CHANNEL_SWAP_NODE_ENABLE             0                // 声道交换器
 #define TCFG_CHORUS_NODE_ENABLE                   0                // Chorus
 #define TCFG_CLK_SYNC_NODE_ENABLE                 1                // 播放同步
@@ -87,7 +87,7 @@
 #define TCFG_INDICATOR_NODE_ENABLE                0                // Indicator
 #define TCFG_KEY_TONE_NODE_ENABLE                 1                // 按键音
 #define TCFG_LHDC_X_NODE_ENABLE                   0                // LHDC-X
-#define TCFG_LIMITER_NODE_ENABLE                  0                // Limiter
+#define TCFG_LIMITER_NODE_ENABLE                  1                // Limiter
 #define TCFG_LLNS_DNS_NODE_ENABLE                 0                // LLNS_DNS
 #define TCFG_LLNS_NODE_ENABLE                     0                // LLNS
 #define TCFG_MIXER_NODE_ENABLE                    0                // MIXER
@@ -114,14 +114,14 @@
 #define TCFG_SINK_DEV2_NODE_ENABLE                0                // Sink_Dev2
 #define TCFG_SINK_DEV3_NODE_ENABLE                0                // Sink_Dev3
 #define TCFG_SINK_DEV4_NODE_ENABLE                0                // Sink_Dev4
-#define TCFG_SOUND_SPLITTER_NODE_ENABLE           0                // 音频分流器
+#define TCFG_SOUND_SPLITTER_NODE_ENABLE           1                // 音频分流器
 #define TCFG_SOURCE_DEV0_NODE_ENABLE              0                // Source_Dev0
 #define TCFG_SOURCE_DEV1_NODE_ENABLE              0                // Source_Dev1
 #define TCFG_SOURCE_DEV2_NODE_ENABLE              0                // Source_Dev2
 #define TCFG_SOURCE_DEV3_NODE_ENABLE              0                // Source_Dev3
 #define TCFG_SOURCE_DEV4_NODE_ENABLE              0                // Source_Dev4
 #define TCFG_SPATIAL_ADV_NODE_ENABLE              0                // Spatial Adv
-#define TCFG_SPATIAL_AUDIO_ENABLE                 0                // 空间音效
+#define TCFG_SPATIAL_AUDIO_ENABLE                 1                // 空间音效
 #define TCFG_SPEAKER_EQ_NODE_ENABLE               0                // SpeakerEQ
 #define TCFG_SPLIT_GAIN_NODE_ENABLE               0                // Split Gain
 #define TCFG_SRC_NODE_ENABLE                      1                // SRC
@@ -159,7 +159,7 @@
 // ------------流程图宏定义------------
 
 // ------------流程图节点位宽定义------------
-#define TCFG_AUDIO_EFX_665C_RUN_MODE              EFx_BW_UNUSED    // 2Band Merge
+#define TCFG_AUDIO_EFX_665C_RUN_MODE              EFx_BW_32t32     // 2Band Merge
 #define TCFG_AUDIO_EFX_F0C3_RUN_MODE              EFx_BW_UNUSED    // 2MIC-AWN
 #define TCFG_AUDIO_EFX_1B9D_RUN_MODE              EFx_BW_UNUSED    // 3Band Merge
 #define TCFG_AUDIO_EFX_0048_RUN_MODE              EFx_BW_UNUSED    // 3MIC通话
@@ -178,10 +178,10 @@
 #define TCFG_AUDIO_EFX_96DE_RUN_MODE              EFx_BW_UNUSED    // Audio Debug
 #define TCFG_AUDIO_EFX_CC8C_RUN_MODE              EFx_BW_UNUSED    // Bass Treble
 #define TCFG_AUDIO_EFX_7DE5_RUN_MODE              EFx_BW_16t16     // BitWidth Convert
-#define TCFG_AUDIO_EFX_1AA6_RUN_MODE              EFx_BW_UNUSED    // Convert
+#define TCFG_AUDIO_EFX_1AA6_RUN_MODE              EFx_BW_16t32     // Convert
 #define TCFG_AUDIO_EFX_6DD9_RUN_MODE              EFx_BW_UNUSED    // Chorus
 #define TCFG_AUDIO_EFX_DA15_RUN_MODE              EFx_BW_UNUSED    // Channel Expander
-#define TCFG_AUDIO_EFX_BF8E_RUN_MODE              EFx_BW_UNUSED    // Channel Merge
+#define TCFG_AUDIO_EFX_BF8E_RUN_MODE              EFx_BW_32t32     // Channel Merge
 #define TCFG_AUDIO_EFX_5FF6_RUN_MODE              EFx_BW_UNUSED    // CVP_V3
 #define TCFG_AUDIO_EFX_DEFE_RUN_MODE              EFx_BW_UNUSED    // DRC
 #define TCFG_AUDIO_EFX_DCCD_RUN_MODE              EFx_BW_16t16     // DAC
@@ -194,7 +194,7 @@
 #define TCFG_AUDIO_EFX_4250_RUN_MODE              EFx_BW_UNUSED    // DRC Advance
 #define TCFG_AUDIO_EFX_8458_RUN_MODE              EFx_BW_16t16     // ESCO_RX
 #define TCFG_AUDIO_EFX_849A_RUN_MODE              EFx_BW_16t16     // ESCO_TX
-#define TCFG_AUDIO_EFX_737B_RUN_MODE              EFx_BW_16t16     // EQ
+#define TCFG_AUDIO_EFX_737B_RUN_MODE              EFx_BW_16t16 | EFx_BW_16t32 | EFx_BW_32t32 // EQ
 #define TCFG_AUDIO_EFX_98A4_RUN_MODE              EFx_BW_UNUSED    // Echo
 #define TCFG_AUDIO_EFX_A248_RUN_MODE              EFx_BW_UNUSED    // Energy Detect
 #define TCFG_AUDIO_EFX_A4E1_RUN_MODE              EFx_BW_UNUSED    // EffectDev0
@@ -217,7 +217,7 @@
 #define TCFG_AUDIO_EFX_2DFB_RUN_MODE              EFx_BW_UNUSED    // LE_Audio_Sink
 #define TCFG_AUDIO_EFX_2D57_RUN_MODE              EFx_BW_UNUSED    // LE_Audio_Source
 #define TCFG_AUDIO_EFX_FF09_RUN_MODE              EFx_BW_UNUSED    // LE_Audio延时同步
-#define TCFG_AUDIO_EFX_4E5B_RUN_MODE              EFx_BW_UNUSED    // Limiter
+#define TCFG_AUDIO_EFX_4E5B_RUN_MODE              EFx_BW_32t16     // Limiter
 #define TCFG_AUDIO_EFX_65C5_RUN_MODE              EFx_BW_UNUSED    // LHDC-X
 #define TCFG_AUDIO_EFX_1CA2_RUN_MODE              EFx_BW_UNUSED    // LLNS_DNS
 #define TCFG_AUDIO_EFX_E62A_RUN_MODE              EFx_BW_UNUSED    // MIXER
@@ -288,7 +288,7 @@
 #define TCFG_AUDIO_EFX_90F9_RUN_MODE              EFx_BW_UNUSED    // 话务双MIC通话
 #define TCFG_AUDIO_EFX_3F20_RUN_MODE              EFx_BW_UNUSED    // 环绕音demo
 #define TCFG_AUDIO_EFX_1A85_RUN_MODE              EFx_BW_16t16     // 解码器
-#define TCFG_AUDIO_EFX_83E1_RUN_MODE              EFx_BW_UNUSED    // 空间音效
+#define TCFG_AUDIO_EFX_83E1_RUN_MODE              EFx_BW_32t32     // 空间音效
 #define TCFG_AUDIO_EFX_A576_RUN_MODE              EFx_BW_16t16     // 蓝牙音频同步
 #define TCFG_AUDIO_EFX_CADC_RUN_MODE              EFx_BW_16t16     // 铃声
 #define TCFG_AUDIO_EFX_A724_RUN_MODE              EFx_BW_UNUSED    // 声道拆分
@@ -300,7 +300,7 @@
 #define TCFG_AUDIO_EFX_76EF_RUN_MODE              EFx_BW_UNUSED    // 通话第三方算法
 #define TCFG_AUDIO_EFX_F73C_RUN_MODE              EFx_BW_UNUSED    // 写卡
 #define TCFG_AUDIO_EFX_74E3_RUN_MODE              EFx_BW_16t16     // 音量控制器
-#define TCFG_AUDIO_EFX_D911_RUN_MODE              EFx_BW_UNUSED    // 音频分流器
+#define TCFG_AUDIO_EFX_D911_RUN_MODE              EFx_BW_32t32     // 音频分流器
 // ------------流程图节点位宽定义------------
 
 // ------------流程图EQ节点类型宏定义------------
@@ -312,6 +312,6 @@
 #define EQ_CFG_TYPE_HIGH_SHELF_Q                  0                // High Shelf Q
 #define EQ_CFG_TYPE_LOW_SHELF_Q                   0                // Low Shelf Q
 #define EQ_CFG_TYPE_HP                            0                // Hp
-#define EQ_CFG_TYPE_LP                            0                // Lp
+#define EQ_CFG_TYPE_LP                            1                // Lp
 // ------------流程图EQ节点类型宏定义------------
 #endif

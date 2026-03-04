@@ -6,7 +6,7 @@
   {
    "title": "TWS耳机",
    "id": "id_1724121863746_0",
-   "select": true,
+   "select": false,
    "tabs": [
     {
      "id": "id_1724121863746_1",
@@ -126,7 +126,7 @@
   {
    "title": "空间音效3.0.0（单声道）",
    "id": "id_1752128450588_0",
-   "select": false,
+   "select": true,
    "tabs": [
     {
      "id": "id_1750995284456_3",

@@ -1,7 +1,7 @@
 #include "asm/power_interface.h"
 #include "app_config.h"
 #include "gpio_config.h"
-
+#include "in_ear_detect/in_ear_manage.h"
 //-----------------------------------------------------------------------------------------------------------------------
 /* config
  */
@@ -36,6 +36,49 @@ struct _power_pdata power_pdata = {
 };
 
 //----------------------------------------------------------------------------------------------------------------------
+
+#if TCFG_EAR_DETECT_ENABLE
+#if (TCFG_EAR_DETECT_TYPE == EAR_DETECT_BY_TOUCH) && (!TCFG_EAR_DETECT_TOUCH_MODE)
+struct _p33_io_wakeup_config port2 = {
+	.pullup_down_mode = ENABLE,                            //配置I/O 内部上下拉是否使能
+	.edge               = !TCFG_EAR_DETECT_DET_LEVEL,                            //唤醒方式选择,可选：上升沿\下降沿
+    .filter             = PORT_FLT_16ms,
+	.gpio              = TCFG_EAR_DETECT_DET_IO,                             //唤醒口选择
+};
+#endif
+#endif
+
+
+#if TCFG_EAR_DETECT_ENABLE
+static const struct wakeup_param wk_param = {
+    #if (TCFG_EAR_DETECT_TYPE == EAR_DETECT_BY_TOUCH) && (!TCFG_EAR_DETECT_TOUCH_MODE)
+	.port[0] = &port2,
+#endif
+};
+#endif
+
+#if TCFG_EAR_DETECT_ENABLE
+static void port_wakeup_callback(u8 index, u8 gpio)
+{
+    switch (index) {
+#if (TCFG_TEST_BOX_ENABLE || TCFG_CHARGESTORE_ENABLE || TCFG_ANC_BOX_ENABLE)
+    case 2:
+        extern void chargestore_ldo5v_fall_deal(void);
+        chargestore_ldo5v_fall_deal();
+        break;
+#endif
+#if TCFG_EAR_DETECT_ENABLE
+#if ((TCFG_EAR_DETECT_TYPE == EAR_DETECT_BY_TOUCH) && (!TCFG_EAR_DETECT_TOUCH_MODE))
+	if (gpio == TCFG_EAR_DETECT_DET_IO) {
+		ear_touch_edge_wakeup_handle(index, gpio);
+	}
+#endif
+#endif /* #if TCFG_EAR_TCH_ENABLE */
+
+    }
+}
+#endif
+
 void key_wakeup_init();
 
 void board_power_init()
@@ -55,6 +98,10 @@ void board_power_init()
     //没开启充电时,关闭漏电寄存器(约2uA)
     CHG_VILOOP_EN(0);
     CHG_VILOOP2_EN(0);
+#endif
+
+#if TCFG_EAR_DETECT_ENABLE
+    ear_detect_init();
 #endif
 
     key_wakeup_init();

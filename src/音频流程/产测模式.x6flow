@@ -359,7 +359,7 @@
      "fun": 1,
      "formFile": "../../.音量配置.json",
      "itemId": 1686637931271,
-     "subId": 39,
+     "subId": 50,
      "configs": {
       "name": "Vol_BtdMusic",
       "list": [
@@ -606,7 +606,7 @@
      "fun": 1,
      "formFile": "../../.sync配置.json",
      "itemId": 1686637931271,
-     "subId": 30,
+     "subId": 16,
      "configs": {
       "name": "config4235811",
       "list": [
@@ -848,7 +848,7 @@
      "fun": 1,
      "formFile": "../../.DAC配置.json",
      "uuid": "0XDCCD",
-     "subId": 35,
+     "subId": 38,
      "itemId": 1686637931271,
      "configs": {
       "name": "DAC6",

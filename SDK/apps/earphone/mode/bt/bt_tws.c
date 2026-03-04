@@ -133,6 +133,19 @@ static void tws_sync_call_fun(int cmd, int err)
             bt_cmd_prepare(USER_CTRL_AVCTP_OPID_PAUSE, 0, NULL);
         }
         break;
+    case SYNC_CMD_MUSIC_PLAY:
+        printf("SYNC_CMD_MUSIC_PLAY---------bt_a2dp_get_status():[%d]\r\n",bt_a2dp_get_status());
+        if ((tws_api_get_role() == TWS_ROLE_MASTER) && (bt_a2dp_get_status() != BT_MUSIC_STATUS_STARTING)) {
+            bt_cmd_prepare(USER_CTRL_AVCTP_OPID_PLAY, 0, NULL);
+        }
+        break;
+    case SYNC_CMD_MUSIC_STOP:
+        printf("SYNC_CMD_MUSIC_STOP---------bt_a2dp_get_status():[%d]\r\n",bt_a2dp_get_status());
+        if ((tws_api_get_role() == TWS_ROLE_MASTER) && (bt_a2dp_get_status() == BT_MUSIC_STATUS_STARTING)) {
+            // bt_cmd_prepare(USER_CTRL_AVCTP_OPID_STOP, 0, NULL);
+            bt_cmd_prepare(USER_CTRL_AVCTP_OPID_PLAY, 0, NULL);
+        }
+        break;
     case SYNC_CMD_RESET:
         //用来关闭按键音的，避免用户认为是假关机，这里同时执行应该可以保证两只耳都是1，避免一只耳朵还是触摸生效的
         app_var.factory_reset_flag = 1;

@@ -20,7 +20,7 @@ enum {
 };
 
 enum {
-    CMD_EAR_DETECT_MUSIC_PLAY = 0,
+    CMD_EAR_DETECT_MUSIC_PLAY = 1,
     CMD_EAR_DETECT_MUSIC_PAUSE,
     CMD_EAR_DETECT_SCO_CONN,
     CMD_EAR_DETECT_SCO_DCONN,
@@ -83,12 +83,14 @@ struct ear_detect_t {
 };
 
 // ------------------- fun -----------
-extern void ear_detect_event_handle(u8 state);
+// extern void ear_detect_event_handle(u8 state);
+extern int ear_detect_event_handle(int *msg);
 extern void ear_detect_phone_active_deal();
 extern void ear_detect_call_chg_master_deal();
 extern void ear_detect_change_master_timer_del();
 extern void tws_sync_ear_detect_state(u8 need_do);
-extern void ear_detect_init(const struct ear_detect_platform_data *cfg);
+// extern void ear_detect_init(const struct ear_detect_platform_data *cfg);
+extern void ear_detect_init(void);
 extern void ear_detect_change_state_to_event(u8 state);
 extern u8 is_ear_detect_state_in(void);
 extern void ear_touch_edge_wakeup_handle(u8 index, u8 gpio);

@@ -14,6 +14,7 @@
 
 #include "classic/tws_api.h"
 #include "app_tone.h"
+#include "audio_anc.h"
 
 
 #if RCSP_MODE
@@ -87,6 +88,9 @@ void user_send_crtl_app_data(u8 type, u8 state)
 }
 
 #define TWS_FUNC_ID_DIND_SYNC    TWS_FUNC_ID('T', 'I', 'N', 'D')
+
+u16 dhf_anc_mult_scene_mode = 0;
+
 void bt_tws_sync_moed(u8 *value) //向副耳同步音效模式状态
 {
     u8 data[2] = {0};
@@ -190,6 +194,33 @@ void rscp_user_cmd_recv(void *priv, u8 OpCode, u8 OpCode_SN, u8 *data, u16 len, 
                         }
 #endif
                     }
+                    break;
+                case DHF_ANC_MULT_SCENE_BEGIN:
+            #if (ANC_MULT_ORDER_ENABLE && TCFG_AUDIO_ANC_ENABLE)
+                    if (data[3] == DHF_ANC_MULT_SCENE_INQUIRE) { //上报耳机模式
+                        data[3] = audio_anc_mult_scene_get();
+                        data[3] = data[3] - 1;
+                        printf("dhf----DHF_ANC_MULT_SCENE_BEGIN():[%d]\r\n",data[3]);
+                    } else { //控制耳机
+                        if (anc_mode_get() == ANC_ON) {
+                    #if TCFG_USER_TWS_ENABLE
+                            if (tws_api_get_role() != TWS_ROLE_SLAVE) {
+                                tws_play_tone_file(get_tone_files()->num[data[3] + 1], 400);
+                            }
+                    #else
+                            play_tone_file(get_tone_files()->num[cnt]);
+                    #endif
+                            if (get_bt_tws_connect_status()) {
+                                tws_sync_data[0] = data[2];
+                                tws_sync_data[1] = data[3];
+                                bt_tws_sync_moed(tws_sync_data);
+                            } else {
+                                dhf_anc_mult_scene_mode = (u16)(data[3] + 1);
+                                audio_anc_mult_scene_update(dhf_anc_mult_scene_mode);
+                            }
+                        }
+                    }
+                #endif
                     break;
                 default:
 

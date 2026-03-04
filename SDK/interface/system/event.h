@@ -72,6 +72,10 @@
 #define AUDIO_EVENT_TRIM_IMU_STOP       (('A' << 24) | ('T' << 16) | ('E' << 8) | '\0')
 
 
+#if TCFG_EAR_DETECT_ENABLE
+#define DEVICE_EVENT_FROM_POST_KEY       (('F' << 24) | ('P' << 16) | ('K' << 8) | '\0')
+#endif
+
 enum {
     DEVICE_EVENT_IN,
     DEVICE_EVENT_OUT,
