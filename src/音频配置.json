@@ -3494,7 +3494,7 @@
           "label": "多场景滤波器",
           "tag": "el-switch",
           "tagIcon": "switch",
-          "defaultValue": 1,
+          "defaultValue": 0,
           "span": 6,
           "showLabel": true,
           "labelWidth": 110,
