@@ -73,7 +73,7 @@
 #endif // TCFG_CFG_TOOL_ENABLE
 
 #define CONFIG_SPI_DATA_WIDTH                     4                // flash通信
-#define CONFIG_FLASH_SIZE                         0x100000         // flash容量
+#define CONFIG_FLASH_SIZE                         0x200000         // flash容量
 #define TCFG_VM_SIZE                              40               // VM大小(K)
 
 #define TCFG_PWMLED_ENABLE                        1                // LED配置
@@ -317,7 +317,7 @@
 #define TCFG_ADC0_ENABLE                          1                // 使能
 #define TCFG_ADC0_MODE                            1                // 模式
 #define TCFG_ADC0_AIN_SEL                         1                // 输入端口
-#define TCFG_ADC0_BIAS_SEL                        32               // 供电端口
+#define TCFG_ADC0_BIAS_SEL                        1                // 供电端口
 #define TCFG_ADC0_BIAS_RSEL                       3                // MIC BIAS上拉电阻挡位
 #define TCFG_ADC0_POWER_IO                        IO_PORTA_00      // IO供电选择
 #define TCFG_ADC0_DCC_EN                          1                // DCC使能
@@ -327,13 +327,13 @@
 #define TCFG_ADC1_AIN_SEL                         1                // 输入端口
 #define TCFG_ADC1_BIAS_SEL                        2                // 供电端口
 #define TCFG_ADC1_BIAS_RSEL                       3                // MIC BIAS上拉电阻挡位
-#define TCFG_ADC1_POWER_IO                        IO_PORTA_03      // IO供电选择
+#define TCFG_ADC1_POWER_IO                        IO_PORTA_00      // IO供电选择
 #define TCFG_ADC1_DCC_EN                          1                // DCC使能
 #define TCFG_ADC1_DCC_LEVEL                       1                // DCC 截止频率
-#define TCFG_ADC2_ENABLE                          0                // 使能
-#define TCFG_ADC2_MODE                            0                // 模式
+#define TCFG_ADC2_ENABLE                          1                // 使能
+#define TCFG_ADC2_MODE                            1                // 模式
 #define TCFG_ADC2_AIN_SEL                         1                // 输入端口
-#define TCFG_ADC2_BIAS_SEL                        4                // 供电端口
+#define TCFG_ADC2_BIAS_SEL                        32               // 供电端口
 #define TCFG_ADC2_BIAS_RSEL                       3                // MIC BIAS上拉电阻挡位
 #define TCFG_ADC2_POWER_IO                        IO_PORTA_00      // IO供电选择
 #define TCFG_ADC2_DCC_EN                          1                // DCC使能
@@ -342,9 +342,9 @@
 
 #define CONFIG_ANC_ENABLE                         1                // ANC 配置
 #if CONFIG_ANC_ENABLE
-#define TCFG_AUDIO_ANC_TRAIN_MODE                 ANC_FF_EN        // ANC类型
+#define TCFG_AUDIO_ANC_TRAIN_MODE                 ANC_HYBRID_EN    // ANC类型
 #define TCFG_ANC_TOOL_DEBUG_ONLINE                1                // 蓝牙调试/产测
-#define TCFG_ANC_BOX_ENABLE                       0                // 串口调试/产测
+#define TCFG_ANC_BOX_ENABLE                       1                // 串口调试/产测
 #define TCFG_AUDIO_ANC_MULT_ORDER_ENABLE          1                // 多场景滤波器
 #define TCFG_AUDIO_ANC_ON_AUTO_SHUT_DOWN          1                // ANC_ON允许自动关机
 #define TCFG_ANC_MODE_ANC_EN                      1                // 降噪
@@ -352,7 +352,7 @@
 #define TCFG_ANC_MODE_OFF_EN                      1                // 关闭
 #define TCFG_AUDIO_ANCL_FF_MIC                    A_MIC0           // 左声道FFMIC
 #define TCFG_AUDIO_ANCR_FF_MIC                    0XFF             // 右声道FFMIC
-#define TCFG_AUDIO_ANCL_FB_MIC                    A_MIC1           // 左声道FBMIC
+#define TCFG_AUDIO_ANCL_FB_MIC                    A_MIC2           // 左声道FBMIC
 #define TCFG_AUDIO_ANCR_FB_MIC                    0XFF             // 右声道FBMIC
 #define TCFG_AUDIO_ANC_TALK_MIC                   A_MIC1           // TALK MIC
 #define TCFG_ANCIF_FILE_LOAD_SEL                  3                // 配置文件选择
@@ -362,12 +362,12 @@
 #define TCFG_AUDIO_WIDE_AREA_TAP_ENABLE           0                // 广域点击
 #define TCFG_AUDIO_VOLUME_ADAPTIVE_ENABLE         0                // 音量自适应
 #define TCFG_AUDIO_FIT_DET_ENABLE                 0                // 贴合度检测
-#define TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE  0                // 耳道自适应类型
-#define TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN            0                // ANC耳道自适应
+#define TCFG_AUDIO_ANC_REAL_TIME_ADAPTIVE_ENABLE  1                // 耳道自适应类型
+#define TCFG_AUDIO_ANC_EAR_ADAPTIVE_EN            1                // ANC耳道自适应
 #define TCFG_AUDIO_ANC_ADAPTIVE_CMP_EN            0                // ANC自适应CMP
 #define TCFG_AUDIO_ADAPTIVE_EQ_ENABLE             0                // 自适应EQ
-#define TCFG_ANC_MUSIC_ANTI_CLIPPING_MODE         0                // 防破音模式
-#define TCFG_ANC_MUSIC_DYNAMIC_GAIN_THR           -12              // ANC动态增益-触发阈值
+#define TCFG_ANC_MUSIC_ANTI_CLIPPING_MODE         2                // 防破音模式
+#define TCFG_ANC_MUSIC_DYNAMIC_GAIN_THR           -23              // ANC动态增益-触发阈值
 #endif // CONFIG_ANC_ENABLE
 
 #define TCFG_AUDIO_GLOBAL_SAMPLE_RATE             44100            // 全局采样率
@@ -394,7 +394,7 @@
 #define TCFG_SPATIAL_EFFECT_VERSION               1                // 音效算法版本选择
 #define TCFG_TWS_SPATIAL_AUDIO_AS_CHANNEL         0x0              // 传感器选择
 #define TCFG_SPATIAL_EFFECT_ONLINE_ENABLE         0                // 空间音效在线调试
-#define TCFG_DEC_WAV_ENABLE                       0                // WAV
+#define TCFG_DEC_WAV_ENABLE                       1                // WAV
 #define TCFG_DEC_MP3_ENABLE                       0                // MP3
 #define TCFG_DEC_FLAC_ENABLE                      0                // FLAC
 #define TCFG_DEC_WMA_ENABLE                       0                // WMA

@@ -220,7 +220,7 @@
      "path": "%TOOL_PATH%\\resource\\earphone\\英文\\vol_max.mp3",
      "outputName": "vol_max",
      "default": true,
-     "enable": false,
+     "enable": true,
      "format": {
       "value": "wts",
       "simpleRate": "8000",
@@ -469,17 +469,14 @@
     },
     {
      "name": "耳道自适应",
-     "path": "%TOOL_PATH%\\resource\\earphone\\英文\\adaptive.wav",
+     "path": "%PROJECT_PATH%\\SDK\\customer\\DB_Mcdodo_ZENO_Pro_N5\\tone_en\\adaptive.wav",
      "outputName": "adaptive",
      "format": {
-      "value": "wts",
-      "simpleRate": "8000",
-      "bitRate": 16000,
-      "vad": 0,
-      "priority": 1
+      "value": "原格式"
      },
-     "sizeKey": "c56b0786",
-     "size": 2473
+     "sizeKey": "2d47f78b",
+     "size": 42996,
+     "enable": true
     },
     {
      "name": "智能免摘开",
@@ -682,7 +679,7 @@
     }
    ],
    "enableOutput": 1,
-   "size": 95072,
+   "size": 141504,
    "isOpen": true
   },
   {

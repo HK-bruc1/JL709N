@@ -829,7 +829,7 @@
        {
         "name": "EscoDlEq",
         "modeId": "id_1675672290562_2",
-        "current": "",
+        "current": "wide_band",
         "bypass": false,
         "list": [
          {
@@ -1417,7 +1417,8 @@
               "id": "id_1671070296872_1",
               "value": [
                1,
-               2
+               2,
+               4
               ]
              }
             ]
@@ -1519,55 +1520,60 @@
        "strokeWidth": 2,
        "fill": "#A4A5A9",
        "stroke": "#A4A5A9"
-      },
-      "distance": 40
+      }
      }
     },
-    "id": "530719b1-5c4e-4278-9271-cb9a8a42d95d",
+    "id": "f946ecf0-aafc-4db0-a378-87c0385b8994",
+    "data": {
+     "itemId": 1657001467960
+    },
     "source": {
      "cell": "70684eec-159c-4f90-bf23-857ff6d8a449",
      "port": "5114f0b1-23ea-4659-844f-a8bd9b1e634d"
     },
-    "data": {
-     "itemId": 1657001467960
-    },
     "target": {
-     "cell": "503f9e68-c9ce-45f2-9cce-610c5e5a421a",
-     "port": "453f641d-239f-4318-a64a-ebcc61263a75"
+     "cell": "080a439f-ed42-4951-8015-a329c4677b5f",
+     "port": "10da2899-0100-4c21-9678-b00544436caf"
     }
    },
    {
     "position": {
      "x": 360,
-     "y": 720
+     "y": 600
     },
     "size": {
-     "width": 120,
+     "width": 80,
      "height": 80
     },
     "view": "vue-shape-view",
     "shape": "vue-shape",
-    "id": "503f9e68-c9ce-45f2-9cce-610c5e5a421a",
+    "id": "080a439f-ed42-4951-8015-a329c4677b5f",
     "component": "node-cust",
     "group": "hardware",
     "data": {
-     "name": "双MIC+DNS",
+     "name": "3MIC通话",
      "group": "清晰语音",
-     "uuid": "0X420E",
+     "uuid": "0X48",
      "type": 1,
      "fun": 1,
-     "formFile": "../../.cvp_dms_dns配置.json",
-     "marco": "TCFG_AUDIO_CVP_DMS_DNS_MODE",
-     "pic": "双麦DNS.png",
-     "nodeDoc": "\\docs\\html\\SDK\\audio_cvp\\cvp_2mic_manual.html",
+     "formFile": "../../.cvp_3mic配置.json",
+     "marco": "TCFG_AUDIO_CVP_3MIC_MODE",
+     "sAlias": "",
+     "dynamicPort": {
+      "iMax": 0,
+      "iMin": 0,
+      "oMax": 0,
+      "oMin": 0
+     },
+     "nodeDoc": "\\docs\\html\\SDK\\audio_cvp\\cvp_3mic_manual.html",
      "subId": 1,
      "itemId": 1657001467960,
      "configs": {
-      "name": "MICDNS420E1",
+      "name": "3MIC481",
       "list": [
        {
         "modeId": "id_1675672290562_2",
-        "name": "MICDNS420E1",
+        "name": "3MIC481",
         "current": "arg0",
         "bypass": false,
         "list": [
@@ -1584,6 +1590,10 @@
              {
               "id": "id_1679398646256_3",
               "value": 1
+             },
+             {
+              "id": "id_1696900019304_1",
+              "value": 4
              }
             ],
             "expand": 2
@@ -1600,7 +1610,7 @@
               "value": 4
              }
             ],
-            "expand": 2
+            "expand": 1
            },
            {
             "id": "id_1676965070646_0",
@@ -1611,11 +1621,15 @@
              },
              {
               "id": "id_1676965070646_2",
-              "value": 16
+              "value": 24
              },
              {
               "id": "id_1676965172164_5",
-              "value": 16
+              "value": 24
+             },
+             {
+              "id": "id_1706188554180_0",
+              "value": 24
              }
             ],
             "expand": 2
@@ -1625,7 +1639,7 @@
             "list": [
              {
               "id": "id_1675824280475_176",
-              "value": 0
+              "value": 1
              },
              {
               "id": "id_1675824280474_158",
@@ -1685,7 +1699,7 @@
              },
              {
               "id": "id_1675824280477_200",
-              "value": 15
+              "value": 21
              },
              {
               "id": "id_1675824280477_202",
@@ -1693,11 +1707,23 @@
              },
              {
               "id": "id_1675824280477_204",
-              "value": 4
+              "value": 1
              },
              {
               "id": "id_1675824280478_206",
               "value": 0.09
+             },
+             {
+              "id": "id_1698026984227_0",
+              "value": 0.5
+             },
+             {
+              "id": "id_1698027130436_1",
+              "value": 0.5
+             },
+             {
+              "id": "id_1698027224339_2",
+              "value": 10
              }
             ],
             "expand": 2
@@ -1711,7 +1737,7 @@
              },
              {
               "id": "id_1675248813442_2",
-              "value": 1
+              "value": 1.8
              },
              {
               "id": "id_1675248813442_3",
@@ -1719,17 +1745,7 @@
              },
              {
               "id": "id_1675248813442_4",
-              "value": -75
-             }
-            ],
-            "expand": 2
-           },
-           {
-            "id": "id_1675824280478_212",
-            "list": [
-             {
-              "id": "id_1675824280478_210",
-              "value": 0.04
+              "value": -100
              }
             ],
             "expand": 2
@@ -1738,55 +1754,113 @@
             "id": "id_1675824280479_238",
             "list": [
              {
-              "id": "id_1675824280478_214",
+              "id": "id_1696900315802_2",
               "value": 1
              },
              {
-              "id": "id_1675824280478_216",
+              "id": "id_1675824280478_214",
+              "value": 0
+             }
+            ],
+            "expand": 2
+           },
+           {
+            "id": "id_1696900419203_5",
+            "list": [
+             {
+              "id": "id_1696922370333_0",
               "value": 1.3
              },
              {
-              "id": "id_1675824280478_218",
+              "id": "id_1696922373676_1",
               "value": 1.3
              },
              {
-              "id": "id_1675824280478_220",
+              "id": "id_1696922378373_2",
               "value": 1.3
              },
              {
-              "id": "id_1675824280478_222",
+              "id": "id_1696922380460_3",
               "value": 1.3
              },
              {
-              "id": "id_1675824280479_224",
-              "value": 12
+              "id": "id_1696922422915_11",
+              "value": 16
              },
              {
-              "id": "id_1675824280479_226",
-              "value": 12
+              "id": "id_1696922385579_5",
+              "value": 16
              },
              {
-              "id": "id_1675824280479_228",
+              "id": "id_1696922387540_6",
               "value": -50
              },
              {
-              "id": "id_1675824280479_230",
-              "value": 12
+              "id": "id_1696922389732_7",
+              "value": 16
              },
              {
-              "id": "id_1675824280479_232",
-              "value": 12
+              "id": "id_1696922391948_8",
+              "value": 16
              },
              {
-              "id": "id_1675824280479_234",
+              "id": "id_1696922394636_9",
               "value": -40
              },
              {
-              "id": "id_1675824280479_236",
+              "id": "id_1696922396763_10",
               "value": -70
              }
             ],
             "expand": 2
+           },
+           {
+            "id": "id_1696900688641_6",
+            "list": [
+             {
+              "id": "id_1696900810208_18",
+              "value": -50
+             },
+             {
+              "id": "id_1696900688641_8",
+              "value": -3
+             },
+             {
+              "id": "id_1696900688641_9",
+              "value": 0
+             },
+             {
+              "id": "id_1696900688641_10",
+              "value": -3
+             },
+             {
+              "id": "id_1696900688641_11",
+              "value": -70
+             }
+            ],
+            "expand": 2
+           },
+           {
+            "id": "id_1696901651810_19",
+            "list": [
+             {
+              "id": "id_1696918346850_0",
+              "value": 1
+             },
+             {
+              "id": "id_1696901651810_20",
+              "value": 0.6
+             },
+             {
+              "id": "id_1696901988903_25",
+              "value": 100
+             },
+             {
+              "id": "id_1696901651810_22",
+              "value": 0
+             }
+            ],
+            "expand": 1
            },
            {
             "id": "id_1692687693610_0",
@@ -1873,12 +1947,12 @@
       {
        "group": "in",
        "index": 0,
-       "id": "453f641d-239f-4318-a64a-ebcc61263a75"
+       "id": "10da2899-0100-4c21-9678-b00544436caf"
       },
       {
        "group": "out",
-       "index": 0,
-       "id": "356d55bf-8e45-4ed8-a447-29d2f78f05c7"
+       "index": 1,
+       "id": "03b6141c-54fb-4420-8152-11a12d2d049a"
       }
      ]
     }
@@ -1895,17 +1969,16 @@
        "strokeWidth": 2,
        "fill": "#A4A5A9",
        "stroke": "#A4A5A9"
-      },
-      "distance": 40
+      }
      }
     },
-    "id": "bf245a02-458a-41e2-974a-19e368299542",
-    "source": {
-     "cell": "503f9e68-c9ce-45f2-9cce-610c5e5a421a",
-     "port": "356d55bf-8e45-4ed8-a447-29d2f78f05c7"
-    },
+    "id": "54f8fc72-e367-4abd-91f2-c06cbc25f56e",
     "data": {
      "itemId": 1657001467960
+    },
+    "source": {
+     "cell": "080a439f-ed42-4951-8015-a329c4677b5f",
+     "port": "03b6141c-54fb-4420-8152-11a12d2d049a"
     },
     "target": {
      "cell": "929546dc-e2fc-4b05-ab46-789b15739bef",
@@ -2083,7 +2156,7 @@
        {
         "name": "EscoUlEq",
         "modeId": "id_1675672290562_2",
-        "current": "",
+        "current": "wide_band",
         "bypass": false,
         "list": [
          {
@@ -2097,7 +2170,7 @@
             "Gain": 0,
             "QValue": 0.7,
             "type": 2,
-            "fEnable": true
+            "fEnable": false
            },
            {
             "id": 1675672290852,
@@ -2106,22 +2179,22 @@
             "Gain": 0,
             "QValue": 0.7,
             "type": 2,
-            "fEnable": true
+            "fEnable": false
            },
            {
             "id": 1675672290853,
             "name": "3",
-            "CenterFrequency": 113,
-            "Gain": 0,
+            "CenterFrequency": 180,
+            "Gain": -2,
             "QValue": 0.7,
-            "type": 2,
+            "type": 0,
             "fEnable": true
            },
            {
             "id": 1675672290854,
             "name": "4",
-            "CenterFrequency": 240,
-            "Gain": 0,
+            "CenterFrequency": 1800,
+            "Gain": 2.44,
             "QValue": 0.7,
             "type": 2,
             "fEnable": true
@@ -2129,8 +2202,8 @@
            {
             "id": 1675672290855,
             "name": "5",
-            "CenterFrequency": 509,
-            "Gain": 0,
+            "CenterFrequency": 6000,
+            "Gain": 1.9,
             "QValue": 0.7,
             "type": 2,
             "fEnable": true
@@ -2142,7 +2215,7 @@
             "Gain": 0,
             "QValue": 0.7,
             "type": 2,
-            "fEnable": true
+            "fEnable": false
            },
            {
             "id": 1675672290857,
@@ -2151,7 +2224,7 @@
             "Gain": 0,
             "QValue": 0.7,
             "type": 2,
-            "fEnable": true
+            "fEnable": false
            },
            {
             "id": 1675672290858,
@@ -2160,7 +2233,7 @@
             "Gain": 0,
             "QValue": 0.7,
             "type": 2,
-            "fEnable": true
+            "fEnable": false
            },
            {
             "id": 1675672290859,
@@ -2169,7 +2242,7 @@
             "Gain": 0,
             "QValue": 0.7,
             "type": 2,
-            "fEnable": true
+            "fEnable": false
            },
            {
             "id": 1675672290860,
@@ -2178,7 +2251,7 @@
             "Gain": 0,
             "QValue": 0.7,
             "type": 2,
-            "fEnable": true
+            "fEnable": false
            },
            {
             "name": "Hp",
@@ -2198,14 +2271,14 @@
            }
           ],
           "size": 10,
-          "gain": 0,
+          "gain": -3,
           "range": 20,
-          "bypass": false,
-          "sampleRate": 48000
+          "sampleRate": 48000,
+          "bypass": false
          },
          {
           "name": "narrow_band",
-          "enable": true,
+          "enable": false,
           "data": [
            {
             "id": 1675672290851,
@@ -2616,230 +2689,6 @@
        "group": "in",
        "id": "25ac1764-1e03-461d-8a28-4d109b881a7f",
        "index": 0
-      }
-     ]
-    }
-   },
-   {
-    "position": {
-     "x": 360,
-     "y": 840
-    },
-    "size": {
-     "width": 80,
-     "height": 80
-    },
-    "view": "vue-shape-view",
-    "shape": "vue-shape",
-    "id": "7fc03b8e-8463-4990-8ab2-2a90581d6929",
-    "component": "node-cust",
-    "group": "hardware",
-    "data": {
-     "name": "单MIC+DNS",
-     "group": "清晰语音",
-     "uuid": "0XDBF5",
-     "type": 1,
-     "fun": 1,
-     "formFile": "../../.cvp_sms_dns配置.json",
-     "marco": "TCFG_AUDIO_CVP_SMS_DNS_MODE",
-     "pic": "单麦DNS.png",
-     "nodeDoc": "\\docs\\html\\SDK\\audio_cvp\\cvp_1mic_manual.html",
-     "subId": 1,
-     "itemId": 1657001467960,
-     "configs": {
-      "name": "MICDNSDBF51",
-      "list": [
-       {
-        "modeId": "id_1675672290562_2",
-        "name": "MICDNSDBF51",
-        "current": "",
-        "bypass": false,
-        "list": [
-         {
-          "name": "arg0",
-          "data": [
-           {
-            "id": "id_1691745707267_4",
-            "list": [
-             {
-              "id": "id_1691745735576_5",
-              "value": 0
-             },
-             {
-              "id": "id_1719404851819_0",
-              "value": [
-               2
-              ]
-             }
-            ]
-           },
-           {
-            "id": "id_1676964986774_0",
-            "list": [
-             {
-              "id": "id_1676964986774_1",
-              "value": 0
-             },
-             {
-              "id": "id_1676964986774_2",
-              "value": 0
-             }
-            ]
-           },
-           {
-            "id": "id_1675824280474_166",
-            "list": [
-             {
-              "id": "id_1675824280479_240",
-              "value": 0
-             },
-             {
-              "id": "id_1675824280474_160",
-              "value": 1
-             },
-             {
-              "id": "id_1675824280479_242",
-              "value": -70
-             }
-            ]
-           },
-           {
-            "id": "id_1675824280480_250",
-            "list": [
-             {
-              "id": "id_1675824280479_244",
-              "value": 1
-             },
-             {
-              "id": "id_1675824280480_246",
-              "value": -3
-             },
-             {
-              "id": "id_1675824280480_248",
-              "value": 4
-             }
-            ]
-           },
-           {
-            "id": "id_1675247971834_0",
-            "list": [
-             {
-              "id": "id_1675247971834_1",
-              "value": 1
-             },
-             {
-              "id": "id_1675247971834_2",
-              "value": 1
-             },
-             {
-              "id": "id_1675247971834_3",
-              "value": 0.1
-             },
-             {
-              "id": "id_1713859708953_0",
-              "value": -75
-             }
-            ]
-           },
-           {
-            "id": "id_1675824280481_276",
-            "list": [
-             {
-              "id": "id_1675824280480_252",
-              "value": 1
-             },
-             {
-              "id": "id_1675824280480_254",
-              "value": 1.3
-             },
-             {
-              "id": "id_1675824280480_256",
-              "value": 1.3
-             },
-             {
-              "id": "id_1675824280480_258",
-              "value": 1.3
-             },
-             {
-              "id": "id_1675824280480_260",
-              "value": 1.3
-             },
-             {
-              "id": "id_1675824280480_262",
-              "value": 8
-             },
-             {
-              "id": "id_1675824280480_264",
-              "value": 0
-             },
-             {
-              "id": "id_1675824280480_266",
-              "value": -50
-             },
-             {
-              "id": "id_1675824280480_268",
-              "value": 12
-             },
-             {
-              "id": "id_1675824280481_270",
-              "value": 0
-             },
-             {
-              "id": "id_1675824280481_272",
-              "value": -40
-             },
-             {
-              "id": "id_1675824280481_274",
-              "value": -70
-             }
-            ]
-           }
-          ],
-          "enable": true
-         }
-        ]
-       }
-      ]
-     }
-    },
-    "ports": {
-     "groups": {
-      "in": {
-       "position": "left"
-      },
-      "out": {
-       "position": "right",
-       "attrs": {
-        "text": {
-         "fill": "#2b3f57",
-         "font-size": "12",
-         "visibility": "visible",
-         "text": ""
-        },
-        "circle": {
-         "r": 6,
-         "magnet": true,
-         "stroke": "#7DC06E",
-         "strokeWidth": 2,
-         "fill": "#f2f2f2",
-         "event": "port:click",
-         "style": {
-          "visibility": "visible"
-         }
-        }
-       }
-      }
-     },
-     "items": [
-      {
-       "group": "in",
-       "index": 0,
-       "id": "453f641d-239f-4318-a64a-ebcc61263a75"
-      },
-      {
-       "group": "out",
-       "index": 0,
-       "id": "356d55bf-8e45-4ed8-a447-29d2f78f05c7"
       }
      ]
     }

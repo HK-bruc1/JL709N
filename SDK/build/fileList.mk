@@ -27,6 +27,10 @@
 
 c_SRC_FILES += audio/framework/plugs/source/a2dp_file.c audio/framework/plugs/source/a2dp_streamctrl.c audio/framework/plugs/source/esco_file.c audio/framework/plugs/source/adc_file.c audio/framework/plugs/source/multi_ch_adc_file.c audio/framework/nodes/esco_tx_node.c audio/framework/nodes/plc_node.c audio/framework/nodes/volume_node.c
 c_SRC_FILES += audio/framework/nodes/cvp_dms_node.c
+
+
+
+c_SRC_FILES += audio/framework/nodes/cvp_3mic_node.c
 c_SRC_FILES += audio/test_tools/audio_dut_control.c audio/test_tools/audio_dut_control_old.c
 
 

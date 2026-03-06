@@ -34,11 +34,11 @@
 #define TCFG_AI_RX_NODE_ENABLE                    0                // AI_RX
 #define TCFG_AI_TX_NODE_ENABLE                    0                // AI_TX
 #define TCFG_AUDIO_AVC_NODE_ENABLE                0                // AVC
-#define TCFG_AUDIO_CVP_3MIC_MODE                  0                // 3MIC通话
+#define TCFG_AUDIO_CVP_3MIC_MODE                  1                // 3MIC通话
 #define TCFG_AUDIO_CVP_DEVELOP_ENABLE             0                // 通话第三方算法
 #define TCFG_AUDIO_CVP_DMS_ANS_MODE               0                // 双MIC通话
 #define TCFG_AUDIO_CVP_DMS_AWN_DNS_MODE           0                // 2MIC-AWN
-#define TCFG_AUDIO_CVP_DMS_DNS_MODE               1                // 双MIC+DNS
+#define TCFG_AUDIO_CVP_DMS_DNS_MODE               0                // 双MIC+DNS
 #define TCFG_AUDIO_CVP_DMS_FLEXIBLE_ANS_MODE      0                // 话务双MIC通话
 #define TCFG_AUDIO_CVP_DMS_FLEXIBLE_DNS_MODE      0                // 话务双MIC+DNS
 #define TCFG_AUDIO_CVP_DMS_HYBRID_DNS_MODE        0                // HYBRID双MIC+DNS
@@ -162,7 +162,7 @@
 #define TCFG_AUDIO_EFX_665C_RUN_MODE              EFx_BW_32t32     // 2Band Merge
 #define TCFG_AUDIO_EFX_F0C3_RUN_MODE              EFx_BW_UNUSED    // 2MIC-AWN
 #define TCFG_AUDIO_EFX_1B9D_RUN_MODE              EFx_BW_UNUSED    // 3Band Merge
-#define TCFG_AUDIO_EFX_0048_RUN_MODE              EFx_BW_UNUSED    // 3MIC通话
+#define TCFG_AUDIO_EFX_0048_RUN_MODE              EFx_BW_16t16     // 3MIC通话
 #define TCFG_AUDIO_EFX_4C00_RUN_MODE              EFx_BW_UNUSED    // 3D Plus
 #define TCFG_AUDIO_EFX_F975_RUN_MODE              EFx_BW_16t16     // A2DP_RX
 #define TCFG_AUDIO_EFX_D06D_RUN_MODE              EFx_BW_16t16     // ADC
@@ -278,7 +278,7 @@
 #define TCFG_AUDIO_EFX_9B3B_RUN_MODE              EFx_BW_16t16     // 播放同步
 #define TCFG_AUDIO_EFX_E76E_RUN_MODE              EFx_BW_UNUSED    // 串口打印
 #define TCFG_AUDIO_EFX_299E_RUN_MODE              EFx_BW_UNUSED    // 单麦AEC
-#define TCFG_AUDIO_EFX_DBF5_RUN_MODE              EFx_BW_16t16     // 单MIC+DNS
+#define TCFG_AUDIO_EFX_DBF5_RUN_MODE              EFx_BW_UNUSED    // 单MIC+DNS
 #define TCFG_AUDIO_EFX_D0BC_RUN_MODE              EFx_BW_UNUSED    // 单MIC通话
 #define TCFG_AUDIO_EFX_ED7F_RUN_MODE              EFx_BW_16t16     // 丢包修复PLC
 #define TCFG_AUDIO_EFX_2C15_RUN_MODE              EFx_BW_UNUSED    // 多路复用器
@@ -294,7 +294,7 @@
 #define TCFG_AUDIO_EFX_A724_RUN_MODE              EFx_BW_UNUSED    // 声道拆分
 #define TCFG_AUDIO_EFX_36D7_RUN_MODE              EFx_BW_UNUSED    // 声道交换器
 #define TCFG_AUDIO_EFX_503D_RUN_MODE              EFx_BW_UNUSED    // 声道组合
-#define TCFG_AUDIO_EFX_420E_RUN_MODE              EFx_BW_16t16     // 双MIC+DNS
+#define TCFG_AUDIO_EFX_420E_RUN_MODE              EFx_BW_UNUSED    // 双MIC+DNS
 #define TCFG_AUDIO_EFX_2115_RUN_MODE              EFx_BW_UNUSED    // 双MIC通话
 #define TCFG_AUDIO_EFX_768A_RUN_MODE              EFx_BW_16t16     // 提示音
 #define TCFG_AUDIO_EFX_76EF_RUN_MODE              EFx_BW_UNUSED    // 通话第三方算法
@@ -304,7 +304,7 @@
 // ------------流程图节点位宽定义------------
 
 // ------------流程图EQ节点类型宏定义------------
-#define EQ_CFG_TYPE_HIGH_PASS                     0                // High Pass
+#define EQ_CFG_TYPE_HIGH_PASS                     1                // High Pass
 #define EQ_CFG_TYPE_LOW_PASS                      0                // Low Pass
 #define EQ_CFG_TYPE_PEAKING                       1                // Peaking
 #define EQ_CFG_TYPE_HIGH_SHELF                    0                // High Shelf
